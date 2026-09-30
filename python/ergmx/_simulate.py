@@ -93,7 +93,7 @@ def simulate(network, formula, coef, nsim: int = 1, *, seed=None, output: str = 
         Default to ergm's 16384 and 1024.
     triadic_weight : float, optional
         Share of MCMC proposals that close or open a triangle. Defaults to 0.5
-        for undirected models with triangle or gwesp terms, 0 otherwise.
+        for models with triangle or shared partner terms, 0 otherwise.
     """
     if output not in ("network", "stats"):
         raise ValueError(f"output must be 'network' or 'stats', not {output!r}")

@@ -83,7 +83,7 @@ impl PyModel {
     ///
     /// Returns the sampled statistics (chains x samplesize x statistics), the
     /// last network of each chain and, if `keep_networks`, every sampled network.
-    /// `triadic_weight` is the share of triadic proposals (undirected networks only).
+    /// `triadic_weight` is the share of triadic proposals.
     #[pyo3(signature = (starts, theta, burnin, interval, samplesize, seed, keep_networks = false, triadic_weight = 0.0))]
     #[allow(clippy::too_many_arguments, clippy::type_complexity)]
     fn simulate<'py>(
@@ -108,10 +108,8 @@ impl PyModel {
         if interval == 0 || starts.is_empty() {
             return Err(PyValueError::new_err("need interval > 0 and at least one chain"));
         }
-        if !(0.0..1.0).contains(&triadic_weight) || (triadic_weight > 0.0 && self.directed) {
-            return Err(PyValueError::new_err(
-                "triadic_weight must be in [0, 1), and 0 for directed networks",
-            ));
+        if !(0.0..1.0).contains(&triadic_weight) {
+            return Err(PyValueError::new_err("triadic_weight must be in [0, 1)"));
         }
         let proposal = sampler::Proposal { triadic_weight };
         let nets = starts.iter().map(|s| self.network(s)).collect::<PyResult<Vec<_>>>()?;

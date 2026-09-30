@@ -27,12 +27,11 @@ class BoundModel:
         return len(self.names)
 
     def triadic_weight(self, requested: float | None) -> float:
-        """Share of triadic MCMC proposals: 0.5 by default for undirected models
-        with triangle terms, as ergm does, and 0 otherwise."""
+        """Share of triadic MCMC proposals: 0.5 by default for models with
+        triangle or shared partner terms, as ergm does, and 0 otherwise."""
         if requested is not None:
             return float(requested)
-        triadic = any(t.triadic for t in self.formula)
-        return 0.5 if triadic and not self.network.directed else 0.0
+        return 0.5 if any(t.triadic for t in self.formula) else 0.0
 
     def observed(self) -> np.ndarray:
         return np.array(self.core.summary(self.network.edges))

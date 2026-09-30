@@ -120,6 +120,12 @@ class ErgmFit:
             output=output, **options,
         )
 
+    def gof(self, nsim: int = 100, **options):
+        """Goodness of fit of the model. See :func:`ergmx.gof`."""
+        from ._gof import gof
+
+        return gof(self, nsim=nsim, **options)
+
     def summary(self) -> FitSummary:
         return FitSummary(self)
 

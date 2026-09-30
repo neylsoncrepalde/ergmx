@@ -1,7 +1,8 @@
 //! A binary network without self-loops, stored as sorted neighbour lists.
 //!
 //! An edge list with a position index gives O(1) random edges, which the TNT
-//! proposal needs. Undirected edges are stored once, as (min, max).
+//! proposal needs. Undirected edges are stored once, as (min, max). Directed
+//! networks also keep, for each vertex, its neighbours in either direction.
 
 use rustc_hash::FxHashMap;
 
@@ -15,6 +16,8 @@ pub struct Network {
     out: Vec<Vec<u32>>,
     /// In-neighbours. Sorted, and empty if undirected.
     inn: Vec<Vec<u32>>,
+    /// Neighbours in either direction. Sorted, and empty if undirected.
+    both: Vec<Vec<u32>>,
     edges: Vec<(u32, u32)>,
     position: FxHashMap<u64, usize>,
 }
@@ -27,6 +30,7 @@ impl Network {
             directed,
             out: lists(),
             inn: if directed { lists() } else { Vec::new() },
+            both: if directed { lists() } else { Vec::new() },
             edges: Vec::new(),
             position: FxHashMap::default(),
         }
@@ -70,9 +74,19 @@ impl Network {
         &self.edges
     }
 
-    /// Neighbours of `i` in an undirected network, or its out-neighbours.
+    /// Neighbours of `i`, in either direction if the network is directed.
     pub fn neighbours(&self, i: u32) -> &[u32] {
+        if self.directed { &self.both[i as usize] } else { &self.out[i as usize] }
+    }
+
+    /// Vertices `i` sends a tie to (all neighbours if undirected).
+    pub fn out_neighbours(&self, i: u32) -> &[u32] {
         &self.out[i as usize]
+    }
+
+    /// Vertices that send a tie to `i` (all neighbours if undirected).
+    pub fn in_neighbours(&self, i: u32) -> &[u32] {
+        if self.directed { &self.inn[i as usize] } else { &self.out[i as usize] }
     }
 
     #[inline]
@@ -98,6 +112,10 @@ impl Network {
             remove_sorted(&mut self.out[i as usize], j);
             if self.directed {
                 remove_sorted(&mut self.inn[j as usize], i);
+                if !self.has_edge(j, i) {
+                    remove_sorted(&mut self.both[i as usize], j);
+                    remove_sorted(&mut self.both[j as usize], i);
+                }
             } else {
                 remove_sorted(&mut self.out[j as usize], i);
             }
@@ -108,6 +126,8 @@ impl Network {
             insert_sorted(&mut self.out[i as usize], j);
             if self.directed {
                 insert_sorted(&mut self.inn[j as usize], i);
+                insert_sorted(&mut self.both[i as usize], j);
+                insert_sorted(&mut self.both[j as usize], i);
             } else {
                 insert_sorted(&mut self.out[j as usize], i);
             }
@@ -198,6 +218,12 @@ mod tests {
                     assert_eq!(net.has_edge(i, j), expected.contains(&key));
                 }
                 assert!(net.out[i as usize].windows(2).all(|w| w[0] < w[1]));
+                let either: Vec<u32> = (0..n)
+                    .filter(|&j| j != i && (net.has_edge(i, j) || net.has_edge(j, i)))
+                    .collect();
+                assert_eq!(net.neighbours(i), either.as_slice());
+                let sources: Vec<u32> = (0..n).filter(|&j| j != i && net.has_edge(j, i)).collect();
+                assert_eq!(net.in_neighbours(i), sources.as_slice());
             }
         }
     }

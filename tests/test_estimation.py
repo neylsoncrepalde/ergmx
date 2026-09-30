@@ -1,29 +1,34 @@
 import numpy as np
 import pytest
-from conftest import REFERENCE, load
+from conftest import REFERENCE, load, models_with
 
 import ergmx
 
-DEPENDENT = [name for name, m in REFERENCE.items() if not m["dyad_independent"]]
+FITTED = models_with("mle")
+DEPENDENT = [name for name in FITTED if not REFERENCE[name]["dyad_independent"]]
+INDEPENDENT = [name for name in FITTED if REFERENCE[name]["dyad_independent"]]
 
 
-def test_mple_matches_r(reference):
-    _, model, g = reference
+@pytest.mark.parametrize("name", models_with("mple"))
+def test_mple_matches_r(name):
+    model = REFERENCE[name]
+    g = load(model["network"])
     fit = ergmx.ergm(g, model["formula"], estimate="MPLE")
     assert fit.names == list(model["mple"])
     np.testing.assert_allclose(list(fit.mple.values()), list(model["mple"].values()),
                                rtol=1e-6, atol=1e-8)
 
 
-def test_dyad_independent_models_get_the_exact_mle():
-    model = REFERENCE["flo_dyadind"]
+@pytest.mark.parametrize("name", INDEPENDENT)
+def test_dyad_independent_models_get_the_exact_mle(name):
+    model = REFERENCE[name]
     fit = ergmx.ergm(load(model["network"]), model["formula"])
     assert fit.method == "MLE"
     np.testing.assert_allclose(list(fit.coef.values()), list(model["mle"].values()), rtol=1e-6)
-    # R's glm stops at a deviance tolerance of 1e-8, so its SEs are accurate to ~1e-6.
-    np.testing.assert_allclose(list(fit.stderr.values()), list(model["se"].values()), rtol=1e-5)
+    # R's glm stops at a relative deviance change of 1e-8: its SEs are accurate to ~1e-4.
+    np.testing.assert_allclose(list(fit.stderr.values()), list(model["se"].values()), rtol=1e-4)
     assert fit.loglik == pytest.approx(model["loglik"], rel=1e-9)
-    assert fit.aic == pytest.approx(-2 * model["loglik"] + 2 * 3)
+    assert fit.aic == pytest.approx(-2 * model["loglik"] + 2 * len(fit.names))
 
 
 @pytest.mark.parametrize("name", DEPENDENT)

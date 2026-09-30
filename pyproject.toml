@@ -27,7 +27,8 @@ classifiers = [
 [project.optional-dependencies]
 igraph = ["igraph>=0.11.5"]
 networkx = ["networkx>=3.0"]
-test = ["pytest>=7", "igraph>=0.11.5", "networkx>=3.0"]
+plot = ["matplotlib>=3.6"]
+test = ["pytest>=7", "igraph>=0.11.5", "networkx>=3.0", "matplotlib>=3.6"]
 
 [tool.maturin]
 python-source = "python"

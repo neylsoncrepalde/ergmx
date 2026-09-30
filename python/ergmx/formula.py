@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import re
 
 from .terms import TERMS, Formula
 
@@ -18,11 +19,11 @@ def parse_formula(formula: str) -> Formula:
     """Parse a formula string into terms.
 
     The syntax is R's: terms separated by ``+``, with arguments in
-    parentheses. A left-hand side (``"net ~ edges + mutual"``) is ignored, and
-    ``TRUE``/``FALSE`` are accepted as well as ``True``/``False``. Nothing is
-    evaluated: arguments must be literals.
+    parentheses. A left-hand side (``"net ~ edges + mutual"``) is ignored;
+    ``TRUE``/``FALSE``, ``c(2, 3)`` and ``2:3`` are accepted as in R. Nothing
+    is evaluated: arguments must be literals.
     """
-    rhs = formula.split("~", 1)[-1].strip()
+    rhs = _integer_ranges(formula.split("~", 1)[-1].strip())
     try:
         tree = ast.parse(rhs, mode="eval").body
     except SyntaxError as e:
@@ -42,9 +43,23 @@ def _terms(node: ast.expr, formula: str) -> list:
     raise FormulaError(f"can't parse {ast.unparse(node)!r} in the formula {formula!r}")
 
 
+def _integer_ranges(text: str) -> str:
+    """Rewrite R's integer ranges such as 2:4 as lists, outside quoted strings."""
+    parts = re.split(r"('[^']*'|\"[^\"]*\")", text)
+    for i in range(0, len(parts), 2):
+        parts[i] = re.sub(
+            r"(?<![\w.])(\d+)\s*:\s*(\d+)(?![\w.])",
+            lambda m: str(list(range(int(m[1]), int(m[2]) + 1))),
+            parts[i],
+        )
+    return "".join(parts)
+
+
 def _literal(node: ast.expr):
     if isinstance(node, ast.Name) and node.id in _R_CONSTANTS:
         return _R_CONSTANTS[node.id]
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "c":
+        return [_literal(a) for a in node.args]  # R's c(...)
     try:
         return ast.literal_eval(node)
     except ValueError:

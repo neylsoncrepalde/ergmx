@@ -7,7 +7,7 @@
       "n": 205,
       "runs": [
         {
-          "seconds": 18.077,
+          "seconds": 18.268,
           "coef": {
             "edges": -6.1883660378881,
             "nodefactor.Sex.M": -0.129328421286251,
@@ -24,7 +24,7 @@
           }
         },
         {
-          "seconds": 15.824,
+          "seconds": 15.841,
           "coef": {
             "edges": -6.18814799775785,
             "nodefactor.Sex.M": -0.125997617797992,
@@ -41,7 +41,7 @@
           }
         },
         {
-          "seconds": 13.128,
+          "seconds": 13.056,
           "coef": {
             "edges": -6.19203836876915,
             "nodefactor.Sex.M": -0.124924160838435,
@@ -65,7 +65,7 @@
       "n": 1461,
       "runs": [
         {
-          "seconds": 12.806,
+          "seconds": 12.709,
           "coef": {
             "edges": -9.78040930378661,
             "nodematch.Grade": 2.74598098148386,
@@ -82,7 +82,7 @@
           }
         },
         {
-          "seconds": 13.594,
+          "seconds": 13.664,
           "coef": {
             "edges": -9.78258240805081,
             "nodematch.Grade": 2.74999598203295,
@@ -99,7 +99,7 @@
           }
         },
         {
-          "seconds": 21.329,
+          "seconds": 21.416,
           "coef": {
             "edges": -9.7832450025564,
             "nodematch.Grade": 2.75148677893125,
@@ -113,6 +113,64 @@
             "nodematch.Race": 0.0746381223071514,
             "nodematch.Sex": 0.0624679083771046,
             "gwesp.fixed.0.25": 0.0511813858209523
+          }
+        }
+      ]
+    },
+    "dixon": {
+      "network": "faux.dixon.high",
+      "formula": "edges + mutual + nodematch('grade') + nodematch('race') + gwesp(0.1, fixed=TRUE)",
+      "n": 248,
+      "runs": [
+        {
+          "seconds": 122.222,
+          "coef": {
+            "edges": -5.87187608473519,
+            "mutual": 1.85996173997772,
+            "nodematch.grade": 1.16624223407652,
+            "nodematch.race": 0.759737897976401,
+            "gwesp.OTP.fixed.0.1": 1.43029975257848
+          },
+          "se": {
+            "edges": 0.0575729555303685,
+            "mutual": 0.117693163790968,
+            "nodematch.grade": 0.0470152510317971,
+            "nodematch.race": 0.0476724057161713,
+            "gwesp.OTP.fixed.0.1": 0.0543206783014154
+          }
+        },
+        {
+          "seconds": 132.18,
+          "coef": {
+            "edges": -5.87327438325432,
+            "mutual": 1.86144257371168,
+            "nodematch.grade": 1.16540118234152,
+            "nodematch.race": 0.759045148888615,
+            "gwesp.OTP.fixed.0.1": 1.4343547651963
+          },
+          "se": {
+            "edges": 0.0583864905970561,
+            "mutual": 0.118629504962666,
+            "nodematch.grade": 0.0481428493578251,
+            "nodematch.race": 0.049479464061182,
+            "gwesp.OTP.fixed.0.1": 0.0571178175691936
+          }
+        },
+        {
+          "seconds": 178.024,
+          "coef": {
+            "edges": -5.87128302258391,
+            "mutual": 1.85878618749823,
+            "nodematch.grade": 1.16849027567161,
+            "nodematch.race": 0.756521815317502,
+            "gwesp.OTP.fixed.0.1": 1.43142992114654
+          },
+          "se": {
+            "edges": 0.0589633295523809,
+            "mutual": 0.120771941152491,
+            "nodematch.grade": 0.0472200096070513,
+            "nodematch.race": 0.048363164767804,
+            "gwesp.OTP.fixed.0.1": 0.0545694272334557
           }
         }
       ]

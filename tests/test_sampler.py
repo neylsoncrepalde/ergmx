@@ -64,13 +64,53 @@ def test_triadic_proposals_are_the_default_for_triangle_models():
     assert bind(mesa, "edges + gwesp(0.5, fixed=TRUE)").triadic_weight(None) == 0.5
     assert bind(mesa, "edges + nodematch('Grade')").triadic_weight(None) == 0.0
     assert bind(samplk, "edges + mutual").triadic_weight(None) == 0.0
+    assert bind(samplk, "edges + gwesp(0.5, fixed=TRUE)").triadic_weight(None) == 0.5
     assert bind(mesa, "edges + triangle").triadic_weight(0.2) == 0.2
 
 
 def test_triadic_weight_is_validated():
-    directed = bind(load("samplk3"), "edges + mutual")
-    with pytest.raises(ValueError, match="triadic_weight"):
-        directed.core.simulate([directed.network.edges], [0.0, 0.0], 10, 1, 1, 1, triadic_weight=0.5)
     undirected = bind(load("flomarriage"), "edges")
     with pytest.raises(ValueError, match="triadic_weight"):
         undirected.core.simulate([undirected.network.edges], [0.0], 10, 1, 1, 1, triadic_weight=1.0)
+
+
+def all_directed_networks(n):
+    pairs = [(i, j) for i in range(n) for j in range(n) if i != j]
+    for bits in itertools.product((0, 1), repeat=len(pairs)):
+        yield np.array([p for p, b in zip(pairs, bits) if b], dtype=np.uint32).reshape(-1, 2)
+
+
+@pytest.mark.parametrize("weight", WEIGHTS)
+def test_directed_mean_statistics_match_exact_expectations(weight):
+    """Directed terms and directed triadic proposals, on all 4096 networks of 4 vertices."""
+    g = ig.Graph(n=4, directed=True)
+    g.vs["sex"] = [1, 1, 2, 2]
+    model = bind(g, "edges + mutual + ttriple + ctriple + gwesp(0.5, fixed=TRUE) + "
+                    "gwidegree(0.5, fixed=TRUE) + ostar(2) + nodeofactor('sex')")
+    theta = np.array([-0.6, 0.8, 0.2, -0.3, 0.3, -0.4, 0.1, 0.3])
+    stats = np.array([model.core.summary(e) for e in all_directed_networks(4)])
+    logp = stats @ theta
+    p = np.exp(logp - logp.max())
+    expected = (p / p.sum()) @ stats
+    runs = np.array([
+        model.core.simulate([EMPTY] * 4, theta.tolist(), 1000, 20, 10_000, seed,
+                            triadic_weight=weight)[0].reshape(-1, len(theta)).mean(axis=0)
+        for seed in range(12)
+    ])
+    se = runs.std(axis=0, ddof=1) / np.sqrt(len(runs))
+    assert np.all(np.abs(runs.mean(axis=0) - expected) < 5 * se)
+
+
+@pytest.mark.parametrize("weight", WEIGHTS)
+def test_degree_terms_match_exact_expectations(weight):
+    model = bind(ig.Graph(n=6), "edges + kstar(2:3) + gwdegree(0.5, fixed=TRUE) + gwdsp(0.5, fixed=TRUE)")
+    theta = np.array([-0.5, 0.2, -0.1, 0.4, -0.2])
+    _, stats, p = exact_distribution(model, 6, theta)
+    expected = p @ stats
+    runs = np.array([
+        model.core.simulate([EMPTY] * 4, theta.tolist(), 1000, 20, 10_000, seed,
+                            triadic_weight=weight)[0].reshape(-1, len(theta)).mean(axis=0)
+        for seed in range(12)
+    ])
+    se = runs.std(axis=0, ddof=1) / np.sqrt(len(runs))
+    assert np.all(np.abs(runs.mean(axis=0) - expected) < 5 * se)

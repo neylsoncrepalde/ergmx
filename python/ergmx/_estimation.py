@@ -38,7 +38,7 @@ class Control:
     #: Parallel Markov chains (one thread each).
     n_chains: int = field(default_factory=_default_chains)
     #: Share of triadic MCMC proposals (they close or open a triangle). None
-    #: uses 0.5 for undirected models with triangle or gwesp terms, 0 otherwise.
+    #: uses 0.5 for models with triangle or shared partner terms, 0 otherwise.
     triadic_weight: float | None = None
     #: Minimum effective sample size per iteration; None keeps the interval fixed.
     effective_size: int | None = 64
@@ -123,18 +123,26 @@ def _in_hull(sample: np.ndarray, point: np.ndarray) -> bool:
     return result.status == 0
 
 
-def hummel_steplength(sample, observed, margin, precision=0.01) -> float:
+def hummel_steplength(sample, observed, margin, min_step=1e-4) -> float:
     """Largest step towards the observed statistics that stays inside the
-    convex hull of the sample (with a margin), as in Hummel et al. (2012)."""
-    mean = sample.mean(axis=0)
-    target = lambda gamma: mean + (1 + margin) * gamma * (observed - mean)  # noqa: E731
-    if _in_hull(sample, target(1.0)):
+    convex hull of the sample (with a margin), as in Hummel et al. (2012).
+
+    Searched on a log scale down to `min_step`, which is returned if even that
+    leaves the hull, so that the estimate keeps moving.
+    """
+    # Hull membership is unchanged by rescaling; standardizing helps the solver.
+    mean, sd = sample.mean(axis=0), sample.std(axis=0)
+    sd[sd == 0] = 1.0
+    z, towards = (sample - mean) / sd, (1 + margin) * (observed - mean) / sd
+    if _in_hull(z, towards):
         return 1.0
-    low, high = 0.0, 1.0
-    while high - low > precision:
+    if not _in_hull(z, min_step * towards):
+        return min_step
+    low, high = np.log(min_step), 0.0
+    while high - low > 0.05:  # 5% relative precision
         mid = (low + high) / 2
-        low, high = (mid, high) if _in_hull(sample, target(mid)) else (low, mid)
-    return low
+        low, high = (mid, high) if _in_hull(z, np.exp(mid) * towards) else (low, mid)
+    return float(np.exp(low))
 
 
 def autocorrelation_time(sample: np.ndarray) -> np.ndarray:

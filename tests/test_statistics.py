@@ -14,13 +14,16 @@ def test_statistics_match_r(reference):
     np.testing.assert_allclose(list(stats.values()), list(model["stats"].values()), rtol=1e-12)
 
 
-@pytest.mark.parametrize("name", ["samplk_mutual", "mesa_gwesp", "flo_dyadind"])
+@pytest.mark.parametrize("name", ["samplk_mutual", "mesa_gwesp", "flo_dyadind", "mesa_terms",
+                                  "dixon_terms"])
 def test_statistics_tracked_by_the_sampler_are_exact(name):
     """The sampler updates statistics with change statistics; recomputing them
     from scratch on the sampled networks must give the same values."""
     model = REFERENCE[name]
     g = load(model["network"])
-    coef = list(model["mle"].values())
+    # Coefficients that keep the density near the observed one.
+    density = model["stats"]["edges"] / (g.vcount() * (g.vcount() - 1) / (1 if g.is_directed() else 2))
+    coef = [np.log(density / (1 - density)) if term == "edges" else 0.0 for term in model["stats"]]
     tracked = ergmx.simulate(g, model["formula"], coef, 20, seed=3, interval=4096, output="stats")
     networks = ergmx.simulate(g, model["formula"], coef, 20, seed=3, interval=4096)
     recomputed = [list(ergmx.summary_stats(h, model["formula"]).values()) for h in networks]
@@ -44,8 +47,11 @@ def test_directed_networkx():
 @pytest.mark.parametrize(
     ("network", "formula", "error", "message"),
     [
-        ("samplk3", "edges + triangle", ValueError, "undirected networks"),
+        ("samplk3", "edges + gwdsp(0.5, fixed=TRUE)", ValueError, "undirected networks"),
+        ("samplk3", "kstar(2)", ValueError, "undirected networks"),
         ("flomarriage", "edges + mutual", ValueError, "directed networks"),
+        ("flomarriage", "ttriple + nodeicov('wealth')", ValueError, "directed networks"),
+        ("flomarriage", "edgecov('trade')", KeyError, "no graph attribute 'trade'"),
         ("flomarriage", "nodematch('Grade')", KeyError, "no vertex attribute 'Grade'"),
     ],
 )

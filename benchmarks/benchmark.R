@@ -18,7 +18,9 @@ source_network <- function(net, path) {
 
 data(faux.mesa.high)
 data(faux.magnolia.high)
-networks <- list(faux.mesa.high = faux.mesa.high, faux.magnolia.high = faux.magnolia.high)
+data(faux.dixon.high)
+networks <- list(faux.mesa.high = faux.mesa.high, faux.magnolia.high = faux.magnolia.high,
+                 faux.dixon.high = faux.dixon.high)
 for (name in names(networks)) {
   source_network(networks[[name]], file.path("benchmarks", "data", paste0(name, ".graphml")))
 }
@@ -29,7 +31,10 @@ models <- list(
                               "nodematch('Race') + gwesp(0.5, fixed=TRUE)")),
   magnolia = list(network = "faux.magnolia.high",
                   formula = paste("edges + nodematch('Grade') + nodematch('Race') +",
-                                  "nodematch('Sex') + gwesp(0.25, fixed=TRUE)"))
+                                  "nodematch('Sex') + gwesp(0.25, fixed=TRUE)")),
+  dixon = list(network = "faux.dixon.high",
+               formula = paste("edges + mutual + nodematch('grade') + nodematch('race') +",
+                               "gwesp(0.1, fixed=TRUE)"))
 )
 
 seeds <- 1:3

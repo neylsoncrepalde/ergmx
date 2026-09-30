@@ -5,7 +5,11 @@
     "flo_dyadind": {
       "network": "flomarriage",
       "formula": "edges + nodecov('wealth') + absdiff('wealth')",
-      "dyad_independent": true,
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
       "stats": {
         "edges": 20,
         "nodecov.wealth": 2168,
@@ -13,9 +17,10 @@
       },
       "mple": {
         "edges": -2.52709097422173,
-        "nodecov.wealth": 0.00450621809546501,
+        "nodecov.wealth": 0.004506218095465,
         "absdiff.wealth": 0.0111428633084216
       },
+      "dyad_independent": true,
       "mle": {
         "edges": -2.52709097422173,
         "nodecov.wealth": 0.00450621809546501,
@@ -32,12 +37,48 @@
         "absdiff.wealth": 0
       },
       "loglik": -50.7610235284313,
-      "seconds": 0.022
+      "seconds": 0.0329999999999999
+    },
+    "flo_edgecov": {
+      "network": "flomarriage",
+      "formula": "edges + edgecov('business')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "stats": {
+        "edges": 20,
+        "edgecov.business": 8
+      },
+      "mple": {
+        "edges": -2.04769284276481,
+        "edgecov.business": 2.18122423538933
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -2.04769284276481,
+        "edgecov.business": 2.18122423538933
+      },
+      "se": {
+        "edges": 0.306729779855182,
+        "edgecov.business": 0.601614744423
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "edgecov.business": 0
+      },
+      "loglik": -47.6790537455384,
+      "seconds": 0.0229999999999999
     },
     "flo_triangle": {
       "network": "flomarriage",
       "formula": "edges + triangle",
-      "dyad_independent": false,
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
       "stats": {
         "edges": 20,
         "triangle": 3
@@ -46,6 +87,7 @@
         "edges": -1.70093549458163,
         "triangle": 0.220848849566776
       },
+      "dyad_independent": false,
       "mle": {
         "edges": -1.69134754667384,
         "triangle": 0.180799588257883
@@ -59,12 +101,48 @@
         "triangle": 0
       },
       "loglik": -54.0320435345241,
-      "seconds": 0.249
+      "seconds": 0.307
+    },
+    "flo_gwdegree": {
+      "network": "flomarriage",
+      "formula": "edges + gwdegree(0.25, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "stats": {
+        "edges": 20,
+        "gwdeg.fixed.0.25": 17.9089460794447
+      },
+      "mple": {
+        "edges": -1.6044230426967,
+        "gwdeg.fixed.0.25": -0.0170665602607936
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -1.61701311103953,
+        "gwdeg.fixed.0.25": -0.013897336310311
+      },
+      "se": {
+        "edges": 0.358378687581507,
+        "gwdeg.fixed.0.25": 1.01860471455726
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "gwdeg.fixed.0.25": 0
+      },
+      "loglik": -54.068740079075,
+      "seconds": 0.281
     },
     "samplk_mutual": {
       "network": "samplk3",
       "formula": "edges + mutual",
-      "dyad_independent": false,
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
       "stats": {
         "edges": 56,
         "mutual": 15
@@ -73,6 +151,7 @@
         "edges": -2.15354950505233,
         "mutual": 2.296650348693
       },
+      "dyad_independent": false,
       "mle": {
         "edges": -2.14676554668175,
         "mutual": 2.29826360898492
@@ -86,12 +165,16 @@
         "mutual": 0
       },
       "loglik": -133.98562510637,
-      "seconds": 0.297
+      "seconds": 0.344
     },
     "mesa_gwesp": {
       "network": "faux.mesa.high",
       "formula": "edges + nodefactor('Sex') + nodematch('Grade') + nodematch('Race') + gwesp(0.5, fixed=TRUE)",
-      "dyad_independent": false,
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
       "stats": {
         "edges": 203,
         "nodefactor.Sex.M": 171,
@@ -101,11 +184,12 @@
       },
       "mple": {
         "edges": -6.47246876862322,
-        "nodefactor.Sex.M": -0.0242848692923714,
-        "nodematch.Grade": 2.07207361230436,
-        "nodematch.Race": 0.408613822332271,
+        "nodefactor.Sex.M": -0.0242848692923706,
+        "nodematch.Grade": 2.07207361230435,
+        "nodematch.Race": 0.408613822332269,
         "gwesp.fixed.0.5": 1.35625556782158
       },
+      "dyad_independent": false,
       "mle": {
         "edges": -6.1883660378881,
         "nodefactor.Sex.M": -0.129328421286251,
@@ -128,7 +212,348 @@
         "gwesp.fixed.0.5": 0
       },
       "loglik": -867.557609659408,
-      "seconds": 19.28
+      "seconds": 21.443
+    },
+    "mesa_gwdegree": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodematch('Grade') + nodematch('Race') + gwdegree(0.5, fixed=TRUE) + gwesp(0.5, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "stats": {
+        "edges": 203,
+        "nodematch.Grade": 163,
+        "nodematch.Race": 103,
+        "gwdeg.fixed.0.5": 199.565738452373,
+        "gwesp.fixed.0.5": 141.925805553864
+      },
+      "mple": {
+        "edges": -6.41836848082443,
+        "nodematch.Grade": 2.07237169507206,
+        "nodematch.Race": 0.408894305320552,
+        "gwdeg.fixed.0.5": -0.097149862880375,
+        "gwesp.fixed.0.5": 1.33776300030998
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -6.80868093334012,
+        "nodematch.Grade": 2.00017898527743,
+        "nodematch.Race": 0.285635013118362,
+        "gwdeg.fixed.0.5": 0.486243283168935,
+        "gwesp.fixed.0.5": 1.47239931609129
+      },
+      "se": {
+        "edges": 0.257179662866395,
+        "nodematch.Grade": 0.174798951268138,
+        "nodematch.Race": 0.118231344603821,
+        "gwdeg.fixed.0.5": 0.191794873413016,
+        "gwesp.fixed.0.5": 0.128859702452071
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodematch.Grade": 0,
+        "nodematch.Race": 0,
+        "gwdeg.fixed.0.5": 0,
+        "gwesp.fixed.0.5": 0
+      },
+      "loglik": -866.012346547627,
+      "seconds": 10.238
+    },
+    "mesa_terms": {
+      "network": "faux.mesa.high",
+      "formula": "edges + kstar(2:3) + gwdegree(0.5, fixed=TRUE) + gwdsp(0.5, fixed=TRUE) + nodematch('Race', diff=TRUE) + triangle + edgecov('asym')",
+      "checks": [
+        "stats"
+      ],
+      "stats": {
+        "edges": 203,
+        "kstar2": 659,
+        "kstar3": 1010,
+        "gwdeg.fixed.0.5": 199.565738452373,
+        "gwdsp.fixed.0.5": 574.363188091668,
+        "nodematch.Race.Black": 0,
+        "nodematch.Race.Hisp": 53,
+        "nodematch.Race.NatAm": 46,
+        "nodematch.Race.Other": 0,
+        "nodematch.Race.White": 4,
+        "triangle": 62,
+        "edgecov.asym": 105.774
+      }
+    },
+    "mesa_mple": {
+      "network": "faux.mesa.high",
+      "formula": "edges + kstar(2) + gwdegree(0.5, fixed=TRUE) + gwdsp(0.5, fixed=TRUE) + nodematch('Grade', diff=TRUE) + gwesp(0.5, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mple"
+      ],
+      "stats": {
+        "edges": 203,
+        "kstar2": 659,
+        "gwdeg.fixed.0.5": 199.565738452373,
+        "gwdsp.fixed.0.5": 574.363188091668,
+        "nodematch.Grade.7": 75,
+        "nodematch.Grade.8": 33,
+        "nodematch.Grade.9": 23,
+        "nodematch.Grade.10": 9,
+        "nodematch.Grade.11": 17,
+        "nodematch.Grade.12": 6,
+        "gwesp.fixed.0.5": 141.925805553864
+      },
+      "mple": {
+        "edges": -6.66631915253352,
+        "kstar2": 0.0523305235683783,
+        "gwdeg.fixed.0.5": 0.129526365242406,
+        "gwdsp.fixed.0.5": 0.007759164875451,
+        "nodematch.Grade.7": 1.82809580094619,
+        "nodematch.Grade.8": 2.04483113800499,
+        "nodematch.Grade.9": 2.2306845348583,
+        "nodematch.Grade.10": 2.38423975854207,
+        "nodematch.Grade.11": 2.57313146429228,
+        "nodematch.Grade.12": 2.84139203166636,
+        "gwesp.fixed.0.5": 1.32933937402473
+      }
+    },
+    "dixon_terms": {
+      "network": "faux.dixon.high",
+      "formula": "edges + mutual + gwesp(0.5, fixed=TRUE) + gwidegree(0.5, fixed=TRUE) + gwodegree(0.5, fixed=TRUE) + ttriple + ctriple + triangle + istar(2) + ostar(2:3) + nodeifactor('sex') + nodeofactor('race') + nodeicov('grade') + nodeocov('grade') + nodematch('grade', diff=TRUE) + edgecov('asym')",
+      "checks": [
+        "stats"
+      ],
+      "stats": {
+        "edges": 1197,
+        "mutual": 219,
+        "gwesp.OTP.fixed.0.5": 964.681672038712,
+        "gwideg.fixed.0.5": 346.983369166921,
+        "gwodeg.fixed.0.5": 311.987155691859,
+        "ttriple": 1254,
+        "ctriple": 341,
+        "triangle": 1595,
+        "istar2": 3793,
+        "ostar2": 4314,
+        "ostar3": 12347,
+        "nodeifactor.sex.2": 623,
+        "nodeofactor.race.H": 51,
+        "nodeofactor.race.O": 61,
+        "nodeofactor.race.W": 674,
+        "nodeicov.grade": 11123,
+        "nodeocov.grade": 11063,
+        "nodematch.grade.7": 42,
+        "nodematch.grade.8": 263,
+        "nodematch.grade.9": 184,
+        "nodematch.grade.10": 183,
+        "nodematch.grade.11": 42,
+        "nodematch.grade.12": 71,
+        "edgecov.asym": 601.775000000001
+      }
+    },
+    "dixon_mple": {
+      "network": "faux.dixon.high",
+      "formula": "edges + mutual + ttriple + ctriple + istar(2) + ostar(2) + gwesp(0.5, fixed=TRUE) + gwidegree(0.5, fixed=TRUE) + gwodegree(0.5, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mple"
+      ],
+      "stats": {
+        "edges": 1197,
+        "mutual": 219,
+        "ttriple": 1254,
+        "ctriple": 341,
+        "istar2": 3793,
+        "ostar2": 4314,
+        "gwesp.OTP.fixed.0.5": 964.681672038712,
+        "gwideg.fixed.0.5": 346.983369166921,
+        "gwodeg.fixed.0.5": 311.987155691859
+      },
+      "mple": {
+        "edges": -4.58846695100409,
+        "mutual": 2.16647737589982,
+        "ttriple": -0.228316688406242,
+        "ctriple": 0.0920296682802025,
+        "istar2": -0.0420353246781801,
+        "ostar2": -0.0252821542082693,
+        "gwesp.OTP.fixed.0.5": 1.61807932992777,
+        "gwideg.fixed.0.5": -0.343231412325966,
+        "gwodeg.fixed.0.5": -1.71810160482994
+      }
+    },
+    "dixon_dyadind": {
+      "network": "faux.dixon.high",
+      "formula": "edges + nodeicov('grade') + nodeocov('grade') + nodeifactor('sex') + nodeofactor('race') + nodematch('grade', diff=TRUE) + edgecov('asym')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "stats": {
+        "edges": 1197,
+        "nodeicov.grade": 11123,
+        "nodeocov.grade": 11063,
+        "nodeifactor.sex.2": 623,
+        "nodeofactor.race.H": 51,
+        "nodeofactor.race.O": 61,
+        "nodeofactor.race.W": 674,
+        "nodematch.grade.7": 42,
+        "nodematch.grade.8": 263,
+        "nodematch.grade.9": 184,
+        "nodematch.grade.10": 183,
+        "nodematch.grade.11": 42,
+        "nodematch.grade.12": 71,
+        "edgecov.asym": 601.775000000001
+      },
+      "mple": {
+        "edges": -5.36907566872293,
+        "nodeicov.grade": 0.0440145324581602,
+        "nodeocov.grade": -0.00469385923850537,
+        "nodeifactor.sex.2": 0.0763162440036649,
+        "nodeofactor.race.H": -0.0589854224133578,
+        "nodeofactor.race.O": 0.150019593040663,
+        "nodeofactor.race.W": 0.240155327260218,
+        "nodematch.grade.7": 1.65050766598373,
+        "nodematch.grade.8": 2.67884680827956,
+        "nodematch.grade.9": 2.48412048882981,
+        "nodematch.grade.10": 2.33842126498799,
+        "nodematch.grade.11": 1.48405739689612,
+        "nodematch.grade.12": 2.07241644681867,
+        "edgecov.asym": 0.023670044221895
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -5.36907566872292,
+        "nodeicov.grade": 0.0440145324581598,
+        "nodeocov.grade": -0.00469385923850553,
+        "nodeifactor.sex.2": 0.0763162440036651,
+        "nodeofactor.race.H": -0.0589854224133574,
+        "nodeofactor.race.O": 0.150019593040663,
+        "nodeofactor.race.W": 0.240155327260219,
+        "nodematch.grade.7": 1.65050766598373,
+        "nodematch.grade.8": 2.67884680827955,
+        "nodematch.grade.9": 2.48412048882981,
+        "nodematch.grade.10": 2.33842126498799,
+        "nodematch.grade.11": 1.48405739689612,
+        "nodematch.grade.12": 2.07241644681868,
+        "edgecov.asym": 0.0236700442218952
+      },
+      "se": {
+        "edges": 0.461160934902606,
+        "nodeicov.grade": 0.0309719216344497,
+        "nodeocov.grade": 0.0314631778728511,
+        "nodeifactor.sex.2": 0.0596151889647205,
+        "nodeofactor.race.H": 0.153080510565929,
+        "nodeofactor.race.O": 0.145972793703544,
+        "nodeofactor.race.W": 0.0647761549187532,
+        "nodematch.grade.7": 0.202214882317153,
+        "nodematch.grade.8": 0.107165237275783,
+        "nodematch.grade.9": 0.0949156361982862,
+        "nodematch.grade.10": 0.0954299771707832,
+        "nodematch.grade.11": 0.18063500252884,
+        "nodematch.grade.12": 0.179605791679093,
+        "edgecov.asym": 0.102691245574921
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodeicov.grade": 0,
+        "nodeocov.grade": 0,
+        "nodeifactor.sex.2": 0,
+        "nodeofactor.race.H": 0,
+        "nodeofactor.race.O": 0,
+        "nodeofactor.race.W": 0,
+        "nodematch.grade.7": 0,
+        "nodematch.grade.8": 0,
+        "nodematch.grade.9": 0,
+        "nodematch.grade.10": 0,
+        "nodematch.grade.11": 0,
+        "nodematch.grade.12": 0,
+        "edgecov.asym": 0
+      },
+      "loglik": -5124.51287371576,
+      "seconds": 0.942
+    },
+    "samplk_gwesp": {
+      "network": "samplk3",
+      "formula": "edges + mutual + gwesp(0.5, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "stats": {
+        "edges": 56,
+        "mutual": 15,
+        "gwesp.OTP.fixed.0.5": 40.8764502051946
+      },
+      "mple": {
+        "edges": -2.74240166167279,
+        "mutual": 1.9113066325342,
+        "gwesp.OTP.fixed.0.5": 0.534200455826226
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -2.62387651038295,
+        "mutual": 2.11447206885933,
+        "gwesp.OTP.fixed.0.5": 0.386737827321816
+      },
+      "se": {
+        "edges": 0.259647595713201,
+        "mutual": 0.481866290821406,
+        "gwesp.OTP.fixed.0.5": 0.15791344376968
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "mutual": 0,
+        "gwesp.OTP.fixed.0.5": 0
+      },
+      "loglik": -131.36062013783,
+      "seconds": 1.384
+    },
+    "dixon_gwesp": {
+      "network": "faux.dixon.high",
+      "formula": "edges + mutual + nodematch('grade') + nodematch('race') + gwesp(0.1, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "stats": {
+        "edges": 1197,
+        "mutual": 219,
+        "nodematch.grade": 785,
+        "nodematch.race": 912,
+        "gwesp.OTP.fixed.0.1": 857.422468459917
+      },
+      "mple": {
+        "edges": -5.94439002116558,
+        "mutual": 1.86564881924785,
+        "nodematch.grade": 1.18869541016618,
+        "nodematch.race": 0.852073762399771,
+        "gwesp.OTP.fixed.0.1": 1.36358515341982
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -5.87187608473519,
+        "mutual": 1.85996173997772,
+        "nodematch.grade": 1.16624223407652,
+        "nodematch.race": 0.759737897976401,
+        "gwesp.OTP.fixed.0.1": 1.43029975257848
+      },
+      "se": {
+        "edges": 0.0575729555303685,
+        "mutual": 0.117693163790968,
+        "nodematch.grade": 0.0470152510317971,
+        "nodematch.race": 0.0476724057161713,
+        "gwesp.OTP.fixed.0.1": 0.0543206783014154
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "mutual": 0,
+        "nodematch.grade": 0,
+        "nodematch.race": 0,
+        "gwesp.OTP.fixed.0.1": 0
+      },
+      "loglik": -4206.09836270207,
+      "seconds": 149.153
     }
   }
 }

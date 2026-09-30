@@ -2,12 +2,14 @@
 
 **Exponential-family random graph models (ERGMs) in Python, with a Rust core.**
 
-`ergmx` fits, simulates and summarizes ERGMs with a high-level API in the spirit
-of R's [ergm](https://github.com/statnet/ergm) and statnet: R-style formulas,
-the same term names and statistics, and a `summary()` that reads like R's.
+`ergmx` fits, simulates, summarizes and checks ERGMs with a high-level API in
+the spirit of R's [ergm](https://github.com/statnet/ergm) and statnet: R-style
+formulas, the same term names and statistics, and `summary()` and `gof()`
+that read like R's.
 
-> **Status: proof of concept.** Eight terms, MPLE and Monte Carlo MLE,
-> validated against R's ergm. See [what's missing](#not-yet).
+> **Status: proof of concept.** 22 terms for directed and undirected
+> networks, MPLE and Monte Carlo MLE, goodness of fit, validated against R's
+> ergm. See [what's missing](#not-yet).
 
 ```python
 import igraph as ig
@@ -40,6 +42,16 @@ Converged after 6 iterations (4 chains, 1024 samples).
 R's ergm gives `-6.1884, -0.1293, 1.9761, 0.2699, 1.2178` on the same model.
 It took 15.8 s; `ergmx` took 1 s.
 
+Then check the fit, as with R's `gof()`:
+
+```python
+result = fit.gof()   # degree, edgewise shared partners, geodesic distances, model statistics
+print(result["degree"])
+result.plot()
+```
+
+![](docs/figures/gof-mesa.png)
+
 ## Features
 
 - **Networks**: `igraph.Graph` or `networkx.Graph`/`DiGraph`, directed or
@@ -47,8 +59,17 @@ It took 15.8 s; `ergmx` took 1 s.
 - **Formulas** in R syntax (`"edges + gwesp(0.5, fixed=TRUE)"`, even with
   `net ~` in front), or terms combined with `+`: `edges() + gwesp(0.5, fixed=True)`.
   Nothing is evaluated: arguments must be literals.
-- **Terms**: `edges`, `mutual`, `triangle`, `gwesp` (fixed decay), `nodematch`,
-  `nodefactor`, `nodecov`, `absdiff`, with ergm's definitions and names.
+- **Terms**, with ergm's definitions and names:
+
+  | | Undirected | Directed |
+  |---|---|---|
+  | Dyadic | `edges`, `edgecov` | `edges`, `edgecov`, `mutual` |
+  | Degree | `kstar(k)`, `gwdegree` | `istar(k)`, `ostar(k)`, `gwidegree`, `gwodegree` |
+  | Triads | `triangle`, `gwesp`, `gwdsp` | `triangle`, `ttriple`, `ctriple`, `gwesp` (OTP) |
+  | Attributes | `nodematch` (`diff=TRUE` too), `nodefactor`, `nodecov`, `absdiff` | the same, plus `nodeifactor`, `nodeofactor`, `nodeicov`, `nodeocov` |
+
+  The geometrically weighted terms take a fixed decay (`fixed=TRUE`).
+  `edgecov('name')` reads an n x n matrix from a graph attribute.
 - **Estimation**:
   - dyad-independent models: the exact MLE (logistic regression), with
     log-likelihood, AIC and BIC;
@@ -58,8 +79,14 @@ It took 15.8 s; `ergmx` took 1 s.
     MCMC error;
   - `estimate="MPLE"` for the pseudo-likelihood estimate only.
 - **MCMC** in Rust: tie/no-tie (TNT) proposals mixed with triadic proposals,
-  which close or open triangles, for models with triangle terms (like ergm's
-  `MH_SPDyad` default). Chains run in parallel threads.
+  which close or open triangles, for models with triangle or shared partner
+  terms, directed or not (like ergm's `MH_SPDyad` default). Chains run in
+  parallel threads.
+- **Goodness of fit**: `fit.gof()` or `ergmx.gof(network, formula, coef)`
+  compares the degree (in- and out-degree if directed), edgewise shared
+  partner and geodesic distance distributions, and the model statistics,
+  with simulated networks: tables with Monte Carlo p-values like R's, and
+  `plot()`.
 - `ergmx.simulate(network, formula, coef, nsim)` returns graphs of the same
   kind as the input, or their statistics; `fit.simulate()` uses the estimates.
 - `ergmx.summary_stats(network, formula)`: R's `summary(net ~ formula)`.
@@ -71,16 +98,17 @@ results in `tests/data/r_reference.json`; the test suite compares.
 
 | Check | Result |
 |---|---|
-| Statistics of all terms (incl. gwesp) | identical to R's `summary()` (1e-13) |
-| MPLE | identical to R (1e-8) |
-| Dyad-independent MLE, standard errors, log-likelihood | identical to R (1e-6) |
-| Monte Carlo MLE, 3 models x 10 seeds | within 0.08 standard errors of R; SEs within 0.89–1.12 of R's |
-| MCMC stationary distribution, 3 proposal mixtures | matches exact enumeration of all networks on 3 and 6 vertices |
+| Statistics of all 22 terms, 13 models | identical to R's `summary()` (1e-12) |
+| MPLE, 13 models | identical to R (1e-6) |
+| Dyad-independent MLE, standard errors, log-likelihood (3 models, incl. `edgecov` and the directed attribute terms) | identical to R (1e-6; SEs 1e-4, R's `glm` tolerance) |
+| Monte Carlo MLE, 7 models (4 undirected, 3 directed) x 3–10 seeds | within 0.12 standard errors of R; SEs within 0.89–1.12 of R's |
+| Goodness of fit, directed and undirected | observed distributions and p-values identical to R's; simulated distributions agree within Monte Carlo error |
+| MCMC stationary distribution, 3 proposal mixtures | matches exact enumeration of all networks on 3 and 6 vertices (undirected) and 4 vertices (directed) |
 
-Models: `flomarriage ~ edges + nodecov('wealth') + absdiff('wealth')`,
-`flomarriage ~ edges + triangle`, `samplk3 ~ edges + mutual`, and the
-faux.mesa.high model above. R's own standard errors vary by about 15% between
-seeds on the small networks, so the SE comparison is only as tight as R allows.
+The networks are ergm's flomarriage, samplk3, faux.mesa.high and
+faux.dixon.high (248 students, directed friendship nominations). R's own
+standard errors vary by about 15% between seeds on the small networks, so the
+SE comparison is only as tight as R allows.
 
 ## Performance
 
@@ -90,8 +118,9 @@ Apple M4 Pro, R's ergm with its default settings and without the log-likelihood
 
 | Model | Vertices | R ergm 4.12 | ergmx, 1 chain | ergmx, 4 chains | Max \|difference\| |
 |---|---|---|---|---|---|
-| faux.mesa.high, gwesp(0.5) | 205 | 15.8 s | 5.4 s (2.9x) | 1.0 s (16x) | 0.05 SE |
-| faux.magnolia.high, gwesp(0.25) | 1,461 | 13.6 s | 7.0 s (2.0x) | 2.8 s (4.9x) | 0.07 SE |
+| faux.mesa.high, gwesp(0.5) | 205 | 15.8 s | 5.8 s (2.7x) | 1.7 s (9.5x) | 0.04 SE |
+| faux.magnolia.high, gwesp(0.25) | 1,461 | 13.7 s | 7.2 s (1.9x) | 2.9 s (4.7x) | 0.07 SE |
+| faux.dixon.high (directed), gwesp(0.1) | 248 | 132 s | 37 s (3.6x) | 10 s (13x) | 0.07 SE |
 
 The proposal matters as much as the language: with plain TNT proposals, R
 takes 128 s on faux.magnolia.high.
@@ -117,13 +146,15 @@ describing it in `python/ergmx/terms.py`.
 
 ## Not yet
 
-- Curved ERGMs (`gwesp`, `gwdsp`, `gwdegree` with an estimated decay).
-- More terms: `kstar`, `gwdegree`, `gwdsp`, `istar`/`ostar`, `nodematch(diff=TRUE)`,
-  `edgecov`, bipartite terms, directed triangles (`ttriple`, `ctriple`, ...).
+- Curved ERGMs (the geometrically weighted terms with an estimated decay).
+- More terms: `degree(k)`, `isolates`, `nodemix`, `concurrent`, `gwnsp`,
+  bipartite terms, `edgecov` of a network attribute given as a network, and
+  directed shared partner types other than OTP.
 - Log-likelihood of dyad-dependent models (bridge sampling), for AIC/BIC.
-- Sample space constraints (`bd`, `blocks`, `degrees`), missing ties.
-- Goodness of fit (`gof`) and MCMC diagnostic plots.
-- Triadic proposals for directed networks.
+- Better starting values than the MPLE for strongly dependent models
+  (contrastive divergence), sample space constraints (`bd`, `blocks`,
+  `degrees`) and missing ties.
+- MCMC diagnostic plots.
 - Documentation, and wheels built for every platform in CI.
 
 ## Development
@@ -142,7 +173,7 @@ To regenerate the R reference results or rerun the benchmark (needs R with
 ergm, igraph and jsonlite):
 
 ```bash
-Rscript scripts/r_reference.R
+Rscript scripts/r_reference.R && Rscript scripts/r_gof_reference.R
 Rscript benchmarks/benchmark.R && .venv/bin/python benchmarks/benchmark.py
 ```
 

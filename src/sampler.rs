@@ -4,10 +4,11 @@
 //!
 //! * TNT (tie / no tie; Morris, Handcock and Hunter 2008, ergm's MH_TNT):
 //!   toggle a random existing tie with probability 1/2, a random dyad otherwise;
-//! * triadic (undirected networks): pick a random vertex i, a random neighbour
-//!   k of i and a random neighbour j != i of k, and toggle (i, j). This closes
-//!   or opens a triangle, which is what models with triangle or gwesp terms
-//!   need to mix well.
+//! * triadic: pick a random vertex i, a random neighbour k of i and a random
+//!   neighbour j != i of k, and toggle (i, j) (in directed networks, neighbours
+//!   in either direction, and i -> j or j -> i with probability 1/2). This
+//!   closes or opens a triangle, which is what models with triangle or gwesp
+//!   terms need to mix well.
 //!
 //! The acceptance ratio uses the exact probability that the mixture proposes
 //! the dyad, before and after the toggle.
@@ -41,8 +42,10 @@ fn tnt_prob(edges: f64, dyads: f64, tie: bool) -> f64 {
 
 /// Probability that a triadic move proposes the dyad (i, j), given the degrees
 /// of i and j and `s`, the sum of 1 / (degree - 1) over their shared partners.
-fn triadic_prob(n: f64, degree_i: f64, degree_j: f64, s: f64) -> f64 {
-    if s == 0.0 { 0.0 } else { (1.0 / degree_i + 1.0 / degree_j) * s / n }
+/// Degrees count neighbours in either direction; `directions` is 2 in directed
+/// networks, where each walk picks one of the two ties between i and j.
+fn triadic_prob(n: f64, directions: f64, degree_i: f64, degree_j: f64, s: f64) -> f64 {
+    if s == 0.0 { 0.0 } else { (1.0 / degree_i + 1.0 / degree_j) * s / (n * directions) }
 }
 
 fn triadic_draw(net: &Network, rng: &mut Rng) -> Option<(u32, u32)> {
@@ -62,7 +65,8 @@ fn triadic_draw(net: &Network, rng: &mut Rng) -> Option<(u32, u32)> {
     if r >= skip {
         r += 1;
     }
-    Some((i, nk[r]))
+    let j = nk[r];
+    Some(if net.directed() && rng.unif() < 0.5 { (j, i) } else { (i, j) })
 }
 
 pub struct Proposal {
@@ -94,9 +98,13 @@ impl Proposal {
         let mut s = 0.0;
         for_each_common(ni, nj, |k| s += 1.0 / (net.neighbours(k).len() - 1) as f64);
         let (di, dj, n) = (ni.len() as f64, nj.len() as f64, net.n() as f64);
+        let directions = if net.directed() { 2.0 } else { 1.0 };
         let change = if tie { -1.0 } else { 1.0 };
-        let forward = w * triadic_prob(n, di, dj, s) + (1.0 - w) * tnt_prob(edges, dyads, tie);
-        let reverse = w * triadic_prob(n, di + change, dj + change, s)
+        // i and j stay neighbours if the opposite tie j -> i exists.
+        let degree_change = if net.directed() && net.has_edge(j, i) { 0.0 } else { change };
+        let forward = w * triadic_prob(n, directions, di, dj, s)
+            + (1.0 - w) * tnt_prob(edges, dyads, tie);
+        let reverse = w * triadic_prob(n, directions, di + degree_change, dj + degree_change, s)
             + (1.0 - w) * tnt_prob(edges + change, dyads, !tie);
         Some((i, j, (reverse / forward).ln()))
     }
