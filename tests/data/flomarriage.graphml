@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
+         http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+<!-- Created by igraph -->
+  <key id="v_priorates" for="node" attr.name="priorates" attr.type="double"/>
+  <key id="v_totalties" for="node" attr.name="totalties" attr.type="double"/>
+  <key id="v_wealth" for="node" attr.name="wealth" attr.type="double"/>
+  <key id="v_name" for="node" attr.name="name" attr.type="string"/>
+  <graph id="G" edgedefault="undirected">
+    <node id="n0">
+      <data key="v_priorates">53</data>
+      <data key="v_totalties">2</data>
+      <data key="v_wealth">10</data>
+      <data key="v_name">Acciaiuoli</data>
+    </node>
+    <node id="n1">
+      <data key="v_priorates">65</data>
+      <data key="v_totalties">3</data>
+      <data key="v_wealth">36</data>
+      <data key="v_name">Albizzi</data>
+    </node>
+    <node id="n2">
+      <data key="v_priorates">0</data>
+      <data key="v_totalties">14</data>
+      <data key="v_wealth">55</data>
+      <data key="v_name">Barbadori</data>
+    </node>
+    <node id="n3">
+      <data key="v_priorates">12</data>
+      <data key="v_totalties">9</data>
+      <data key="v_wealth">44</data>
+      <data key="v_name">Bischeri</data>
+    </node>
+    <node id="n4">
+      <data key="v_priorates">22</data>
+      <data key="v_totalties">18</data>
+      <data key="v_wealth">20</data>
+      <data key="v_name">Castellani</data>
+    </node>
+    <node id="n5">
+      <data key="v_priorates">0</data>
+      <data key="v_totalties">9</data>
+      <data key="v_wealth">32</data>
+      <data key="v_name">Ginori</data>
+    </node>
+    <node id="n6">
+      <data key="v_priorates">21</data>
+      <data key="v_totalties">14</data>
+      <data key="v_wealth">8</data>
+      <data key="v_name">Guadagni</data>
+    </node>
+    <node id="n7">
+      <data key="v_priorates">0</data>
+      <data key="v_totalties">14</data>
+      <data key="v_wealth">42</data>
+      <data key="v_name">Lamberteschi</data>
+    </node>
+    <node id="n8">
+      <data key="v_priorates">53</data>
+      <data key="v_totalties">54</data>
+      <data key="v_wealth">103</data>
+      <data key="v_name">Medici</data>
+    </node>
+    <node id="n9">
+      <data key="v_priorates">0</data>
+      <data key="v_totalties">7</data>
+      <data key="v_wealth">48</data>
+      <data key="v_name">Pazzi</data>
+    </node>
+    <node id="n10">
+      <data key="v_priorates">42</data>
+      <data key="v_totalties">32</data>
+      <data key="v_wealth">49</data>
+      <data key="v_name">Peruzzi</data>
+    </node>
+    <node id="n11">
+      <data key="v_priorates">0</data>
+      <data key="v_totalties">1</data>
+      <data key="v_wealth">3</data>
+      <data key="v_name">Pucci</data>
+    </node>
+    <node id="n12">
+      <data key="v_priorates">38</data>
+      <data key="v_totalties">4</data>
+      <data key="v_wealth">27</data>
+      <data key="v_name">Ridolfi</data>
+    </node>
+    <node id="n13">
+      <data key="v_priorates">35</data>
+      <data key="v_totalties">5</data>
+      <data key="v_wealth">10</data>
+      <data key="v_name">Salviati</data>
+    </node>
+    <node id="n14">
+      <data key="v_priorates">74</data>
+      <data key="v_totalties">29</data>
+      <data key="v_wealth">146</data>
+      <data key="v_name">Strozzi</data>
+    </node>
+    <node id="n15">
+      <data key="v_priorates">0</data>
+      <data key="v_totalties">7</data>
+      <data key="v_wealth">48</data>
+      <data key="v_name">Tornabuoni</data>
+    </node>
+    <edge source="n0" target="n8">
+    </edge>
+    <edge source="n1" target="n5">
+    </edge>
+    <edge source="n1" target="n6">
+    </edge>
+    <edge source="n1" target="n8">
+    </edge>
+    <edge source="n2" target="n4">
+    </edge>
+    <edge source="n2" target="n8">
+    </edge>
+    <edge source="n3" target="n6">
+    </edge>
+    <edge source="n3" target="n10">
+    </edge>
+    <edge source="n3" target="n14">
+    </edge>
+    <edge source="n4" target="n10">
+    </edge>
+    <edge source="n4" target="n14">
+    </edge>
+    <edge source="n6" target="n7">
+    </edge>
+    <edge source="n6" target="n15">
+    </edge>
+    <edge source="n8" target="n12">
+    </edge>
+    <edge source="n8" target="n13">
+    </edge>
+    <edge source="n8" target="n15">
+    </edge>
+    <edge source="n9" target="n13">
+    </edge>
+    <edge source="n10" target="n14">
+    </edge>
+    <edge source="n12" target="n14">
+    </edge>
+    <edge source="n12" target="n15">
+    </edge>
+  </graph>
+</graphml>

@@ -1,0 +1,134 @@
+{
+  "ergm_version": "4.12.0",
+  "r_version": "R version 4.6.1 (2026-06-24)",
+  "models": {
+    "flo_dyadind": {
+      "network": "flomarriage",
+      "formula": "edges + nodecov('wealth') + absdiff('wealth')",
+      "dyad_independent": true,
+      "stats": {
+        "edges": 20,
+        "nodecov.wealth": 2168,
+        "absdiff.wealth": 1146
+      },
+      "mple": {
+        "edges": -2.52709097422173,
+        "nodecov.wealth": 0.00450621809546501,
+        "absdiff.wealth": 0.0111428633084216
+      },
+      "mle": {
+        "edges": -2.52709097422173,
+        "nodecov.wealth": 0.00450621809546501,
+        "absdiff.wealth": 0.0111428633084216
+      },
+      "se": {
+        "edges": 0.535993606648608,
+        "nodecov.wealth": 0.00679145403324204,
+        "absdiff.wealth": 0.00895047904292472
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodecov.wealth": 0,
+        "absdiff.wealth": 0
+      },
+      "loglik": -50.7610235284313,
+      "seconds": 0.022
+    },
+    "flo_triangle": {
+      "network": "flomarriage",
+      "formula": "edges + triangle",
+      "dyad_independent": false,
+      "stats": {
+        "edges": 20,
+        "triangle": 3
+      },
+      "mple": {
+        "edges": -1.70093549458163,
+        "triangle": 0.220848849566776
+      },
+      "mle": {
+        "edges": -1.69134754667384,
+        "triangle": 0.180799588257883
+      },
+      "se": {
+        "edges": 0.321912040348532,
+        "triangle": 0.556712487201732
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "triangle": 0
+      },
+      "loglik": -54.0320435345241,
+      "seconds": 0.249
+    },
+    "samplk_mutual": {
+      "network": "samplk3",
+      "formula": "edges + mutual",
+      "dyad_independent": false,
+      "stats": {
+        "edges": 56,
+        "mutual": 15
+      },
+      "mple": {
+        "edges": -2.15354950505233,
+        "mutual": 2.296650348693
+      },
+      "mle": {
+        "edges": -2.14676554668175,
+        "mutual": 2.29826360898492
+      },
+      "se": {
+        "edges": 0.221788004502285,
+        "mutual": 0.48140345160465
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "mutual": 0
+      },
+      "loglik": -133.98562510637,
+      "seconds": 0.297
+    },
+    "mesa_gwesp": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodefactor('Sex') + nodematch('Grade') + nodematch('Race') + gwesp(0.5, fixed=TRUE)",
+      "dyad_independent": false,
+      "stats": {
+        "edges": 203,
+        "nodefactor.Sex.M": 171,
+        "nodematch.Grade": 163,
+        "nodematch.Race": 103,
+        "gwesp.fixed.0.5": 141.925805553864
+      },
+      "mple": {
+        "edges": -6.47246876862322,
+        "nodefactor.Sex.M": -0.0242848692923714,
+        "nodematch.Grade": 2.07207361230436,
+        "nodematch.Race": 0.408613822332271,
+        "gwesp.fixed.0.5": 1.35625556782158
+      },
+      "mle": {
+        "edges": -6.1883660378881,
+        "nodefactor.Sex.M": -0.129328421286251,
+        "nodematch.Grade": 1.97609349926544,
+        "nodematch.Race": 0.269863814829551,
+        "gwesp.fixed.0.5": 1.21775770235748
+      },
+      "se": {
+        "edges": 0.178474836222633,
+        "nodefactor.Sex.M": 0.0766828464019655,
+        "nodematch.Grade": 0.179045836397219,
+        "nodematch.Race": 0.119019468814579,
+        "gwesp.fixed.0.5": 0.0850848114903228
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodefactor.Sex.M": 0,
+        "nodematch.Grade": 0,
+        "nodematch.Race": 0,
+        "gwesp.fixed.0.5": 0
+      },
+      "loglik": -867.557609659408,
+      "seconds": 19.28
+    }
+  }
+}

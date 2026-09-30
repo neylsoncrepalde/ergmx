@@ -1,0 +1,38 @@
+[build-system]
+requires = ["maturin>=1.9,<2"]
+build-backend = "maturin"
+
+[project]
+name = "ergmx"
+version = "0.1.0.dev0"
+description = "Exponential-family random graph models (ERGMs) in Python, with a Rust core"
+readme = "README.md"
+license = "GPL-3.0-only"
+authors = [{ name = "Neylson Crepalde", email = "neylsoncrepalde@gmail.com" }]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.22",
+    "scipy>=1.8",
+]
+keywords = ["ergm", "exponential random graph models", "social network analysis", "statnet"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Sociology",
+]
+
+[project.optional-dependencies]
+igraph = ["igraph>=0.11.5"]
+networkx = ["networkx>=3.0"]
+test = ["pytest>=7", "igraph>=0.11.5", "networkx>=3.0"]
+
+[tool.maturin]
+python-source = "python"
+module-name = "ergmx._core"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

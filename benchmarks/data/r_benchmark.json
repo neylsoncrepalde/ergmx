@@ -1,0 +1,121 @@
+{
+  "ergm_version": "4.12.0",
+  "models": {
+    "mesa": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodefactor('Sex') + nodematch('Grade') + nodematch('Race') + gwesp(0.5, fixed=TRUE)",
+      "n": 205,
+      "runs": [
+        {
+          "seconds": 18.077,
+          "coef": {
+            "edges": -6.1883660378881,
+            "nodefactor.Sex.M": -0.129328421286251,
+            "nodematch.Grade": 1.97609349926544,
+            "nodematch.Race": 0.269863814829551,
+            "gwesp.fixed.0.5": 1.21775770235748
+          },
+          "se": {
+            "edges": 0.178474836222633,
+            "nodefactor.Sex.M": 0.0766828464019655,
+            "nodematch.Grade": 0.179045836397219,
+            "nodematch.Race": 0.119019468814579,
+            "gwesp.fixed.0.5": 0.0850848114903228
+          }
+        },
+        {
+          "seconds": 15.824,
+          "coef": {
+            "edges": -6.18814799775785,
+            "nodefactor.Sex.M": -0.125997617797992,
+            "nodematch.Grade": 1.97385036380567,
+            "nodematch.Race": 0.264149677726485,
+            "gwesp.fixed.0.5": 1.21685454949477
+          },
+          "se": {
+            "edges": 0.174871591377719,
+            "nodefactor.Sex.M": 0.0762646460034838,
+            "nodematch.Grade": 0.178736223661728,
+            "nodematch.Race": 0.115761560511731,
+            "gwesp.fixed.0.5": 0.0844834588068385
+          }
+        },
+        {
+          "seconds": 13.128,
+          "coef": {
+            "edges": -6.19203836876915,
+            "nodefactor.Sex.M": -0.124924160838435,
+            "nodematch.Grade": 1.97724430305883,
+            "nodematch.Race": 0.264472073810317,
+            "gwesp.fixed.0.5": 1.21834056572568
+          },
+          "se": {
+            "edges": 0.173933513674187,
+            "nodefactor.Sex.M": 0.0744863075426714,
+            "nodematch.Grade": 0.175331638256623,
+            "nodematch.Race": 0.119379156564654,
+            "gwesp.fixed.0.5": 0.0857756977981435
+          }
+        }
+      ]
+    },
+    "magnolia": {
+      "network": "faux.magnolia.high",
+      "formula": "edges + nodematch('Grade') + nodematch('Race') + nodematch('Sex') + gwesp(0.25, fixed=TRUE)",
+      "n": 1461,
+      "runs": [
+        {
+          "seconds": 12.806,
+          "coef": {
+            "edges": -9.78040930378661,
+            "nodematch.Grade": 2.74598098148386,
+            "nodematch.Race": 0.905978449388151,
+            "nodematch.Sex": 0.76573028792786,
+            "gwesp.fixed.0.25": 1.80096151619234
+          },
+          "se": {
+            "edges": 0.102254426444928,
+            "nodematch.Grade": 0.0864503689029475,
+            "nodematch.Race": 0.0744832613767888,
+            "nodematch.Sex": 0.0635170098144258,
+            "gwesp.fixed.0.25": 0.0494151543584386
+          }
+        },
+        {
+          "seconds": 13.594,
+          "coef": {
+            "edges": -9.78258240805081,
+            "nodematch.Grade": 2.74999598203295,
+            "nodematch.Race": 0.908493672127895,
+            "nodematch.Sex": 0.764339777189332,
+            "gwesp.fixed.0.25": 1.79758931499111
+          },
+          "se": {
+            "edges": 0.108363321359351,
+            "nodematch.Grade": 0.0867100886184721,
+            "nodematch.Race": 0.0738880701485477,
+            "nodematch.Sex": 0.0649350981390898,
+            "gwesp.fixed.0.25": 0.0497781324539413
+          }
+        },
+        {
+          "seconds": 21.329,
+          "coef": {
+            "edges": -9.7832450025564,
+            "nodematch.Grade": 2.75148677893125,
+            "nodematch.Race": 0.912600497387729,
+            "nodematch.Sex": 0.766775330569791,
+            "gwesp.fixed.0.25": 1.79653966829106
+          },
+          "se": {
+            "edges": 0.103172974399873,
+            "nodematch.Grade": 0.0857916929813127,
+            "nodematch.Race": 0.0746381223071514,
+            "nodematch.Sex": 0.0624679083771046,
+            "gwesp.fixed.0.25": 0.0511813858209523
+          }
+        }
+      ]
+    }
+  }
+}
