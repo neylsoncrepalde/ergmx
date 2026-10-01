@@ -175,3 +175,21 @@ def simulate(network, formula, coef, nsim: int = 1, *, constraints=None, biparti
     if output == "stats":
         return sample[0]
     return [to_graphs(model.network, edges) for edges in networks[0]]
+
+
+def predict(network, formula, coef, *, conditional: bool = True, type: str = "response",
+            nsim: int = 100, constraints=None, bipartite=None, seed=None, **options):
+    """Tie probabilities of every dyad of a network under a model, as R's
+    ``predict(net ~ formula, eta)``. See :meth:`ErgmFit.predict`.
+
+    ``coef`` are the formula's parameters (in order, or a dict by name), as
+    in :func:`simulate`; ``constraints`` only apply to unconditional
+    probabilities.
+    """
+    from ._interpret import predict as _predict
+
+    model = bind(network, formula, constraints, bipartite=bipartite)
+    if isinstance(coef, dict):
+        coef = [coef[name] for name in model.names]
+    return _predict(model, np.asarray(coef, dtype=float), conditional=conditional, type=type,
+                    nsim=nsim, seed=seed, **options)

@@ -60,7 +60,8 @@ intersphinx_mapping = {
 # -- HTML output --------------------------------------------------------------
 html_theme = "pydata_sphinx_theme"
 html_title = "ergmx"
-html_static_path = []
+html_static_path = ["_static"]
+html_js_files = ["external-links.js"]  # links leaving the documentation open in a new tab
 html_theme_options = {
     "github_url": "https://github.com/neylsoncrepalde/ergmx",
     "navbar_align": "left",

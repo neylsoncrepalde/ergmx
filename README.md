@@ -7,12 +7,13 @@ the spirit of R's [ergm](https://github.com/statnet/ergm) and statnet: R-style
 formulas, the same term names and statistics, and `summary()` and `gof()`
 that read like R's.
 
-> **Status: proof of concept.** 58 terms and 8 operators for directed,
-> undirected and bipartite networks; curved ERGMs; sample space constraints;
-> missing ties; samples of networks (as ergm.multi); temporal ERGMs and
-> dynamic simulation (as tergm); MPLE, contrastive divergence and Monte Carlo
-> MLE; MCMC diagnostics, log-likelihoods, model comparison and goodness of
-> fit, all validated against R. See [what's missing](#not-yet).
+> 74 terms and 9 operators for directed, undirected and bipartite networks;
+> curved ERGMs; sample space constraints; missing ties; multilevel networks
+> (as MPNet); samples of networks (as ergm.multi); temporal ERGMs and dynamic
+> simulation (as tergm); MPLE, contrastive divergence and Monte Carlo MLE;
+> MCMC diagnostics, log-likelihoods, model comparison and goodness of fit;
+> tie probabilities, marginal effects and tables of results, all validated
+> against R. See [what's missing](#not-yet).
 
 ```python
 import ergmx
@@ -93,7 +94,7 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
   designs), `blocks` (fix the dyads of some mixing types), `degrees`,
   `odegrees` and `idegrees`, with degree-preserving MCMC moves.
 - **Missing ties**: likelihood inference conditional on the observed dyads
-  (Handcock and Gile 2010), assuming they are missing at random, for the
+  ([Handcock and Gile 2010](https://doi.org/10.1214/08-AOAS221)), assuming they are missing at random, for the
   estimates, standard errors, log-likelihood and goodness of fit.
 - **Bipartite networks** (`bipartite=True`): only the ties between modes are
   modeled, with their own terms and ergm's goodness of fit statistics.
@@ -101,9 +102,11 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
   geometrically weighted terms estimated in the MPLE, contrastive divergence,
   the Monte Carlo MLE and the log-likelihood, with an overflow statistic
   where ergm's cutoff stops with an error.
-- **Multilevel networks** as one network with a level attribute: `nodemix`
-  for densities by kind of tie, `F()` for terms within levels, and `blocks` to
-  model some kinds of ties given others.
+- **Multilevel networks** as one network with a level attribute, as MPNet
+  models them ([Wang et al. 2013](https://doi.org/10.1016/j.socnet.2013.01.004)): ergm's `S()` for terms within a level or
+  between two (`S(~edges + gwesp(0.5, fixed=TRUE), ~level == 'A')`), MPNet's
+  cross-level configurations (`star2ax`, `txax`, `atxax`, `l3axb`,
+  `c4axb`...), and `nodemix`, `F()` and `blocks` to model kinds of ties.
 - **Samples of networks**, as R's ergm.multi: `ergmx.Networks(g1, g2, ...)`
   models many networks (classrooms, households) jointly, and
   `N(~terms, lm=~log(n) + weekday)` lets the coefficients depend on
@@ -118,7 +121,7 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
   - dyad-independent models: the exact MLE (logistic regression), with
     log-likelihood, AIC and BIC;
   - other models: Monte Carlo MLE starting from the MPLE (or from the
-    contrastive divergence estimate, `init="CD"`), with Hummel et al. (2012)
+    contrastive divergence estimate, `init="CD"`), with [Hummel et al. (2012)](https://doi.org/10.1080/10618600.2012.679224)
     step lengths, the log-normal approximation, an adaptive MCMC interval that
     targets an effective sample size, and standard errors that include the
     MCMC error;
@@ -147,6 +150,11 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
   `plot()`.
 - `ergmx.simulate(network, formula, coef, nsim)` returns graphs of the same
   kind as the input, or their statistics; `fit.simulate()` uses the estimates.
+- **Interpreting and reporting**: `fit.predict()` (tie probabilities, as
+  ergm's `predict()`), `fit.marginal_effects()` (as ergMargins),
+  `fit.odds_ratios()`, `fit.confint()`, and `ergmx.table(fit1, fit2)`, a
+  table of models identical to texreg's `screenreg()`, also as LaTeX, HTML
+  and Markdown; `to_frame()` for pandas.
 - `ergmx.summary_stats(network, formula)`: R's `summary(net ~ formula)`.
 - `ergmx.datasets`: the networks of R's ergm documentation (flomarriage,
   flobusiness, samplk1-3, faux.mesa.high, faux.dixon.high,
@@ -173,14 +181,17 @@ results in `tests/data/r_reference.json`; the test suite compares.
 
 | Check | Result |
 |---|---|
-| Statistics of all 58 terms and 8 operators, 66 models | identical to R's `summary()` (1e-12), names included, except two statistics that ergm 4.12.0 computes differently from its documentation, where ergmx follows the documentation: `transitive`, and the edgewise RTP statistics, which ergmx gives as ergm does with its shared-partner cache off (see [validation](docs/validation.md)) |
-| MPLE, 44 models | identical to R (1e-6; curved models 1e-3, with a pseudo-likelihood at least R's) |
-| Dyad-independent MLE, standard errors, log-likelihood and BIC (12 models, with offsets, `blocks`, missing dyads, bipartite networks, samples and series of networks) | identical to R (1e-6; SEs 1e-3, R's `glm` tolerance) |
+| Statistics of ergm's 58 terms and 9 operators, 70 models | identical to R's `summary()` (1e-12), names included, except two statistics that ergm 4.12.0 computes differently from its documentation, where ergmx follows the documentation: `transitive`, and the edgewise RTP statistics, which ergmx gives as ergm does with its shared-partner cache off (see [validation](docs/validation.md)) |
+| MPLE, 47 models | identical to R (1e-6; curved models 1e-3, with a pseudo-likelihood at least R's) |
+| Dyad-independent MLE, standard errors, log-likelihood and BIC (13 models, with offsets, `blocks`, `S()`, missing dyads, bipartite networks, samples and series of networks) | identical to R (1e-6; SEs 1e-3, R's `glm` tolerance) |
 | Monte Carlo MLE, 7 models (4 undirected, 3 directed) x 3–10 seeds | within 0.12 standard errors of R; SEs within 0.89–1.12 of R's |
 | Monte Carlo MLE with constraints, missing dyads, offsets, `F()` and multilevel models, 12 models x 5 seeds | within 0.17 standard errors of R; SEs within 0.91–1.09 of R's |
 | Monte Carlo MLE of the new terms, bipartite and curved models (directed and undirected), 10 models x 3–5 seeds | within 0.2 standard errors of R; SEs within 0.90–1.12 of R's, except one curved model with a nearly flat decay |
 | Monte Carlo MLE of samples of networks (ergm.multi) and of series (tergm's CMLE), 4 models x 5 seeds | within 0.10 standard errors of R; SEs within 0.94–1.05 of R's |
+| Monte Carlo MLE of a multilevel model with `S()`, 5 seeds | within 0.08 standard errors of R; SEs within 0.96–1.04 of R's |
+| MPNet's 16 multilevel configurations (no R implementation exists) | equal to their matrix definitions (1e-12); the MCMC matches exact enumeration |
 | Goodness of fit, directed and undirected | observed distributions and p-values identical to R's; simulated distributions agree within Monte Carlo error |
+| Tie probabilities, marginal effects, confidence intervals and tables | identical to R's `predict()` (1e-12), ergMargins' effects, `confint()` and texreg's tables (character for character) |
 | MCMC stationary distribution, unconstrained and under every constraint | matches exact enumeration of every network each constraint allows on 3 to 6 vertices, directed and undirected |
 | Log-likelihood, directed and undirected | unbiased against exact enumeration (6 and 4 vertices), with calibrated standard errors |
 | Log-likelihood, 5 dyad-dependent models | within one standard error of high-precision estimates (128 bridges); R's 16-point midpoint rule is off by 0.1 to 2.1 |

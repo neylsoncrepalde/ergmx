@@ -73,7 +73,7 @@ class McmcDiagnostics:
 
     @property
     def rhat(self) -> np.ndarray:
-        """Split R-hat (Gelman et al. 2013): about 1 when the chains agree; above
+        """Split R-hat (`Gelman et al. 2013 <https://doi.org/10.1201/b16018>`__): about 1 when the chains agree; above
         1.01 to 1.1 suggests they have not mixed."""
         return split_rhat(self.deviations)
 

@@ -213,6 +213,82 @@ def _level_label(value) -> str:
     return str(value)
 
 
+def _arrays(columns: dict[str, list]) -> dict[str, np.ndarray]:
+    """Columns of values as arrays: logical, numeric, or else of objects."""
+    data = {}
+    for k, values in columns.items():
+        v = np.array(values, dtype=object)
+        if len(v) and all(isinstance(x, (bool, np.bool_)) for x in v):
+            v = v.astype(bool)
+        elif len(v) and all(isinstance(x, (int, float, np.integer, np.floating)) and not isinstance(x, bool)
+                            for x in v):
+            v = v.astype(float)
+        data[k] = v
+    return data
+
+
+def _split_formula(text: str) -> tuple[str | None, str]:
+    """The sides of an R formula: (None, rhs) if one-sided."""
+    text = text.strip()
+    if text.startswith("~"):
+        return None, text[1:]
+    depth, quote = 0, None
+    for k, ch in enumerate(text):
+        if quote:
+            quote = None if ch == quote else quote
+        elif ch in "'\"":
+            quote = ch
+        elif ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth -= 1
+        elif ch == "~" and depth == 0:
+            return text[:k], text[k + 1:]
+    return None, text
+
+
+def vertex_sets(attrs, attributes: dict[str, list], n: int):
+    """The vertices an S() selector picks, as ergm's: a one-sided formula
+    (``~level == "A"``) picks one set; a two-sided one (``(level == "A") ~
+    (level == "B")``) two, for a bipartite subgraph. Each side is an R
+    expression of the vertex attributes, logical (recycled) or 1-based
+    indices (negative ones deselect). Returns the sets (the second None if
+    one-sided) and the label ergm gives them in names."""
+    data = _arrays(attributes)
+    if isinstance(attrs, str):
+        lhs, rhs = _split_formula(attrs)
+        sides = [rhs] if lhs is None else [lhs, rhs]
+    else:
+        sides = list(attrs) if isinstance(attrs, (list, tuple)) and len(attrs) == 2 and \
+            not np.isscalar(attrs[0]) else [attrs]
+    sets, labels = [], []
+    for side in sides:
+        if isinstance(side, str):
+            node = _Parser(side).parse()
+            labels.append(re.sub(r"\s", "", deparse(node)))
+            value = _evaluate(node, data)
+        else:
+            value = np.asarray(side)
+            labels.append("c(" + ",".join(str(v) for v in value.tolist()) + ")")
+        value = np.asarray(value)
+        if value.dtype == bool:
+            chosen = np.flatnonzero(np.resize(value, n) if value.size else np.zeros(n, bool))
+        elif value.dtype.kind in "if":
+            idx = value.astype(int)
+            if np.all(idx < 0):
+                chosen = np.setdiff1d(np.arange(n), -idx - 1)
+            elif np.all(idx > 0):
+                if idx.max() > n:
+                    raise LmError(f"vertex index {idx.max()} is beyond the {n} vertices")
+                chosen = np.unique(idx - 1)
+            else:
+                raise LmError("vertex indices must be all positive or all negative")
+        else:
+            raise LmError(f"{labels[-1]} is neither logical nor vertex indices")
+        sets.append(chosen)
+    return sets[0], (sets[1] if len(sets) == 2 else None), ",".join(labels)
+
+
 def design(lm, attributes: list[dict]) -> tuple[np.ndarray, list[str]]:
     """The design matrix (networks x columns) of a one-sided lm formula over
     the networks' attributes, and its column names as N() names them ("1"
@@ -222,13 +298,7 @@ def design(lm, attributes: list[dict]) -> tuple[np.ndarray, list[str]]:
     if not text.strip():
         raise LmError("the linear model is empty")
     names = sorted({k for a in attributes for k in a})
-    data = {k: np.array([a.get(k) for a in attributes], dtype=object) for k in names}
-    for k, v in data.items():
-        if all(isinstance(x, (bool, np.bool_)) for x in v):
-            data[k] = v.astype(bool)
-        elif all(isinstance(x, (int, float, np.integer, np.floating)) and not isinstance(x, bool)
-                 for x in v):
-            data[k] = v.astype(float)
+    data = _arrays({k: [a.get(k) for a in attributes] for k in names})
     intercept, terms = True, []
     for sign, node in _terms(_Parser(text).parse()):
         if node[0] == "num" and node[1] in (0, 1):

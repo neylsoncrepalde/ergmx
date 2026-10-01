@@ -13,14 +13,19 @@ networks small enough to enumerate every possible network. The R scripts in
 
 | Check | Result |
 |---|---|
-| Statistics of all 58 terms and 8 operators, 66 models | identical to R's `summary()` (to 1e-12), names included, except `transitive` and the edgewise RTP statistics (below) |
-| MPLE, 44 models, with offsets, `F()`, `N()`, tergm's operators, `blocks`, bipartite networks and curved terms | identical to R (to 1e-6; curved models to 1e-3, where R's optimizer stops on a flat optimum: ergmx's pseudo-likelihood is at least R's) |
-| Dyad-independent MLE, standard errors, log-likelihood and BIC, 12 models, with offsets, `blocks`, missing dyads, bipartite networks, samples and series of networks | identical to R (to 1e-6; standard errors to 1e-3, the tolerance of R's `glm`) |
+| Statistics of ergm's 58 terms and 9 operators, 70 models | identical to R's `summary()` (to 1e-12), names included, except `transitive` and the edgewise RTP statistics (below) |
+| MPLE, 47 models, with offsets, `F()`, `S()`, `N()`, tergm's operators, `blocks`, bipartite networks and curved terms | identical to R (to 1e-6; curved models to 1e-3, where R's optimizer stops on a flat optimum: ergmx's pseudo-likelihood is at least R's) |
+| Dyad-independent MLE, standard errors, log-likelihood and BIC, 13 models, with offsets, `blocks`, `S()`, missing dyads, bipartite networks, samples and series of networks | identical to R (to 1e-6; standard errors to 1e-3, the tolerance of R's `glm`) |
 | Monte Carlo MLE, 7 models (4 undirected, 3 directed), 3 to 10 seeds each | within 0.12 standard errors of R's estimates; standard errors 0.89 to 1.12 times R's |
 | Monte Carlo MLE with constraints (`bd`, `blocks`, `degrees`, `odegrees`), missing dyads, offsets, `F()`, `esp` and multilevel models, 12 models x 5 seeds | all converged, within 0.17 standard errors of R's estimates; standard errors 0.91 to 1.09 times R's |
 | Monte Carlo MLE of `concurrent`, `twopath`, OSP shared partners, bipartite models and curved models (gwesp, directed and undirected, and gwb1degree), 10 models x 3 to 5 seeds | all converged, within 0.2 standard errors of R's estimates; standard errors 0.90 to 1.12 times R's, except the curved bipartite model, whose likelihood is nearly flat in the decay (R's standard error of the decay is twice its estimate) |
 | Monte Carlo MLE of samples of networks (Sampson's monks; 225 households with `N()` linear models) and of series (tergm's CMLE, one and two transitions), 4 models x 5 seeds | all converged, within 0.10 standard errors of R's estimates; standard errors 0.94 to 1.05 times R's |
+| Monte Carlo MLE of a multilevel model with `S()` (each level and the ties between them, with gwesp and gwb1dsp), 5 seeds | all converged, within 0.08 standard errors of R's estimates; standard errors 0.96 to 1.04 times R's |
 | Goodness of fit, directed and undirected | observed distributions and p-values identical to R's; simulated distributions agree within Monte Carlo error |
+| Conditional tie probabilities (`predict()`), 5 models: undirected, directed, missing dyads, curved, 20 household networks | identical to R's `predict()` (to 1e-12), on the same dyads (R's formula method leaves out missing dyads) |
+| Average marginal effects, 4 models | identical to ergMargins' (to its 5 significant digits); the standard errors match a numerical delta method (to 1e-5), and ergMargins' when the probabilities are held fixed, as it holds them |
+| Confidence intervals, 4 models | identical to R's `confint()` (to 1e-3, the accuracy of R's `glm` standard errors) |
+| Tables of results | identical to texreg's `screenreg()`, `texreg()` and `htmlreg()`, character for character, on exactly fitted models |
 | Contrastive divergence | a fixed point of its defining equation; the Monte Carlo MLE from a CD start matches R's |
 
 R's own standard errors vary by about 15% between seeds on the small
@@ -64,6 +69,7 @@ them are checked below.
 | Curved terms inside `N()` and `Form()` | at the curved MPLE's decay, the fixed-decay MPLE has the same coefficients (to 1e-8); a series simulated with decay 0.7 gives back 0.64 |
 | Dynamic simulation | one time step is a draw from the transition's model (exact enumeration); with tergm's stopping rule, ties form and dissolve at the dyad-independent model's exact rates (within 5% and 8%) |
 | Dyad-independent CMLE | the log-odds that non-ties became ties and that ties persisted, exactly |
+| MPNet's 16 multilevel configurations, which no R package has | equal to their definitions computed from the levels' adjacency matrices (to 1e-12), on random two-level networks and `linked_sim`, for three decays; the MCMC matches exact enumeration of every network on 6 vertices of two levels (and one of neither), with S() too |
 | Log-likelihood, directed and undirected | unbiased against exact enumeration (6 and 4 vertices), with standard errors that match the spread across seeds |
 
 ## The log-likelihood

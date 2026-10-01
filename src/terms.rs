@@ -558,6 +558,201 @@ impl Term for EdgeCov {
     }
 }
 
+// -- Multilevel terms (MPNet's) ----------------------------------------------------------------
+
+/// MPNet's configurations of two-level networks (Wang, Robins, Pattison and
+/// Lazega 2013), in one undirected network whose vertices are at level A,
+/// level B or neither: A-ties within A, B-ties within B, X-ties between them.
+/// For a level S (A or B, the term's side) and the other level O, a vertex v
+/// of S has within-level degree w(v) and cross-level degree x(v); g(d) =
+/// exp(decay) (1 - r^d), with r = 1 - exp(-decay) (MPNet's lambda = exp(decay)),
+/// is the geometric weighting of alternating statistics.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Level {
+    /// Star2SX: sum over v in S of w(v) x(v).
+    Star2X,
+    /// SXS1S (AXS1A): sum of w(v) g(x(v)), alternating X-stars with one S-tie.
+    XStarsWithin,
+    /// SSS1X (AAS1X): sum of g(w(v)) x(v), alternating S-stars with one X-tie.
+    WithinStarsX,
+    /// SSSXS (AAAXS): sum of g(w(v)) g(x(v)).
+    AlternatingStars,
+    /// TXSX: over S-ties, the number of shared partners at level O.
+    TriangleX,
+    /// ATXSX: over S-ties, g(shared partners at level O).
+    AltTriangleX,
+    /// L3XSX: over S-ties (v, u), x(v) x(u) (paths X-S-X, closed ones included).
+    PathXSX,
+    /// L3AXB: over X-ties (a, b), w(a) w(b).
+    PathAXB,
+    /// C4AXB: the 4-cycles of an A-tie, a B-tie and two X-ties.
+    CycleAXB,
+}
+
+struct Multilevel {
+    kind: Level,
+    /// 0 for level A, 1 for B, -1 for neither.
+    level: Vec<i8>,
+    /// The term's side: 0 (A) or 1 (B).
+    side: i8,
+    r: f64,
+    exp_decay: f64,
+}
+
+impl Multilevel {
+    #[inline]
+    fn at(&self, v: u32) -> i8 {
+        self.level[v as usize]
+    }
+
+    /// Neighbours of v at level `l`.
+    fn count(&self, net: &Network, v: u32, l: i8) -> usize {
+        net.neighbours(v).iter().filter(|&&u| self.at(u) == l).count()
+    }
+
+    fn g(&self, d: usize) -> f64 {
+        self.exp_decay * (1.0 - self.r.powi(d as i32))
+    }
+
+    /// Partners of v and u at level `l`.
+    fn shared(&self, net: &Network, v: u32, u: u32, l: i8) -> usize {
+        let mut c = 0;
+        crate::network::for_each_common(net.neighbours(v), net.neighbours(u), |k| {
+            if self.at(k) == l {
+                c += 1
+            }
+        });
+        c
+    }
+
+    /// The change from adding the tie (i, j) (with `removing`, from adding it
+    /// back after its removal: the change of removing it, reversed).
+    fn added(&self, net: &Network, i: u32, j: u32, removing: bool) -> f64 {
+        let (li, lj) = (self.at(i), self.at(j));
+        if li < 0 || lj < 0 {
+            return 0.0;
+        }
+        let s = self.side;
+        let o = 1 - s;
+        // Degrees and counts without the tie (i, j).
+        let without = |d: usize| if removing { d - 1 } else { d };
+        match self.kind {
+            Level::PathAXB | Level::CycleAXB => self.cross_level(net, i, j),
+            _ if li == s && lj == s => {
+                // An S-tie.
+                let (xi, xj) = (self.count(net, i, o), self.count(net, j, o));
+                match self.kind {
+                    Level::Star2X => (xi + xj) as f64,
+                    Level::XStarsWithin => self.g(xi) + self.g(xj),
+                    Level::WithinStarsX | Level::AlternatingStars => [(i, xi), (j, xj)]
+                        .iter()
+                        .map(|&(v, x)| {
+                            let weight = self.r.powi(without(self.count(net, v, s)) as i32);
+                            weight * if self.kind == Level::WithinStarsX { x as f64 } else { self.g(x) }
+                        })
+                        .sum(),
+                    Level::TriangleX => self.shared(net, i, j, o) as f64,
+                    Level::AltTriangleX => self.g(self.shared(net, i, j, o)),
+                    Level::PathXSX => (xi * xj) as f64,
+                    Level::PathAXB | Level::CycleAXB => unreachable!(),
+                }
+            }
+            _ if li != lj => {
+                // An X-tie: a at level S, b at level O.
+                let (a, b) = if li == s { (i, j) } else { (j, i) };
+                let w = self.count(net, a, s);
+                match self.kind {
+                    Level::Star2X => w as f64,
+                    Level::XStarsWithin => w as f64 * self.r.powi(without(self.count(net, a, o)) as i32),
+                    Level::WithinStarsX => self.g(w),
+                    Level::AlternatingStars => self.g(w) * self.r.powi(without(self.count(net, a, o)) as i32),
+                    Level::TriangleX => self.shared(net, a, b, s) as f64,
+                    Level::AltTriangleX => {
+                        // S-ties (a, u) with u also tied to b gain a partner.
+                        let mut total = 0.0;
+                        crate::network::for_each_common(net.neighbours(a), net.neighbours(b), |u| {
+                            if self.at(u) == s {
+                                total += self.r.powi(without(self.shared(net, a, u, o)) as i32);
+                            }
+                        });
+                        total
+                    }
+                    Level::PathXSX => net
+                        .neighbours(a)
+                        .iter()
+                        .filter(|&&u| self.at(u) == s)
+                        .map(|&u| self.count(net, u, o))
+                        .sum::<usize>() as f64,
+                    Level::PathAXB | Level::CycleAXB => unreachable!(),
+                }
+            }
+            _ => 0.0,
+        }
+    }
+
+    /// L3AXB and C4AXB, which involve ties of both levels (none of their
+    /// counts depends on the tie (i, j) itself).
+    fn cross_level(&self, net: &Network, i: u32, j: u32) -> f64 {
+        let (li, lj) = (self.at(i), self.at(j));
+        if li != lj {
+            // An X-tie (a, b), a in A, b in B.
+            let (a, b) = if li == 0 { (i, j) } else { (j, i) };
+            return match self.kind {
+                Level::PathAXB => (self.count(net, a, 0) * self.count(net, b, 1)) as f64,
+                // A-ties (a, a') and B-ties (b, b') with a' tied to b'.
+                _ => net
+                    .neighbours(a)
+                    .iter()
+                    .filter(|&&u| self.at(u) == 0)
+                    .map(|&u| {
+                        let mut c = 0;
+                        crate::network::for_each_common(net.neighbours(u), net.neighbours(b), |k| {
+                            if self.at(k) == 1 {
+                                c += 1
+                            }
+                        });
+                        c
+                    })
+                    .sum::<usize>() as f64,
+            };
+        }
+        // A tie within a level: its endpoints' partners at the other level m.
+        let m = 1 - li;
+        match self.kind {
+            // Each X-tie (v, k) of an endpoint v gains one in w(v).
+            Level::PathAXB => [i, j]
+                .iter()
+                .map(|&v| {
+                    net.neighbours(v).iter().filter(|&&k| self.at(k) == m).map(|&k| self.count(net, k, m)).sum::<usize>()
+                })
+                .sum::<usize>() as f64,
+            // m-ties (k, k') with k tied to i and k' tied to j.
+            _ => net
+                .neighbours(i)
+                .iter()
+                .filter(|&&k| self.at(k) == m)
+                .map(|&k| {
+                    let mut c = 0;
+                    crate::network::for_each_common(net.neighbours(k), net.neighbours(j), |u| {
+                        if self.at(u) == m {
+                            c += 1
+                        }
+                    });
+                    c
+                })
+                .sum::<usize>() as f64,
+        }
+    }
+}
+
+impl Term for Multilevel {
+    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
+        // Removing a tie reverses adding it to the network without it, whose
+        // counts the change computes with the tie discounted.
+        out[0] += sign * self.added(net, i, j, sign < 0.0);
+    }
+}
+
 // -- Building a model from the Python specification ----------------------------------------------
 
 /// A term as sent from Python: its name, real parameters, integer parameters
@@ -755,6 +950,36 @@ fn build_term(n: usize, directed: bool, spec: &TermSpec) -> Result<Box<dyn Term>
             expect(reals.len(), "matrix entries", n * n)?;
             Box::new(EdgeCov { x: reals.clone(), n, directed })
         }
+        // ints: each vertex's level (0 A, 1 B, -1 neither); reals: [decay] if alternating.
+        "star2ax" | "star2bx" | "axs1a" | "axs1b" | "aas1x" | "abs1x" | "aaaxs" | "abaxs" | "txax" | "txbx"
+        | "atxax" | "atxbx" | "l3xax" | "l3xbx" | "l3axb" | "c4axb" => {
+            only(false)?;
+            expect(ints.len(), "vertex levels", n)?;
+            let (kind, side) = match name.as_str() {
+                "star2ax" => (Level::Star2X, 0),
+                "star2bx" => (Level::Star2X, 1),
+                "axs1a" => (Level::XStarsWithin, 0),
+                "axs1b" => (Level::XStarsWithin, 1),
+                "aas1x" => (Level::WithinStarsX, 0),
+                "abs1x" => (Level::WithinStarsX, 1),
+                "aaaxs" => (Level::AlternatingStars, 0),
+                "abaxs" => (Level::AlternatingStars, 1),
+                "txax" => (Level::TriangleX, 0),
+                "txbx" => (Level::TriangleX, 1),
+                "atxax" => (Level::AltTriangleX, 0),
+                "atxbx" => (Level::AltTriangleX, 1),
+                "l3xax" => (Level::PathXSX, 0),
+                "l3xbx" => (Level::PathXSX, 1),
+                "l3axb" => (Level::PathAXB, 0),
+                _ => (Level::CycleAXB, 0),
+            };
+            let alternating = matches!(kind, Level::XStarsWithin | Level::WithinStarsX | Level::AlternatingStars | Level::AltTriangleX);
+            let d = if alternating { decay()? } else { 0.0 };
+            if ints.iter().any(|&l| !(-1..=1).contains(&l)) {
+                return Err(format!("{name}: levels must be 0, 1 or -1"));
+            }
+            Box::new(Multilevel { kind, level: ints.iter().map(|&l| l as i8).collect(), side, r: r(d), exp_decay: d.exp() })
+        }
         "F" => return Err("F() can't be nested in F()".into()),
         other => return Err(format!("unknown term: {other}")),
     })
@@ -909,6 +1134,11 @@ enum Entry {
     /// (for curved terms, whose coefficients differ between blocks). `scale`
     /// is -1 for Diss(), which negates Persist().
     Blocks { view: View, scale: f64, slot: usize, blocks: Vec<SubBlock>, compact: bool, q: usize, n_stats: usize },
+    /// Terms of ergm's S(formula, attrs), evaluated on the subgraph induced by
+    /// some vertices, or on the bipartite subgraph between two disjoint sets
+    /// of vertices: `local` numbers the subgraph's vertices (u32::MAX for the
+    /// others) and, if bipartite, `head` marks those of the second set.
+    Subgraph { slot: usize, local: Vec<u32>, head: Option<Vec<bool>>, model: Box<Model> },
 }
 
 impl Entry {
@@ -916,6 +1146,7 @@ impl Entry {
         match self {
             Entry::Plain(term) => term.n_stats(),
             Entry::Filtered { n_stats, .. } | Entry::Blocks { n_stats, .. } => *n_stats,
+            Entry::Subgraph { model, .. } => model.n_stats(),
         }
     }
 }
@@ -933,9 +1164,25 @@ fn place(inner: &[f64], block: &SubBlock, compact: bool, q: usize, scale: f64, o
     }
 }
 
+impl Entry {
+    /// For S(): the dyad (i, j) in the subgraph's numbering, if it is in it.
+    #[inline]
+    fn subgraph_dyad(local: &[u32], head: &Option<Vec<bool>>, i: u32, j: u32) -> Option<(u32, u32)> {
+        let (a, b) = (local[i as usize], local[j as usize]);
+        if a == u32::MAX || b == u32::MAX {
+            return None;
+        }
+        match head {
+            Some(h) if h[i as usize] == h[j as usize] => None,
+            _ => Some((a, b)),
+        }
+    }
+}
+
 /// A network with the auxiliary networks that its terms need: for each
 /// filter of F(), the ties that pass it; with blocks, each block's previous
-/// network and, for each block operator, the state of each block's view.
+/// network and, for each block operator (and S()), the state of each block's
+/// view (of the subgraph).
 #[derive(Clone)]
 pub struct State {
     pub net: Network,
@@ -992,6 +1239,41 @@ impl Model {
                 let n_stats = terms.iter().map(|t| t.n_stats()).sum();
                 filters.push(Filter { term: filter_term, negate: spec.2.first() == Some(&1) });
                 entries.push(Entry::Filtered { terms, filter: filters.len() - 1, n_stats });
+            } else if spec.0 == "subgraph" {
+                // ints: [bipartite, k, the k vertices of the first set, then (if
+                // bipartite) the vertices of the second]; children: the terms,
+                // for a network of the subgraph's vertices in that order.
+                let ints = &spec.2;
+                let (bipartite, k) = match ints.as_slice() {
+                    [b, k, ..] if *k >= 0 => (*b == 1, *k as usize),
+                    _ => return Err("S(): bad parameters".into()),
+                };
+                let vertices = &ints[2..];
+                if vertices.len() < k || (!bipartite && vertices.len() != k) || vertices.iter().any(|&v| v < 0 || v >= n as i64) {
+                    return Err("S(): bad vertices".into());
+                }
+                let mut local = vec![u32::MAX; n_usize];
+                for (position, &v) in vertices.iter().enumerate() {
+                    if local[v as usize] != u32::MAX {
+                        return Err("S(): a vertex can't be in both sets".into());
+                    }
+                    local[v as usize] = position as u32;
+                }
+                if bipartite && directed {
+                    return Err("S(): bipartite subgraphs of directed networks are not supported".into());
+                }
+                let head = bipartite.then(|| {
+                    let mut h = vec![false; n_usize];
+                    vertices[k..].iter().for_each(|&v| h[v as usize] = true);
+                    h
+                });
+                let size = vertices.len() as u32;
+                if size < 2 {
+                    return Err("S(): the subgraph needs at least 2 vertices".into());
+                }
+                let model = Box::new(Model::new(size, directed, &spec.3, None, Vec::new())?);
+                entries.push(Entry::Subgraph { slot: n_slots, local, head, model });
+                n_slots += 1;
             } else if spec.0 == "blocks" {
                 // ints: [view, negate, compact, q]; children: one "block" per block,
                 // with its row of the linear model as reals and its terms as children.
@@ -1090,18 +1372,29 @@ impl Model {
             })
             .collect();
         let mut subs = Vec::with_capacity(self.n_slots);
-        if let Some(layout) = self.layout.as_ref().filter(|_| self.n_slots > 0) {
-            let parts = layout.split(&net);
-            for entry in &self.entries {
-                if let Entry::Blocks { view, blocks, .. } = entry {
+        let parts = self.layout.as_ref().filter(|_| self.n_slots > 0).map(|l| l.split(&net));
+        for entry in &self.entries {
+            match entry {
+                Entry::Blocks { view, blocks, .. } => {
+                    let parts = parts.as_ref().expect("block operators need a layout");
                     let states = blocks
                         .iter()
-                        .zip(&parts)
+                        .zip(parts)
                         .enumerate()
                         .map(|(k, (block, y))| block.model.state(view.of(y, prev.get(k))))
                         .collect();
                     subs.push(states);
                 }
+                Entry::Subgraph { local, head, model, .. } => {
+                    let mut sub = Network::new(model.n_vertices, net.directed());
+                    for &(i, j) in net.edges() {
+                        if let Some((a, b)) = Entry::subgraph_dyad(local, head, i, j) {
+                            sub.toggle(a, b);
+                        }
+                    }
+                    subs.push(vec![model.state(sub)]);
+                }
+                _ => {}
             }
         }
         State { net, aux, prev, subs }
@@ -1114,14 +1407,23 @@ impl Model {
                 aux.toggle(i, j);
             }
         }
-        if self.n_slots > 0
-            && let Some((k, a, b)) = self.layout.as_ref().and_then(|l| l.locate(i, j))
-        {
+        if self.n_slots > 0 {
+            let located = self.layout.as_ref().and_then(|l| l.locate(i, j));
             for entry in &self.entries {
-                if let Entry::Blocks { view, slot, blocks, .. } = entry
-                    && view.sees(state.prev.get(k), a, b)
-                {
-                    blocks[k].model.toggle(&mut state.subs[*slot][k], a, b);
+                match entry {
+                    Entry::Blocks { view, slot, blocks, .. } => {
+                        if let Some((k, a, b)) = located
+                            && view.sees(state.prev.get(k), a, b)
+                        {
+                            blocks[k].model.toggle(&mut state.subs[*slot][k], a, b);
+                        }
+                    }
+                    Entry::Subgraph { slot, local, head, model } => {
+                        if let Some((a, b)) = Entry::subgraph_dyad(local, head, i, j) {
+                            model.toggle(&mut state.subs[*slot][0], a, b);
+                        }
+                    }
+                    _ => {}
                 }
             }
         }
@@ -1145,6 +1447,11 @@ impl Model {
                             term.change(aux, i, j, sign, &mut out[start..start + term.n_stats()]);
                             start += term.n_stats();
                         }
+                    }
+                }
+                Entry::Subgraph { slot, local, head, model } => {
+                    if let Some((a, b)) = Entry::subgraph_dyad(local, head, i, j) {
+                        model.change(&state.subs[*slot][0], a, b, out);
                     }
                 }
                 Entry::Blocks { view, scale, slot, blocks, compact, q, .. } => {
@@ -1205,6 +1512,9 @@ impl Model {
                         let inner = block.model.summary(&build.subs[*slot][k].net);
                         place(&inner, block, *compact, *q, *scale, out);
                     }
+                }
+                Entry::Subgraph { slot, model, .. } => {
+                    out.copy_from_slice(&model.summary(&build.subs[*slot][0].net));
                 }
             }
         }

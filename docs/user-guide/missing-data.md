@@ -50,7 +50,7 @@ the model.
 ## The method
 
 The likelihood is that of the observed dyads, summing over every possible
-value of the missing ones (Handcock and Gile 2010):
+value of the missing ones ([Handcock and Gile 2010](https://doi.org/10.1214/08-AOAS221)):
 
 $$
 L(\theta) = \sum_{y_{mis}} P_\theta(y_{obs}, y_{mis}).
@@ -68,7 +68,7 @@ from the data alone.
   the missing dyads change, and takes the Newton step
   $(\Sigma - \Sigma_{obs})\,\delta = \mu_{obs} - \mu$.
 - **Standard errors** come from the information $\Sigma - \Sigma_{obs}$ (the
-  missing information principle, Louis 1982), plus the MCMC error of both
+  missing information principle, [Louis 1982](https://doi.org/10.1111/j.2517-6161.1982.tb01203.x)), plus the MCMC error of both
   samples.
 - **Dyad-independent models** are still fitted exactly: by logistic
   regression on the observed dyads, as the missing ones factor out.

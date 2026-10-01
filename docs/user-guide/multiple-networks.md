@@ -11,10 +11,10 @@ classroom of a school, the contacts within each household of a survey, the
 advice networks of several firms. Fitting one ERGM per network gives as many
 estimates as networks, each noisy if the networks are small. Fitting a single
 model to all of them, as R's [ergm.multi](https://github.com/statnet/ergm.multi)
-does (Krivitsky, Coletti and Hens 2023), pools their information, and can let
+does ([Krivitsky, Coletti and Hens 2023](https://doi.org/10.1080/01621459.2023.2242627)), pools their information, and can let
 the effects depend on each network's characteristics.
 
-The Goeyvaerts data, from ergm.multi, are the contacts within 318 households
+The Goeyvaerts data ([Goeyvaerts et al. 2018](https://doi.org/10.1098/rspb.2018.2201)), from ergm.multi, are the contacts within 318 households
 of Flanders and Brussels, each from a one-day contact diary:
 
 ```{code-cell} ipython3

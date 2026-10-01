@@ -47,6 +47,14 @@ tables compared line by line.
 | `simulate(fit, nw.start = "last", time.slices = 10)` | {meth}`fit.simulate(time_slices=10) <ergmx.ErgmFit.simulate>` |
 | `simulate(g ~ Form(...) + Persist(...), coef = c(...), time.slices = 10, dynamic = TRUE)` | {func}`ergmx.simulate_dynamic(g, "Form(...) + Persist(...)", [...], 10) <ergmx.simulate_dynamic>` |
 | `data(Goeyvaerts)` (ergm.multi) | `ergmx.datasets.load("Goeyvaerts")`, a list of graphs |
+| `predict(fit)`, `predict(fit, conditional = FALSE)` | {meth}`fit.predict() <ergmx.ErgmFit.predict>`, `fit.predict(conditional=False)` |
+| `predict(net ~ edges + mutual, eta = c(-2, 1.8))` | {func}`ergmx.predict(g, "edges + mutual", [-2, 1.8]) <ergmx.predict>` |
+| `confint(fit)`, `exp(coef(fit))` | {meth}`fit.confint() <ergmx.ErgmFit.confint>`, {meth}`fit.odds_ratios() <ergmx.ErgmFit.odds_ratios>` |
+| `ergMargins::ergm.AME(fit, "nodematch.Grade")` | {meth}`fit.marginal_effects() <ergmx.ErgmFit.marginal_effects>` (every term) |
+| `ergm(net ~ S(~edges + gwesp(0.5, fixed = TRUE), ~level == "A"))` | `ergmx.ergm(g, "S(~edges + gwesp(0.5, fixed=TRUE), ~level == 'A')")` |
+| MPNet's multilevel effects (TXAX, C4AXB...) | {func}`~ergmx.txax`, {func}`~ergmx.c4axb`... (see [](user-guide/multilevel.md)) |
+| `screenreg(list(fit1, fit2))` | {func}`print(ergmx.table(fit1, fit2)) <ergmx.table>` |
+| `texreg(...)`, `htmlreg(...)` | `ergmx.table(...).to_latex()`, `.to_html()` |
 
 ## Formulas
 
@@ -137,6 +145,20 @@ accepted: R expressions such as `log(n)` must be computed first.
   (`min_steps`, `max_steps`, `pval`, `add`), with tergm's discordTNT proposal
   mixed into the TNT and triadic proposals. Linear models that vary over
   time (`lm=~.Time`) can be fitted but not simulated forward.
+
+**Predictions include missing dyads; unconditional ones respect the constraints.**
+: ergm's `predict()` for a formula leaves out the dyads whose value is
+  missing, and simulates unconditional probabilities without the fit's
+  constraints. ergmx predicts missing dyads (conditional on the observed
+  network, with missing dyads as non-ties) and simulates with the
+  constraints. ergm's unconditional predictions also leave out the dyads
+  never tied in the simulations; ergmx lists every dyad.
+
+**Marginal effects' standard errors use the full delta method.**
+: ergMargins' `ergm.AME()` holds the tie probabilities fixed when it
+  differentiates the average marginal effect; ergmx also counts how they
+  change with the coefficients. The effects are the same; the standard
+  errors differ, by up to a quarter on the models tested.
 
 **Not yet available.**
 : `bd()` bounds by attribute, valued networks, tergm's EGMME estimator and

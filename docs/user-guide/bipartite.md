@@ -8,8 +8,8 @@ kernelspec:
 
 A *bipartite* (two-mode) network has two kinds of vertices, with ties only
 between kinds: people and the groups they belong to, firms and the boards
-their directors sit on, authors and papers. Davis, Gardner and Gardner's
-Southern Women is the classic one: 18 women and the 14 social events each
+their directors sit on, authors and papers. [Davis, Gardner and Gardner's
+(1941)](https://doi.org/10.7208/chicago/9780226817996.001.0001) Southern Women is the classic one: 18 women and the 14 social events each
 attended.
 
 ```{code-cell} ipython3

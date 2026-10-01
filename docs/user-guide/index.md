@@ -21,5 +21,6 @@ temporal
 diagnostics
 goodness-of-fit
 model-comparison
+interpretation
 simulation
 ```

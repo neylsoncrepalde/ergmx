@@ -1,5 +1,5 @@
-"""Estimation: MPLE, contrastive divergence, and Monte Carlo MLE with Hummel
-et al. (2012) stepping."""
+"""Estimation: MPLE, contrastive divergence, and Monte Carlo MLE with `Hummel
+et al. (2012) <https://doi.org/10.1080/10618600.2012.679224>`__ stepping."""
 
 from __future__ import annotations
 
@@ -278,7 +278,7 @@ def _in_hull(sample: np.ndarray, point: np.ndarray) -> bool:
 
 def hummel_steplength(sample, observed, margin, min_step=1e-4) -> float:
     """Largest step towards the observed statistics that stays inside the
-    convex hull of the sample (with a margin), as in Hummel et al. (2012).
+    convex hull of the sample (with a margin), as in `Hummel et al. (2012) <https://doi.org/10.1080/10618600.2012.679224>`__.
 
     Searched on a log scale down to `min_step`, which is returned if even that
     leaves the hull, so that the estimate keeps moving.
@@ -301,7 +301,7 @@ def hummel_steplength(sample, observed, margin, min_step=1e-4) -> float:
 def autocorrelation_time(sample: np.ndarray) -> np.ndarray:
     """Integrated autocorrelation time of each statistic, pooling the chains.
 
-    Uses Geyer's (1992) initial monotone sequence estimator on the
+    Uses `Geyer's (1992) <https://doi.org/10.1214/ss/1177011137>`__ initial monotone sequence estimator on the
     autocovariances averaged over chains. Independent samples give 1.
     """
     chains, n, p = sample.shape
@@ -329,7 +329,7 @@ def mean_covariance(sample: np.ndarray, tau: np.ndarray) -> np.ndarray:
 
 
 def split_rhat(sample: np.ndarray) -> np.ndarray:
-    """Split R-hat of each statistic (Gelman et al. 2013): about 1 when the chains
+    """Split R-hat of each statistic (`Gelman et al. 2013 <https://doi.org/10.1201/b16018>`__): about 1 when the chains
     agree; above 1.01 to 1.1 suggests they have not mixed."""
     chains, n, p = sample.shape
     half = n // 2
@@ -364,7 +364,7 @@ def hotelling_pvalue(sample, observed, tau, sample_obs=None, tau_obs=None) -> fl
 
 def _information(sample, sample_obs=None, jac=None):
     """Mean and covariance of a sample, minus the covariance of the conditional
-    sample if there is one (the missing information principle, Louis 1982).
+    sample if there is one (the missing information principle, `Louis 1982 <https://doi.org/10.1111/j.2517-6161.1982.tb01203.x>`__).
     The difference must be positive definite in the parameters' space (through
     `jac`); with too few samples to tell the two apart, the plain covariance
     is used."""
@@ -396,7 +396,7 @@ def project(model: BoundModel, theta, sample: np.ndarray) -> np.ndarray:
 
 def _step(model: BoundModel, theta, sample, target, margin, sample_obs=None):
     """Information, step length and new parameters from a sample, by the
-    log-normal approximation of the log-likelihood ratio (Hummel et al. 2012).
+    log-normal approximation of the log-likelihood ratio (`Hummel et al. 2012 <https://doi.org/10.1080/10618600.2012.679224>`__).
 
     The approximation, quadratic in the statistics' coefficients eta, is
     maximized towards the pseudo-observed target mean + gamma * (target -
@@ -513,7 +513,7 @@ def _stall_message(model: BoundModel, sample: np.ndarray, iterations: int, obser
 
 def contrastive_divergence(model: BoundModel, init: np.ndarray, control: Control,
                            rng: np.random.Generator) -> Estimate:
-    """Contrastive divergence (Hinton 2002; Krivitsky 2017), as ergm's CD: each
+    """Contrastive divergence (`Hinton 2002 <https://doi.org/10.1162/089976602760128018>`__; `Krivitsky 2017 <https://doi.org/10.1016/j.csda.2016.10.015>`__), as ergm's CD: each
     sample is `cd_steps` MCMC proposals away from the observed network, so the
     observed statistics stay in range, and the estimate moves by log-normal
     steps until the samples are centered on the observed statistics."""
@@ -540,11 +540,11 @@ def contrastive_divergence(model: BoundModel, init: np.ndarray, control: Control
 
 def mcmle(model: BoundModel, init: np.ndarray, control: Control, rng: np.random.Generator) -> Estimate:
     """Monte Carlo MLE, stopping when the step length is 1 in two consecutive
-    iterations (Hummel et al. 2012), then refining with a larger sample.
+    iterations (`Hummel et al. 2012 <https://doi.org/10.1080/10618600.2012.679224>`__), then refining with a larger sample.
 
     With missing dyads, each iteration also samples networks conditional on
-    the observed dyads, whose mean statistics are the target (Handcock and
-    Gile 2010)."""
+    the observed dyads, whose mean statistics are the target (`Handcock and
+    Gile 2010 <https://doi.org/10.1214/08-AOAS221>`__)."""
     observed = model.observed()
     free = model.free
     theta = np.asarray(init, dtype=float).copy()

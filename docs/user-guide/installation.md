@@ -71,6 +71,7 @@ and plots need matplotlib. Pick the extras you use:
 | `igraph` | python-igraph | `igraph.Graph` networks and {mod}`ergmx.datasets` |
 | `networkx` | networkx | `networkx.Graph` / `DiGraph` networks |
 | `plot` | matplotlib | `gof(...).plot()` and `mcmc_diagnostics().plot()` |
+| `pandas` | pandas | `.to_frame()` of fits, predictions and tables of results |
 
 ## From GitHub
 
@@ -156,7 +157,7 @@ uv run pytest               # the Python tests
 - installs the Python of `.python-version` (3.14) if needed, and creates
   `.venv`;
 - installs the exact versions in `uv.lock`, including the `dev` dependency
-  group (pytest, igraph, networkx, matplotlib, maturin);
+  group (pytest, igraph, networkx, matplotlib, pandas, maturin);
 - builds the Rust core with optimizations and installs `ergmx` in editable
   mode: changes to the Python code apply immediately.
 
@@ -183,7 +184,7 @@ the oldest dependencies that `ergmx` allows:
 uv run --isolated --python 3.11 pytest
 uv venv --python 3.11 /tmp/lowest
 uv pip install --python /tmp/lowest --resolution lowest-direct . \
-    "pytest>=8" "igraph>=0.11.5" "networkx>=3.2" "matplotlib>=3.9"
+    "pytest>=8" "igraph>=0.11.5" "networkx>=3.2" "matplotlib>=3.9" "pandas>=2.0"
 /tmp/lowest/bin/python -m pytest
 ```
 

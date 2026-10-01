@@ -32,6 +32,10 @@ for name in datasets.names():
 print(datasets.describe("faux.mesa.high"))
 ```
 
+The datasets' sources, such as the Add Health study design
+([Resnick et al. 1997](https://doi.org/10.1001/jama.278.10.823)), are in the
+[references](../references.md), with links.
+
 `load()` returns an {class}`igraph.Graph`; `load(name, backend="networkx")`
 returns a {class}`networkx.Graph` or {class}`networkx.DiGraph` with the same
 vertices, in the same order.

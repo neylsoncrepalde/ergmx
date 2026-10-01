@@ -35,6 +35,18 @@ Results
    ErgmFit
    FitSummary
 
+Interpreting and reporting results
+----------------------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   predict
+   TiePredictions
+   table
+   ResultsTable
+   NumericTable
+
 Checking and comparing models
 -----------------------------
 
@@ -135,6 +147,7 @@ Operators
 
    offset
    F
+   S
    N
    Form
    Persist
@@ -142,6 +155,32 @@ Operators
    Cross
    Change
    terms.Curved
+
+Multilevel terms
+----------------
+
+MPNet's configurations of two-level networks; see the
+:doc:`user guide <user-guide/multilevel>`.
+
+.. autosummary::
+   :toctree: generated/
+
+   star2ax
+   star2bx
+   axs1a
+   axs1b
+   aas1x
+   abs1x
+   aaaxs
+   abaxs
+   txax
+   txbx
+   atxax
+   atxbx
+   l3xax
+   l3xbx
+   l3axb
+   c4axb
 
 Constraints
 -----------

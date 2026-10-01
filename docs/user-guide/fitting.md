@@ -40,7 +40,7 @@ every possible network, so `ergmx` estimates it by MCMC, as ergm does:
 1. It starts from the maximum pseudo-likelihood estimate (MPLE).
 2. It simulates networks at the current coefficients, in parallel chains,
    and moves the coefficients towards values whose simulated networks have,
-   on average, the observed statistics (Hummel et al. 2012 step lengths with
+   on average, the observed statistics ([Hummel et al. 2012](https://doi.org/10.1080/10618600.2012.679224) step lengths with
    a log-normal approximation).
 3. It stops when two consecutive steps are full steps, then draws a larger
    final sample for the standard errors.

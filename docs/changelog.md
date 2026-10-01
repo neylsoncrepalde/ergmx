@@ -2,9 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
-The first version, a proof of concept.
+The first version.
 
-- **Terms**: 58 terms for directed, undirected and bipartite networks, with ergm's
+- **Terms**: 58 of ergm's terms for directed, undirected and bipartite networks, with ergm's
   definitions and names, among them `edges`, `mutual`, `edgecov`, `kstar`, `istar`,
   `ostar`, `degree`, `idegree`, `odegree`, `isolates`, `gwdegree`,
   `gwidegree`, `gwodegree`, `triangle`, `ttriple`, `ctriple`, `gwesp` and
@@ -34,16 +34,26 @@ The first version, a proof of concept.
 - **Constraints**: `bd`, `blocks`, `degrees`, `odegrees` and `idegrees`, with
   degree-preserving MCMC moves.
 - **Missing ties**: likelihood inference conditional on the observed dyads
-  (Handcock and Gile 2010), for estimates, standard errors,
+  ([Handcock and Gile 2010](https://doi.org/10.1214/08-AOAS221)), for estimates, standard errors,
   log-likelihoods and goodness of fit.
 - **Estimation**: the exact MLE of dyad-independent models; the Monte Carlo
-  MLE of the others, with Hummel et al. (2012) step lengths, an adaptive MCMC
+  MLE of the others, with [Hummel et al. (2012)](https://doi.org/10.1080/10618600.2012.679224) step lengths, an adaptive MCMC
   interval and standard errors that include the MCMC error; MPLE and
   contrastive divergence estimates and starting values.
 - **MCMC** in Rust: tie/no-tie and triadic proposals, parallel chains, a
   density guard.
 - **Checking models**: MCMC diagnostics, goodness of fit, log-likelihoods by
   path sampling with an Euler–Maclaurin corrected rule, and model comparison.
+- **Multilevel networks**: ergm's `S()` operator (terms on the network
+  within a level, or on the bipartite network between two), and MPNet's
+  configurations of two-level networks ([Wang et al. 2013](https://doi.org/10.1016/j.socnet.2013.01.004)): `star2ax`,
+  `axs1a`, `aas1x`, `aaaxs`, `txax`, `atxax`, `l3xax` and their B twins,
+  `l3axb` and `c4axb`.
+- **Interpreting and reporting**: tie probabilities (`predict()`,
+  conditional and unconditional, as ergm's), average marginal effects (as
+  ergMargins, with full delta-method standard errors), odds ratios and
+  confidence intervals, tables of models identical to texreg's
+  (`table()`: text, LaTeX, HTML and Markdown), and `to_frame()` for pandas.
 - **Datasets**: the networks of R's ergm documentation, ergm.multi's
   household networks `Goeyvaerts`, and multinets' multilevel network
   `linked_sim`.

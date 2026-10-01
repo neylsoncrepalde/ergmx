@@ -16,7 +16,7 @@ dependencies = [
 ]
 keywords = ["ergm", "exponential random graph models", "social network analysis", "statnet"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -39,6 +39,7 @@ Changelog = "https://neylsoncrepalde.github.io/ergmx/changelog.html"
 igraph = ["igraph>=0.11.5"]
 networkx = ["networkx>=3.2"]
 plot = ["matplotlib>=3.9"]
+pandas = ["pandas>=2.0"]
 
 # What contributors need: uv sync installs dev, uv sync --group docs adds docs.
 [dependency-groups]
@@ -48,6 +49,7 @@ dev = [
     "igraph>=0.11.5",
     "networkx>=3.2",
     "matplotlib>=3.9",
+    "pandas>=2.0",
 ]
 docs = [
     "sphinx>=8.2",
@@ -59,6 +61,7 @@ docs = [
     "igraph>=0.11.5",
     "networkx>=3.2",
     "matplotlib>=3.9",
+    "pandas>=2.0",
 ]
 
 [tool.uv]

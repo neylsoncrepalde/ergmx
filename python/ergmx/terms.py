@@ -933,6 +933,75 @@ B1Cov, B2Cov = _in_mode(_BCov, 1, "B1Cov"), _in_mode(_BCov, 2, "B2Cov")
 B1NodeMatch, B2NodeMatch = _in_mode(_BNodeMatch, 1, "B1NodeMatch"), _in_mode(_BNodeMatch, 2, "B2NodeMatch")
 
 
+# -- Multilevel terms (MPNet's) --------------------------------------------------------------------
+
+
+class _Multilevel(Term):
+    """One of MPNet's configurations of two-level networks (`Wang, Robins,
+    Pattison and Lazega 2013 <https://doi.org/10.1016/j.socnet.2013.01.004>`__), with the levels given by a vertex attribute."""
+
+    dyad_independent = False
+    directed = False
+    #: MPNet's name, and whether the statistic is alternating (has a decay).
+    mpnet = ""
+    alternating = False
+
+    def __init__(self, attr: str, levels=None, decay: float | None = None):
+        self.attr, self.levels = attr, None if levels is None else tuple(levels)
+        if self.levels is not None and len(self.levels) != 2:
+            raise ValueError(f"{self.mpnet}: levels must be the two levels (A, B), not {levels!r}")
+        self.decay = None if decay is None else float(decay)
+
+    triadic = property(lambda self: self.mpnet.startswith(("TX", "ATX", "C4")))
+
+    def _levels(self, network):
+        values = network.attribute(self.attr)
+        if self.levels is not None:
+            return self.levels
+        present = sorted({v for v in values if v is not None}, key=lambda v: (str(type(v)), v))
+        if len(present) != 2:
+            raise ValueError(f"{self.mpnet}: {self.attr!r} has {len(present)} levels; give the two "
+                             "levels of the network with levels=(A, B)")
+        return tuple(present)
+
+    def check(self, network):
+        super().check(network)
+        a, b = self._levels(network)
+        values = network.attribute(self.attr)
+        if a not in values or b not in values:
+            raise ValueError(f"{self.mpnet}: no vertices with {self.attr} = {a!r} or {b!r}")
+
+    @property
+    def label(self) -> str:
+        suffix = f".{self.decay:g}" if self.alternating else ""
+        return f"{self.mpnet}.{self.attr}{suffix}"
+
+    def spec(self, network):
+        a, b = self._levels(network)
+        codes = [0 if v == a else 1 if v == b else -1 for v in network.attribute(self.attr)]
+        return (self.rust_name, [self.decay] if self.alternating else [], codes)
+
+    def __repr__(self) -> str:
+        decay = f", decay={self.decay:g}" if self.alternating else ""
+        levels = "" if self.levels is None else f", levels={self.levels!r}"
+        return f"{self.rust_name}({self.attr!r}{decay}{levels})"
+
+
+def _multilevel(mpnet: str, alternating: bool = False):
+    return type(mpnet, (_Multilevel,), {"mpnet": mpnet, "alternating": alternating,
+                                         "rust_name": mpnet.lower()})
+
+
+(Star2AX, Star2BX, AXS1A, AXS1B, AAS1X, ABS1X, AAAXS, ABAXS, TXAX, TXBX, ATXAX, ATXBX, L3XAX, L3XBX,
+ L3AXB, C4AXB) = (
+    _multilevel("Star2AX"), _multilevel("Star2BX"), _multilevel("AXS1A", True), _multilevel("AXS1B", True),
+    _multilevel("AAS1X", True), _multilevel("ABS1X", True), _multilevel("AAAXS", True),
+    _multilevel("ABAXS", True), _multilevel("TXAX"), _multilevel("TXBX"), _multilevel("ATXAX", True),
+    _multilevel("ATXBX", True), _multilevel("L3XAX"), _multilevel("L3XBX"), _multilevel("L3AXB"),
+    _multilevel("C4AXB"),
+)
+
+
 # -- Curved terms -------------------------------------------------------------------------------
 
 
@@ -1137,6 +1206,127 @@ class Filtered(Term):
     def __repr__(self) -> str:
         negate = ", negate=True" if self.negate else ""
         return f"F({self.formula!r}, {self.filter!r}{negate})"
+
+
+class Subgraph(Term):
+    """Terms evaluated on a subgraph, as ergm's S(): the subgraph induced by
+    some vertices, or the bipartite subgraph of the ties between two disjoint
+    sets of vertices."""
+
+    degree_dependence = None
+
+    def __init__(self, formula, attrs):
+        self.formula = as_formula(formula)
+        self.attrs = attrs
+        for term in self.formula:
+            if isinstance(term, (Offset, BlockOperator)):
+                raise ValueError(f"S(): {term!r} can't be inside S(); put offset() outside instead")
+
+    dyad_independent = property(lambda self: all(t.dyad_independent for t in self.formula))
+    triadic = property(lambda self: any(t.triadic for t in self.formula))
+    curved = property(lambda self: any(t.curved for t in self.formula))
+
+    def _sets(self, network):
+        from ._lm import LmError, vertex_sets
+
+        try:
+            return vertex_sets(self.attrs, network.attributes, network.n)
+        except LmError as e:
+            raise ValueError(f"S(): {e}") from None
+
+    def _local(self, network) -> Network:
+        """The subgraph, as a network of its own: the first set's vertices,
+        then (if bipartite) the second's."""
+        tails, heads, _ = self._sets(network)
+        vertices = tails if heads is None else np.concatenate([tails, heads])
+        position = np.full(network.n, -1)
+        position[vertices] = np.arange(len(vertices))
+        side = np.zeros(network.n, dtype=int)
+        if heads is not None:
+            side[heads] = 1
+
+        def inside(pairs):
+            if not len(pairs):
+                return np.zeros((0, 2), dtype=np.uint32)
+            a, b = position[pairs[:, 0].astype(int)], position[pairs[:, 1].astype(int)]
+            keep = (a >= 0) & (b >= 0)
+            if heads is not None:
+                keep &= side[pairs[:, 0].astype(int)] != side[pairs[:, 1].astype(int)]
+            return np.ascontiguousarray(np.column_stack([a[keep], b[keep]]).astype(np.uint32))
+
+        attributes = {k: [v[i] for i in vertices] for k, v in network.attributes.items()}
+        graph = {}
+        for k, v in network.graph_attributes.items():
+            x = np.asarray(v) if isinstance(v, (list, np.ndarray)) else None
+            if x is not None and x.shape == (network.n, network.n):
+                graph[k] = x[np.ix_(tails, tails)] if heads is None else x[np.ix_(tails, heads)]
+            else:
+                graph[k] = v
+        mode = None
+        if heads is not None:
+            mode = np.array([1] * len(tails) + [2] * len(heads))
+        elif network.mode is not None:
+            mode = network.mode[vertices]
+        return Network(len(vertices), network.directed, inside(network.edges), attributes, None, graph,
+                       inside(network.missing), mode)
+
+    def _label(self, network) -> str:
+        return self._sets(network)[2]
+
+    def names(self, network):
+        local, label = self._local(network), self._label(network)
+        return [f"S({label})~{name}" for t in self.formula for name in t.names(local)]
+
+    def param_names(self, network):
+        local, label = self._local(network), self._label(network)
+        return [f"S({label})~{name}" for t in self.formula for name in t.param_names(local)]
+
+    def eta(self, params, network):
+        local, params = self._local(network), np.asarray(params, dtype=float)
+        return np.concatenate([t.eta(params[q], local) for t, _, q in _formula_blocks(self.formula, local)])
+
+    def jacobian(self, params, network):
+        local, params = self._local(network), np.asarray(params, dtype=float)
+        blocks = list(_formula_blocks(self.formula, local))
+        out = np.zeros((blocks[-1][1].stop, blocks[-1][2].stop))
+        for t, ps, qs in blocks:
+            out[ps, qs] = t.jacobian(params[qs], local)
+        return out
+
+    def starts(self, network):
+        local = self._local(network)
+        return [(qs.start + i, v) for t, _, qs in _formula_blocks(self.formula, local) for i, v in t.starts(local)]
+
+    def check(self, network):
+        if network.combined:
+            raise ValueError("S() on several networks combined is not supported yet; put it inside N()")
+        tails, heads, _ = self._sets(network)
+        if heads is not None:
+            if network.directed:
+                raise ValueError("S(): bipartite subgraphs (two sets of vertices) need an undirected network")
+            if np.intersect1d(tails, heads).size:
+                raise ValueError("S(): the two sets of vertices must be disjoint")
+            if network.bipartite:
+                raise ValueError("S(): bipartite subgraphs of bipartite networks are not supported")
+        size = len(tails) + (0 if heads is None else len(heads))
+        if size < 2 or (heads is not None and (not len(tails) or not len(heads))):
+            raise ValueError(f"S(): the subgraph of {self._label(network)} has too few vertices")
+        local = self._local(network)
+        for term in self.formula:
+            term.check(local)
+
+    def full_spec(self, network):
+        tails, heads, _ = self._sets(network)
+        local = self._local(network)
+        vertices = list(tails) + ([] if heads is None else list(heads))
+        ints = [int(heads is not None), len(tails), *map(int, vertices)]
+        return ("subgraph", [], ints, [t.full_spec(local) for t in self.formula])
+
+    def spec(self, network):
+        raise TypeError("S() has no flat spec; use full_spec")
+
+    def __repr__(self) -> str:
+        return f"S({self.formula!r}, {self.attrs!r})"
 
 
 def _formula_blocks(formula, network):
@@ -1408,9 +1598,9 @@ def asymmetric() -> Term:
 
 
 def transitive() -> Term:
-    """Number of transitive triads (directed networks): triads of types 030T,
-    120D, 120U and 300 in Davis and Leinhardt's (1972) census, which have at
-    least one transitive triple and no intransitive two-path.
+    """Number of transitive triads (directed networks): those with at least one
+    transitive triple and no intransitive two-path, the types 030T, 120D, 120U
+    and 300 of `Davis and Leinhardt's (1972) <https://scholar.google.com/scholar?q=%22The+structure+of+positive+interpersonal+relations+in+small+groups%22+Davis+Leinhardt>`__ triad census.
 
     This is how R's ergm documents its ``transitive`` term, but ergm 4.12
     computes the number of transitive triples instead, the same as
@@ -1756,6 +1946,137 @@ for _f in (Form, Persist, Diss, Cross, Change):
     _f.__doc__ = inspect.cleandoc(_f.__doc__).replace("{temporal_doc}", inspect.cleandoc(_TEMPORAL_DOC))
 
 
+def S(formula, attrs) -> Term:  # noqa: N802 (ergm's name)
+    """Evaluate ``formula`` on a subgraph, as ergm's S().
+
+    ``attrs`` is an R formula of the vertex attributes, as a string. One-sided,
+    it picks the vertices of an induced subgraph: ``"~level == 'individual'"``
+    gives the network among individuals (directed if the network is).
+    Two-sided, it picks two disjoint sets, and the formula is evaluated on the
+    undirected bipartite network of the ties between them, whose first mode
+    (``b1`` terms) is the left-hand set: ``"(level == 'individual') ~ (level ==
+    'organization')"``. Each side may also be a boolean array or 1-based
+    vertex indices. In a formula string: ``"S(~edges + gwesp(0.5, fixed=TRUE),
+    ~level == 'individual')"``. Names: ``S(level=="individual")~edges``, as in
+    ergm.
+    """
+    return Subgraph(formula, attrs)
+
+
+_LEVEL_DOC = """For two-level (multilevel) networks, as MPNet (`Wang et al. 2013 <https://doi.org/10.1016/j.socnet.2013.01.004>`__): the
+    levels are the values of the vertex attribute ``attr``, A and B (``levels=(A,
+    B)``, or the attribute's two values, sorted); A-ties are within A, B-ties
+    within B, X-ties between them. Undirected networks."""
+_ALT_DOC = """``decay`` weights the alternating statistic geometrically, as
+    gwesp's: g(d) = exp(decay) (1 - (1 - exp(-decay))^d), MPNet's lambda being
+    exp(decay) (its default, 2, is ``decay=log(2)``)."""
+_LOG2 = float(np.log(2.0))
+
+
+def star2ax(attr: str, levels=None) -> Term:
+    """Star2AX: 2-stars of an A-tie and an X-tie, the sum over A vertices of
+    their A-degree times their X-degree. {level_doc}"""
+    return Star2AX(attr, levels)
+
+
+def star2bx(attr: str, levels=None) -> Term:
+    """Star2BX: 2-stars of a B-tie and an X-tie, the sum over B vertices of
+    their B-degree times their X-degree. {level_doc}"""
+    return Star2BX(attr, levels)
+
+
+def axs1a(attr: str, decay: float = _LOG2, levels=None) -> Term:
+    """AXS1A: alternating X-stars with one A-tie, the sum over A vertices of
+    their A-degree times g(X-degree). {level_doc} {alt_doc}"""
+    return AXS1A(attr, levels, decay)
+
+
+def axs1b(attr: str, decay: float = _LOG2, levels=None) -> Term:
+    """AXS1B: alternating X-stars with one B-tie, the sum over B vertices of
+    their B-degree times g(X-degree). {level_doc} {alt_doc}"""
+    return AXS1B(attr, levels, decay)
+
+
+def aas1x(attr: str, decay: float = _LOG2, levels=None) -> Term:
+    """AAS1X: alternating A-stars with one X-tie, the sum over A vertices of
+    g(A-degree) times their X-degree. {level_doc} {alt_doc}"""
+    return AAS1X(attr, levels, decay)
+
+
+def abs1x(attr: str, decay: float = _LOG2, levels=None) -> Term:
+    """ABS1X: alternating B-stars with one X-tie, the sum over B vertices of
+    g(B-degree) times their X-degree. {level_doc} {alt_doc}"""
+    return ABS1X(attr, levels, decay)
+
+
+def aaaxs(attr: str, decay: float = _LOG2, levels=None) -> Term:
+    """AAAXS: alternating A-stars and alternating X-stars, the sum over A
+    vertices of g(A-degree) g(X-degree). {level_doc} {alt_doc}"""
+    return AAAXS(attr, levels, decay)
+
+
+def abaxs(attr: str, decay: float = _LOG2, levels=None) -> Term:
+    """ABAXS: alternating B-stars and alternating X-stars, the sum over B
+    vertices of g(B-degree) g(X-degree). {level_doc} {alt_doc}"""
+    return ABAXS(attr, levels, decay)
+
+
+def txax(attr: str, levels=None) -> Term:
+    """TXAX: triangles of an A-tie and two X-ties to a common B vertex, the sum
+    over A-ties of their endpoints' shared B partners. {level_doc}"""
+    return TXAX(attr, levels)
+
+
+def txbx(attr: str, levels=None) -> Term:
+    """TXBX: triangles of a B-tie and two X-ties to a common A vertex. {level_doc}"""
+    return TXBX(attr, levels)
+
+
+def atxax(attr: str, decay: float = _LOG2, levels=None) -> Term:
+    """ATXAX: alternating TXAX triangles, the sum over A-ties of g(shared B
+    partners), as gwesp with partners in B. {level_doc} {alt_doc}"""
+    return ATXAX(attr, levels, decay)
+
+
+def atxbx(attr: str, decay: float = _LOG2, levels=None) -> Term:
+    """ATXBX: alternating TXBX triangles, the sum over B-ties of g(shared A
+    partners). {level_doc} {alt_doc}"""
+    return ATXBX(attr, levels, decay)
+
+
+def l3xax(attr: str, levels=None) -> Term:
+    """L3XAX: three-paths of an X-tie, an A-tie and an X-tie, the sum over
+    A-ties of the product of their endpoints' X-degrees (so closed paths, the
+    TXAX triangles, count too). {level_doc}"""
+    return L3XAX(attr, levels)
+
+
+def l3xbx(attr: str, levels=None) -> Term:
+    """L3XBX: three-paths of an X-tie, a B-tie and an X-tie, the sum over
+    B-ties of the product of their endpoints' X-degrees. {level_doc}"""
+    return L3XBX(attr, levels)
+
+
+def l3axb(attr: str, levels=None) -> Term:
+    """L3AXB: cross-level three-paths of an A-tie, an X-tie and a B-tie, the
+    sum over X-ties of the A-degree of their A end times the B-degree of their
+    B end. {level_doc}"""
+    return L3AXB(attr, levels)
+
+
+def c4axb(attr: str, levels=None) -> Term:
+    """C4AXB: cross-level 4-cycles of an A-tie, a B-tie and the two X-ties
+    that join their ends (alignment between the levels). {level_doc}"""
+    return C4AXB(attr, levels)
+
+
+_MULTILEVEL = (star2ax, star2bx, axs1a, axs1b, aas1x, abs1x, aaaxs, abaxs, txax, txbx, atxax, atxbx,
+               l3xax, l3xbx, l3axb, c4axb)
+for _f in _MULTILEVEL:
+    _f.__doc__ = inspect.cleandoc(_f.__doc__).replace("{level_doc}", inspect.cleandoc(_LEVEL_DOC)) \
+        .replace("{alt_doc}", inspect.cleandoc(_ALT_DOC))
+
+
 def edgecov(x) -> Term:
     """Sum over ties of a dyadic covariate.
 
@@ -1783,7 +2104,7 @@ _PLAIN = (
     concurrent, gwdegree, gwidegree, gwodegree, sender, receiver, sociality, triangle, ttriple,
     ctriple, transitive, cycle, gwesp, gwdsp, gwnsp, esp, dsp, nsp, nodematch, nodemix, nodefactor,
     nodeifactor, nodeofactor, nodecov, nodeicov, nodeocov, absdiff, absdiffcat, edgecov,
-    *_BIPARTITE,
+    *_BIPARTITE, *_MULTILEVEL,
 )
 for _f in _PLAIN:
     globals()[_f.__name__] = _recording(_f)
@@ -1794,4 +2115,4 @@ BLOCK_OPERATORS = ("N", "Form", "Persist", "Diss", "Cross", "Change")
 
 #: Every term function by name; F, offset and the block operators are operators.
 TERMS = {name: globals()[name]
-         for name in [f.__name__ for f in _PLAIN] + ["F", "offset", *BLOCK_OPERATORS]}
+         for name in [f.__name__ for f in _PLAIN] + ["F", "S", "offset", *BLOCK_OPERATORS]}

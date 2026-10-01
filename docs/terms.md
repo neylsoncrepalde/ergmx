@@ -1,7 +1,9 @@
 # Term reference
 
-Every term has ergm's definition and statistic names, and was checked
-against R's `summary()` on directed and undirected networks. Repeated names
+Every term of ergm has ergm's definition and statistic names, and was
+checked against R's `summary()` on directed and undirected networks. MPNet's
+[multilevel terms](#multilevel-terms), which no R package has, follow [Wang
+et al. (2013)](https://doi.org/10.1016/j.socnet.2013.01.004), and were checked against their definitions. Repeated names
 are made unique as in R: `mix.Race.White.White.1`. Below, $y_{ij}$
 is 1 if there is a tie from $i$ to $j$ (or between them, if undirected),
 $d_i$ is the degree of $i$ (in- and out-degrees $d^{in}_i$, $d^{out}_i$ if
@@ -91,7 +93,7 @@ only those is fitted exactly, by logistic regression.
 
 `transitive()`, directed
 : Number of transitive triads: triads of types 030T, 120D, 120U and 300 in
-  Davis and Leinhardt's (1972) census, those with at least one transitive
+  [Davis and Leinhardt's (1972)](https://scholar.google.com/scholar?q=%22The+structure+of+positive+interpersonal+relations+in+small+groups%22+Davis+Leinhardt) census, those with at least one transitive
   triple and no intransitive two-path. This is how ergm documents its
   `transitive` term, but ergm 4.12 computes transitive triples instead, the
   same as `ttriple`: use `ttriple` to reproduce ergm's results. Using
@@ -259,6 +261,51 @@ with an error when a network exceeds the cutoff. The parameters are named as
 in ergm: `gwesp` and `gwesp.decay`, `gwesp.OTP` and `gwesp.OTP.decay` if
 directed, `gwdegree` and `gwdegree.decay`...
 
+## Multilevel terms
+
+MPNet's configurations of two-level networks ([Wang, Robins, Pattison and
+Lazega 2013](https://doi.org/10.1016/j.socnet.2013.01.004)), for undirected networks. Their first argument is the vertex
+attribute with the levels, and `levels=(A, B)` its two values (by default,
+the attribute's two values, sorted; vertices with other values are left
+out). For a vertex $v$ of level A, $a_v$ is its number of A-ties (ties to A
+vertices) and $x_v$ its number of X-ties (to B vertices), and $b_v$, $x_v$
+likewise for B; $s^B_{uv}$ is the number of B vertices tied to both $u$ and
+$v$, and $g(d) = e^{\alpha}(1 - (1 - e^{-\alpha})^d)$ the geometric weight
+of the alternating terms, with `decay` $\alpha$ (MPNet's $\lambda =
+e^{\alpha}$; the default `decay=log(2)` is MPNet's $\lambda = 2$). Each
+`a` term has a `b` twin with the levels swapped. See
+[](user-guide/multilevel.md).
+
+`star2ax(attr)`, `star2bx(attr)`
+: $\sum_{v \in A} a_v x_v$: 2-stars of an A-tie and an X-tie. Name:
+  `Star2AX.<attr>`.
+
+`axs1a(attr, decay)`, `aas1x(attr, decay)`, `aaaxs(attr, decay)`
+: $\sum_{v \in A} a_v\, g(x_v)$, $\sum_{v \in A} g(a_v)\, x_v$ and
+  $\sum_{v \in A} g(a_v)\, g(x_v)$: alternating X-stars with one A-tie,
+  alternating A-stars with one X-tie, and both alternating. Names:
+  `AXS1A.<attr>.<decay>`, `AAS1X...`, `AAAXS...`; the `b` twins are
+  `axs1b`, `abs1x` and `abaxs`.
+
+`txax(attr)`, `atxax(attr, decay)`
+: $\sum_{\text{A-ties } uv} s^B_{uv}$ and $\sum_{\text{A-ties } uv}
+  g(s^B_{uv})$: triangles of an A-tie and two X-ties to a common B vertex,
+  and their alternating version (gwesp with the partners in B). Names:
+  `TXAX.<attr>`, `ATXAX.<attr>.<decay>`; twins `txbx`, `atxbx`.
+
+`l3xax(attr)`
+: $\sum_{\text{A-ties } uv} x_u x_v$: three-paths of an X-tie, an A-tie
+  and an X-tie, closed ones (the TXAX triangles) included. Name:
+  `L3XAX.<attr>`; twin `l3xbx`.
+
+`l3axb(attr)`
+: $\sum_{\text{X-ties } uv,\, u \in A,\, v \in B} a_u b_v$: three-paths of
+  an A-tie, an X-tie and a B-tie. Name: `L3AXB.<attr>`.
+
+`c4axb(attr)`
+: The 4-cycles of an A-tie, a B-tie and the two X-ties joining their ends,
+  $\tfrac12 \operatorname{tr}(A X B X^\top)$. Name: `C4AXB.<attr>`.
+
 ## Operators
 
 `offset(term)`
@@ -276,6 +323,18 @@ directed, `gwdegree` and `gwdegree.decay`...
   `F(gwesp(0.5, fixed=True), nodematch("Grade"), negate=False)`. Names:
   `F(<filter>)~<name>`, with the filter as R prints it, such as
   `F(nodematch("Grade"))~gwesp.fixed.0.5`.
+
+`S(formula, attrs)`
+: ergm's subgraph operator: evaluates `formula` on the subgraph induced by
+  the vertices that the one-sided R formula `attrs` selects
+  (`~level == 'individual'`, `~type`, `~!type`), or, with a two-sided one,
+  on the undirected bipartite network of the ties between two disjoint sets
+  (`(level == 'A') ~ (level == 'B')`), whose first mode is the left-hand set.
+  Each side is an R expression of the vertex attributes, logical or 1-based
+  indices (negative ones leave vertices out). Names: `S(<attrs>)~<name>`, the
+  attributes as ergm prints them without spaces, such as
+  `S(level=="individual")~edges` and
+  `S((level=="A"),(level=="B"))~b1star2`.
 
 ### Several networks
 

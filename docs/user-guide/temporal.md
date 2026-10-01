@@ -38,7 +38,7 @@ previous network to the current one:
 
 `Form(~edges)` only changes when a tie forms, and `Persist(~edges)` when one
 persists or dissolves, so a model of only `Form()` and `Persist()` (or
-`Diss()`) is *separable* (Krivitsky and Handcock 2014): formation and
+`Diss()`) is *separable* ([Krivitsky and Handcock 2014](https://doi.org/10.1111/rssb.12014)): formation and
 dissolution are independent given the previous network, each an ERGM of its
 own. Terms outside the operators describe the current network, as `Cross()`.
 

@@ -64,7 +64,9 @@ def _protect_linear_models(text: str) -> tuple[str, list[str]]:
     use R syntax that Python doesn't parse (such as `.NetworkID`), and the
     linear models' R text."""
     models: list[str] = []
-    pattern = re.compile(r"(?<![\w.])(" + "|".join(BLOCK_OPERATORS) + r")\s*\(")
+    # The operators' arguments in R syntax: the second (or this keyword).
+    keywords = {**dict.fromkeys(BLOCK_OPERATORS, "lm"), "S": "attrs"}
+    pattern = re.compile(r"(?<![\w.])(" + "|".join(keywords) + r")\s*\(")
     pos = 0
     while (m := pattern.search(text, pos)) is not None:
         if text[:m.start()].count('"') % 2 or text[:m.start()].count("'") % 2:
@@ -75,7 +77,7 @@ def _protect_linear_models(text: str) -> tuple[str, list[str]]:
         for start, stop in reversed(spans):
             argument = text[start:stop]
             keyword = re.match(r"\s*([A-Za-z_.][\w.]*)\s*=(?!=)", argument)
-            is_lm = keyword is not None and keyword.group(1) == "lm"
+            is_lm = keyword is not None and keyword.group(1) == keywords[m.group(1)]
             if keyword is None:
                 positional = sum(1 for a, b in spans[:spans.index((start, stop))]
                                  if not re.match(r"\s*[A-Za-z_.][\w.]*\s*=(?!=)", text[a:b]))
@@ -83,7 +85,7 @@ def _protect_linear_models(text: str) -> tuple[str, list[str]]:
             if is_lm:
                 value = argument[keyword.end():] if keyword else argument
                 models.append(value.strip())
-                text = text[:start] + f"lm={len(models) - 1}" + text[stop:]
+                text = text[:start] + f"{keywords[m.group(1)]}={len(models) - 1}" + text[stop:]
         pos = m.end()
     return text, models
 
@@ -126,6 +128,8 @@ def _terms(node: ast.expr, formula: str, models: list[str] = ()) -> list:
             return [_filter_term(node, formula, models)]
         if name in BLOCK_OPERATORS:
             return [_block_term(node, formula, models)]
+        if name == "S":
+            return [_subgraph_term(node, formula, models)]
         args = [_literal(a) for a in node.args]
         kwargs = {k.arg: _literal(k.value) for k in node.keywords}
         return [_make(name, args, kwargs)]
@@ -163,6 +167,20 @@ def _block_term(node: ast.Call, formula: str, models: list[str]):
         return TERMS[name](Formula(terms), **options)
     except TypeError as e:
         raise FormulaError(f"{name}: {e}") from None
+
+
+def _subgraph_term(node: ast.Call, formula: str, models: list[str]):
+    args = list(node.args)
+    kwargs = {k.arg: k.value for k in node.keywords}
+    if "formula" in kwargs:
+        args.insert(0, kwargs.pop("formula"))
+    if len(args) != 1 or set(kwargs) != {"attrs"}:
+        raise FormulaError(f"S() takes a formula and the vertices' attributes, in {formula!r}")
+    terms = _terms(_one_sided(args[0], formula), formula, models)
+    try:
+        return TERMS["S"](Formula(terms), models[_literal(kwargs["attrs"])])
+    except (TypeError, ValueError) as e:
+        raise FormulaError(f"S: {e}") from None
 
 
 def _filter_term(node: ast.Call, formula: str, models: list[str] = ()):

@@ -290,6 +290,24 @@ models <- list(
                       formula = paste("edges + nodematch('Grade') + nodematch('Race') +",
                                       "gwesp(0.5, fixed=TRUE)")),
 
+  # S(): terms on subgraphs, such as the levels of a multilevel network and
+  # the ties between them (MPNet's within-level and meso-level effects).
+  linked_S_stats = list(network = "linked_sim", checks = "stats",
+                        formula = paste("S(~edges + kstar(2) + gwesp(0.5, fixed=TRUE) + triangle + isolates, ~level == 'individual') +",
+                                        "S(~edges + gwdegree(0.5, fixed=TRUE) + dsp(0:2), ~level == 'organization') +",
+                                        "S(~edges + b1star(2) + b2star(2) + gwb1degree(0.5, fixed=TRUE) + cycle(4) +",
+                                        "gwb1dsp(0.5, fixed=TRUE) + b2degree(0:2), (level == 'individual') ~ (level == 'organization')) +",
+                                        "S(~edges, ~type) + S(~edges, ~!type)")),
+  linked_S_dyadind = list(network = "linked_sim", checks = all_checks,
+                          formula = paste("S(~edges, ~level == 'individual') + S(~edges, ~level == 'organization') +",
+                                          "S(~edges, (level == 'individual') ~ (level == 'organization'))")),
+  linked_S = list(network = "linked_sim", checks = all_checks,
+                  formula = paste("S(~edges + gwesp(0.5, fixed=TRUE), ~level == 'individual') +",
+                                  "S(~edges + gwesp(0.5, fixed=TRUE), ~level == 'organization') +",
+                                  "S(~edges + gwb1dsp(0.5, fixed=TRUE), (level == 'individual') ~ (level == 'organization'))")),
+  samplk_S = list(network = "samplk3", checks = c("stats", "mple"),
+                  formula = "edges + S(~edges + mutual + ttriple, ~group == 'Turks') + S(~mutual, ~cloisterville)"),
+
   # Samples of networks (ergm.multi).
   multi_stats = list(network = "samplk123.Networks", checks = "stats",
                      formula = paste("N(~edges + mutual) + N(~edges, lm=~I(.NetworkID <= 2)) +",

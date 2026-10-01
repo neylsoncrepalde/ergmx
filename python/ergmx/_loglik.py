@@ -19,7 +19,7 @@ Euler-Maclaurin corrected trapezoidal rule instead:
 whose error falls as 1/bridges^4 (on a network of 6 vertices, 0.0015 against
 0.06 for the midpoint rule with 32 bridges).
 
-With missing dyads (Handcock and Gile 2010), the log-likelihood is that of
+With missing dyads (`Handcock and Gile 2010 <https://doi.org/10.1214/08-AOAS221>`__), the log-likelihood is that of
 the observed dyads, and the integrand becomes
 
     f(u) = Delta . (E_u[g | observed dyads] - E_u[g]),

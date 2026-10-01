@@ -223,6 +223,83 @@ class ErgmFit:
         log-likelihood, AIC and BIC. Print it (it prints itself in notebooks)."""
         return FitSummary(self)
 
+    def to_frame(self):
+        """The table of coefficients as a pandas DataFrame (needs pandas), with
+        R's columns: Estimate, Std. Error, MCMC %, z value and Pr(>|z|)."""
+        from ._interpret import _frame
+
+        se = np.sqrt(np.diag(self._estimate.cov))
+        mc = np.zeros_like(se) if self._estimate.mc_cov is None else np.diag(self._estimate.mc_cov)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            pct = np.where(se > 0, 100 * mc / se**2, 0.0)
+            z = self.params / se
+        p = [_pvalue(v) if np.isfinite(v) else float("nan") for v in z]
+        return _frame({"Estimate": self.params, "Std. Error": se, "MCMC %": pct, "z value": z,
+                       "Pr(>|z|)": p}, index=self.names)
+
+    # -- Interpreting the model ---------------------------------------------------------
+
+    def predict(self, conditional: bool = True, type: str = "response", nsim: int = 100, *,
+                seed=None, **options):
+        """Tie probabilities of every dyad, as R's ``predict(fit)``.
+
+        With ``conditional=True``, each dyad's probability of a tie given the
+        rest of the observed network, computed exactly from its change
+        statistics (``type="link"`` for the log-odds); with
+        ``conditional=False``, the share of ``nsim`` networks simulated from
+        the model in which the dyad is a tie. As in ergm, conditional
+        probabilities ignore the sample space constraints, and dyads whose
+        value is missing are predicted too; unconditional ones are simulated
+        with the model's constraints (ergm ignores them).
+
+        Returns
+        -------
+        TiePredictions
+            ``tail``, ``head`` and ``p`` arrays, with ``.matrix()``,
+            ``.mean_by(attribute)`` and ``.to_frame()``.
+        """
+        from ._interpret import predict
+
+        if not conditional:
+            options.setdefault("interval", self._estimate.interval)
+            options.setdefault("n_chains", self.control.n_chains)
+            options.setdefault("triadic_weight", self.control.triadic_weight)
+        return predict(self._model, self.params, conditional=conditional, type=type, nsim=nsim,
+                       seed=seed, **options)
+
+    def marginal_effects(self):
+        """Average marginal effects on the tie probability, as R's ergMargins
+        (``ergm.AME()``): for each estimated parameter, the change in a dyad's
+        conditional tie probability per unit of the term's statistic,
+        theta * p (1 - p), averaged over the dyads, with its delta-method
+        standard error. (ergMargins holds the probabilities fixed in the
+        delta method; ergmx also counts how they change with the
+        parameters.) Curved terms' decays have no marginal effect.
+
+        Returns
+        -------
+        NumericTable
+            Columns AME, Delta SE, Z and P; ``.to_frame()`` for pandas.
+        """
+        from ._interpret import marginal_effects
+
+        return marginal_effects(self)
+
+    def odds_ratios(self, level: float = 0.95):
+        """Odds ratios, exp(coefficient), with Wald confidence intervals: the
+        factor by which a unit increase in a term's statistic multiplies the
+        conditional odds of a tie."""
+        from ._interpret import odds_ratios
+
+        return odds_ratios(self, level)
+
+    def confint(self, level: float = 0.95):
+        """Wald confidence intervals of the estimated coefficients, as R's
+        ``confint(fit)``."""
+        from ._interpret import confint
+
+        return confint(self, level)
+
     def __repr__(self) -> str:
         title = {"MLE": "Maximum Likelihood", "MCMLE": "Monte Carlo MLE", "MPLE": "MPLE",
                  "CD": "Contrastive Divergence"}
