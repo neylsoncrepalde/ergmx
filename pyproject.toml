@@ -62,6 +62,7 @@ docs = [
     "networkx>=3.2",
     "matplotlib>=3.9",
     "pandas>=2.0",
+    "multinets>=0.1",  # draws the multilevel network in the Quick start
 ]
 
 [tool.uv]
@@ -72,6 +73,10 @@ cache-keys = [
     { file = "rust-toolchain.toml" },
     { file = "src/**/*.rs" },
 ]
+
+[tool.uv.sources]
+# Not on PyPI yet.
+multinets = { git = "https://github.com/neylsoncrepalde/multinets-py" }
 
 [tool.maturin]
 python-source = "python"

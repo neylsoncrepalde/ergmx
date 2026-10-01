@@ -7,8 +7,9 @@
 
 They are the networks of ergm's documentation and tutorials, distributed
 with ergm under the GPL-3, ergm.multi's household networks ``Goeyvaerts`` (a
-list of networks), multinets' multilevel network ``linked_sim``, and Davis's
-Southern Women, from networkx.
+list of networks), multinets' multilevel network ``linked_sim``, Davis's
+Southern Women, from networkx, and ``labs_sim``, a multilevel network
+simulated by ergmx from a known model.
 """
 
 from __future__ import annotations
@@ -60,6 +61,17 @@ _DESCRIPTIONS = {
         "individuals, among organizations, and affiliation ties between the two. "
         "Undirected. Vertex attributes: type (True for organizations, as in multinets) "
         "and level ('individual' or 'organization')."
+    ),
+    "labs_sim": (
+        "A multilevel network of 120 researchers and 30 laboratories, simulated by ergmx from a known "
+        "model (scripts/simulate_labs.py), with the design of Lazega et al.'s (2008, "
+        "doi:10.1016/j.socnet.2008.02.001) researchers and laboratories: each researcher belongs to a "
+        "laboratory, and a quarter to two (150 affiliations). Given the affiliations, the ties among "
+        "researchers and among laboratories are from the model S(~edges + gwesp(0.693147, fixed=TRUE), "
+        "~level == 'researcher') + S(~edges, ~level == 'laboratory') + txbx('level') + txax('level') + "
+        "c4axb('level'), with coefficients -3.6, 0.3, -2.8, 1.5, 1.5 and 0.4, to fit with the "
+        "constraints blocks('level', levels2=2). Undirected. Vertex attributes: type (True for "
+        "laboratories, as in multinets) and level ('researcher' or 'laboratory')."
     ),
     "faux.magnolia.high": (
         "A simulated friendship network of 1,461 students in a high school in the "

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Datasets**: `labs_sim`, a multilevel network of 120 researchers and 30
+  laboratories simulated from a known model, with effects within each level
+  and across levels.
+- **Documentation**: a Quick start, with two complete analyses: an ERGM and
+  a multilevel ERGM.
+
 ## 0.1.0 (2026-10-01)
 
 The first version.

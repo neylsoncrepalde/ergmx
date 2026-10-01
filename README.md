@@ -158,8 +158,9 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
 - `ergmx.summary_stats(network, formula)`: R's `summary(net ~ formula)`.
 - `ergmx.datasets`: the networks of R's ergm documentation (flomarriage,
   flobusiness, samplk1-3, faux.mesa.high, faux.dixon.high,
-  faux.magnolia.high), ergm.multi's 318 household networks `Goeyvaerts`, and
-  multinets' multilevel `linked_sim`.
+  faux.magnolia.high), ergm.multi's 318 household networks `Goeyvaerts`,
+  multinets' multilevel `linked_sim`, and `labs_sim`, a multilevel network
+  of researchers and laboratories simulated from a known model.
 
 ## Documentation
 
@@ -267,8 +268,8 @@ uv add "ergmx[igraph,plot]"        # in a uv project; or: uv pip install / pip i
 ```
 
 Releases come as wheels with the Rust core already compiled, for Linux,
-macOS and Windows, so no Rust compiler is needed. To install it from GitHub, 
-which builds it from source:
+macOS and Windows, so no Rust compiler is needed. To install the development
+version from GitHub, which builds it from source:
 
 ```bash
 uv add "ergmx[igraph,plot] @ git+https://github.com/neylsoncrepalde/ergmx"

@@ -59,6 +59,14 @@ those of 100 networks simulated from the model.
 ::::{grid} 1 2 2 3
 :gutter: 3
 
+:::{grid-item-card} {fas}`rocket` Quick start
+:link: user-guide/quickstart/index
+:link-type: doc
+
+Two complete analyses, from the data to a table of results: an ERGM and a
+multilevel ERGM.
+:::
+
 :::{grid-item-card} {fas}`book` User guide
 :link: user-guide/index
 :link-type: doc

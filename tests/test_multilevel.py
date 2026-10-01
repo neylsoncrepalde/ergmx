@@ -158,3 +158,28 @@ def test_multilevel_fit():
     fit = ergmx.ergm(g, f, seed=1, eval_loglik=False)
     assert fit.converged
     assert "C4AXB.level" in fit.coef and np.isfinite(fit.stderr["C4AXB.level"])
+
+
+def test_labs_sim_recovers_its_known_model():
+    """labs_sim is simulated from a known model (scripts/simulate_labs.py):
+    fitted given its affiliations, every estimate is near its true value."""
+    g = ergmx.datasets.load("labs_sim")
+    level = np.array(g.vs["level"])
+    researchers, labs = np.flatnonzero(level == "researcher"), np.flatnonzero(level == "laboratory")
+    affiliations = [len([u for u in g.neighbors(r) if u in set(labs)]) for r in researchers]
+    assert (len(researchers), len(labs), sum(affiliations)) == (120, 30, 150)
+    assert set(affiliations) == {1, 2}
+    truth = {
+        'S(level=="researcher")~edges': -3.6,
+        'S(level=="researcher")~gwesp.fixed.0.693147': 0.3,
+        'S(level=="laboratory")~edges': -2.8,
+        "TXBX.level": 1.5,
+        "TXAX.level": 1.5,
+        "C4AXB.level": 0.4,
+    }
+    formula = ("S(~edges + gwesp(0.693147, fixed=TRUE), ~level == 'researcher') + S(~edges, ~level == 'laboratory')"
+               " + txbx('level') + txax('level') + c4axb('level')")
+    fit = ergmx.ergm(g, formula, constraints="blocks('level', levels2=2)", seed=1, eval_loglik=False)
+    assert fit.converged and list(fit.coef) == list(truth)
+    for name, value in truth.items():
+        assert abs(fit.coef[name] - value) < 2.5 * fit.stderr[name], name
