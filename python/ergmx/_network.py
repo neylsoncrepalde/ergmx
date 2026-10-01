@@ -9,7 +9,27 @@ from typing import Any
 import numpy as np
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
+class Block:
+    """One network of a combined network (:func:`ergmx.Networks`,
+    :func:`ergmx.NetSeries`): its vertices are ``start`` to ``start + network.n
+    - 1`` of the combined network."""
+
+    start: int
+    network: Network
+    #: Network-level attributes, for the linear models of N() and tergm's
+    #: operators: the graph attributes, n, and .NetworkID, .NetworkName (or,
+    #: in a series, .Time, .TimeID and .TimeDelta).
+    attributes: dict[str, Any]
+    #: In a series, the network at the previous time.
+    prev: Network | None = None
+
+    @property
+    def stop(self) -> int:
+        return self.start + self.network.n
+
+
+@dataclass(frozen=True, repr=False)
 class Network:
     """A binary network: vertex count, edges (0-based), vertex attributes, and
     the dyads whose value is unknown (edges marked ``na``)."""
@@ -24,10 +44,48 @@ class Network:
     #: For bipartite networks, each vertex's mode: 1 (the first mode, ergm's
     #: "b1") or 2. None if the network is not bipartite.
     mode: np.ndarray | None = None
+    #: For networks combined from several, each of them.
+    blocks: tuple[Block, ...] | None = None
 
     @property
     def bipartite(self) -> bool:
         return self.mode is not None
+
+    @property
+    def combined(self) -> bool:
+        """Whether the network combines several (Networks() or NetSeries())."""
+        return self.blocks is not None
+
+    @property
+    def series(self) -> bool:
+        """Whether the network is a series of transitions (NetSeries())."""
+        return self.blocks is not None and self.blocks[0].prev is not None
+
+    def between_blocks(self) -> np.ndarray:
+        """n x n mask of the dyads between different networks of a combined network."""
+        mask = np.zeros((self.n, self.n), dtype=bool)
+        if self.blocks is not None:
+            mask[:] = True
+            for b in self.blocks:
+                mask[b.start:b.stop, b.start:b.stop] = False
+        return mask
+
+    def split(self, edges: np.ndarray) -> list[np.ndarray]:
+        """The edges of each block of a combined network, numbered within the block."""
+        out = []
+        for b in self.blocks:
+            inside = (edges[:, 0] >= b.start) & (edges[:, 0] < b.stop)
+            out.append(_edge_array(edges[inside] - b.start))
+        return out
+
+    def __repr__(self) -> str:
+        kind = "directed" if self.directed else "undirected"
+        if self.blocks is None:
+            return f"<Network: {self.n} vertices, {len(self.edges)} edges, {kind}>"
+        what = "transitions" if self.series else "networks"
+        sizes = sorted({b.network.n for b in self.blocks})
+        size = f"{sizes[0]}" if len(sizes) == 1 else f"{sizes[0]} to {sizes[-1]}"
+        return f"<{'NetSeries' if self.series else 'Networks'}: {len(self.blocks)} {what} of {size} vertices, {kind}>"
 
     def degrees(self) -> tuple[np.ndarray, np.ndarray]:
         """Out- and in-degrees (degrees twice, if undirected)."""
@@ -104,13 +162,16 @@ def _with_modes(network: Network, bipartite) -> Network:
         if len(pairs) and np.any(mode[pairs[:, 0]] == mode[pairs[:, 1]]):
             raise ValueError(f"a bipartite network has no {kind} within a mode, but this one has")
     return Network(network.n, network.directed, network.edges, network.attributes, network.source,
-                   network.graph_attributes, network.missing, mode)
+                   network.graph_attributes, network.missing, mode, network.blocks)
 
 
 def as_network(x: Any, bipartite=None) -> Network:
     """Read an igraph or networkx graph; `bipartite` names the vertex attribute
     with the modes of a bipartite network (True for the default name)."""
     if isinstance(x, Network):
+        if x.combined and bipartite not in (None, False) and x.mode is None:
+            raise ValueError("for combined bipartite networks, give bipartite= to Networks() or "
+                             "NetSeries()")
         return _with_modes(x, bipartite) if bipartite is not None and x.mode is None else x
     return _with_modes(_read(x), bipartite)
 
@@ -142,6 +203,14 @@ def _read(x: Any) -> Network:
         attributes = {a: [x.nodes[v].get(a) for v in nodes] for a in names}
         return Network(len(nodes), x.is_directed(), edges, attributes, x, dict(x.graph), missing)
     raise TypeError(f"expected an igraph or networkx graph, got {type(x).__name__}")
+
+
+def to_graphs(network: Network, edges: np.ndarray) -> Any:
+    """A graph like `network`'s with the given edges, or, for a combined
+    network, a list of graphs: one per network."""
+    if network.blocks is None:
+        return to_graph(network, edges)
+    return [to_graph(b.network, e) for b, e in zip(network.blocks, network.split(edges))]
 
 
 def to_graph(network: Network, edges: np.ndarray) -> Any:

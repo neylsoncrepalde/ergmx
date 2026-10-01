@@ -51,6 +51,11 @@ class Term:
         """Derivatives of eta with respect to the parameters (statistics x parameters)."""
         return np.eye(len(params))
 
+    def starts(self, network: Network) -> list[tuple[int, float]]:
+        """Starting values of the parameters a fit can't start at 0 (the decays
+        of curved terms), as (position among the term's parameters, value)."""
+        return []
+
     def spec(self, network: Network) -> tuple[str, list[float], list[int]]:
         """The term as the Rust core expects it: (name, real params, integer params)."""
         return (self.rust_name, [], [])
@@ -986,6 +991,9 @@ class Curved(Term):
         """The starting value of the decay: the decay argument."""
         return self.term.decay
 
+    def starts(self, network):
+        return [(1, self.initial())]
+
     def _weights(self, alpha: float, network):
         k, overflow = self._bins(network)
         counts = np.arange(1, k + 1)
@@ -1041,6 +1049,9 @@ class Offset(Term):
     def jacobian(self, params, network):
         return self.term.jacobian(params, network)
 
+    def starts(self, network):
+        return self.term.starts(network)
+
     def spec(self, network):
         return self.term.spec(network)
 
@@ -1066,8 +1077,9 @@ class Filtered(Term):
             raise ValueError("F(): the filter must be a single term")
         self.filter, self.negate = filters.terms[0], bool(negate)
         for term in self.formula:
-            if isinstance(term, (Filtered, Offset)):
-                raise ValueError(f"F(): {term!r} can't be filtered; put F() inside offset() instead")
+            if isinstance(term, (Filtered, Offset, BlockOperator)):
+                raise ValueError(f"F(): {term!r} can't be filtered; put F() inside offset() or "
+                                 "N() instead")
         if not self.filter.dyad_independent or self.filter.is_offset:
             raise ValueError(f"F(): the filter {self.filter!r} must be a dyad-independent term")
 
@@ -1106,6 +1118,9 @@ class Filtered(Term):
             out[ps, qs] = t.jacobian(params[qs], network)
         return out
 
+    def starts(self, network):
+        return [(qs.start + i, v) for t, _, qs in self._blocks(network) for i, v in t.starts(network)]
+
     def check(self, network):
         for term in [*self.formula, self.filter]:
             term.check(network)
@@ -1122,6 +1137,168 @@ class Filtered(Term):
     def __repr__(self) -> str:
         negate = ", negate=True" if self.negate else ""
         return f"F({self.formula!r}, {self.filter!r}{negate})"
+
+
+def _formula_blocks(formula, network):
+    """Each term of a formula with the slices of its statistics and parameters."""
+    p = q = 0
+    for term in formula:
+        dp, dq = len(term.names(network)), len(term.param_names(network))
+        yield term, slice(p, p + dp), slice(q, q + dq)
+        p, q = p + dp, q + dq
+
+
+#: How each block operator sees a block's network (the Rust core's codes):
+#: the network, its union with the previous network, their intersection, or
+#: the dyads that changed.
+_VIEWS = {"N": 0, "Cross": 0, "Form": 1, "Persist": 2, "Diss": 2, "Change": 3}
+
+
+class BlockOperator(Term):
+    """Terms evaluated on each network of a combined network: ergm.multi's
+    N() and tergm's Form(), Persist(), Diss(), Cross() and Change().
+
+    Each network's statistics are combined through the operator's linear
+    model, as R's ``lm`` argument: a design matrix X (networks x columns) of
+    network-level attributes, by default an intercept, so that the
+    statistics are summed. Each statistic g of the formula gives one
+    statistic per column c, the sum over networks k of X[k, c] g_k, named
+    ``N(c)~g`` as in ergm.multi: a term's coefficient in network k is the
+    linear model's prediction for it. With curved terms, whose coefficients
+    are nonlinear in their parameters, the statistics are each network's
+    instead (named ``N#k~g``), and the parameters still those of the linear
+    model.
+    """
+
+    degree_dependence = None
+
+    def __init__(self, op: str, formula, lm=None, subset=None, weights=None, contrasts=None,
+                 offset=None, label=None):
+        if op not in _VIEWS:
+            raise ValueError(f"unknown block operator {op!r}")
+        for name, value in (("subset", subset), ("weights", weights), ("contrasts", contrasts),
+                            ("offset", offset), ("label", label)):
+            if value is not None and not (name == "subset" and value is True) \
+                    and not (name == "weights" and value == 1):
+                raise NotImplementedError(f"{op}(): the {name} argument is not supported yet")
+        self.op, self.formula, self.lm = op, as_formula(formula), lm
+        if not len(self.formula):
+            raise ValueError(f"{op}() needs terms")
+        for term in self.formula:
+            if isinstance(term, (Offset, BlockOperator)):
+                raise ValueError(f"{op}(): {term!r} can't be inside {op}(); put offset() outside "
+                                 "instead, and don't nest the operators")
+
+    dyad_independent = property(lambda self: all(t.dyad_independent for t in self.formula))
+    triadic = property(lambda self: any(t.triadic for t in self.formula))
+    curved = property(lambda self: any(t.curved for t in self.formula))
+
+    @property
+    def temporal(self) -> bool:
+        """Whether the operator needs each network's previous network."""
+        return self.op in ("Form", "Persist", "Diss", "Change")
+
+    def _design(self, network):
+        from ._lm import LmError, design
+
+        try:
+            return design(self.lm, [b.attributes for b in network.blocks])
+        except LmError as e:
+            raise ValueError(f"{self.op}(): {e}") from None
+
+    def _inner_names(self, network, params=False) -> list[str]:
+        return [n for t in self.formula for n in (t.param_names if params else t.names)(network)]
+
+    def check(self, network):
+        if not network.combined:
+            raise ValueError(f"{self!r} needs networks combined with ergmx.Networks() or "
+                             "ergmx.NetSeries()")
+        if self.temporal and not network.series:
+            raise ValueError(f"{self.op}() needs a series of networks: ergmx.NetSeries(), or "
+                             "ergmx.tergm()")
+        for block in network.blocks:
+            for term in self.formula:
+                term.check(block.network)
+        self._design(network)
+        counts = {len(self._inner_names(b.network, params=True)) for b in network.blocks}
+        if len(counts) > 1:
+            raise ValueError(f"{self!r}: the terms have different numbers of parameters in "
+                             "different networks (for example, attribute levels that some "
+                             "networks lack), which ergm.multi doesn't allow either")
+        names = {tuple(self._inner_names(b.network, params=True)) for b in network.blocks}
+        if len(names) > 1:
+            warnings.warn(f"{self!r}: the terms' parameters have different names in different "
+                          "networks, which may indicate specification problems", stacklevel=4)
+
+    def names(self, network):
+        if self.curved:
+            return [f"N#{k + 1}~{n}" for k, b in enumerate(network.blocks)
+                    for n in self._inner_names(b.network)]
+        _, columns = self._design(network)
+        return [f"{self.op}({c})~{n}" for n in self._inner_names(network.blocks[0].network)
+                for c in columns]
+
+    def param_names(self, network):
+        _, columns = self._design(network)
+        return [f"{self.op}({c})~{n}"
+                for n in self._inner_names(network.blocks[0].network, params=True) for c in columns]
+
+    def _thetas(self, params, network):
+        """The design, and each network's parameters of the formula."""
+        x, columns = self._design(network)
+        coefficients = np.asarray(params, dtype=float).reshape(-1, len(columns))
+        return x, [coefficients @ row for row in x]
+
+    def eta(self, params, network):
+        if not self.curved:
+            return np.asarray(params, dtype=float)
+        _, thetas = self._thetas(params, network)
+        return np.concatenate([
+            t.eta(theta[qs], b.network)
+            for b, theta in zip(network.blocks, thetas)
+            for t, _, qs in _formula_blocks(self.formula, b.network)
+        ])
+
+    def jacobian(self, params, network):
+        if not self.curved:
+            return np.eye(len(params))
+        x, thetas = self._thetas(params, network)
+        rows = []
+        for b, row, theta in zip(network.blocks, x, thetas):
+            blocks = list(_formula_blocks(self.formula, b.network))
+            inner = np.zeros((blocks[-1][1].stop, blocks[-1][2].stop))
+            for t, ps, qs in blocks:
+                inner[ps, qs] = t.jacobian(theta[qs], b.network)
+            # d eta_k / d coefficient (s, c) = d eta_k / d theta_s * x[k, c].
+            rows.append(np.kron(inner, row[None, :]))
+        return np.vstack(rows)
+
+    def starts(self, network):
+        # The coefficients that predict the formula's starting value in every network.
+        x, columns = self._design(network)
+        first = network.blocks[0].network
+        out = []
+        for t, _, qs in _formula_blocks(self.formula, first):
+            for i, value in t.starts(first):
+                b = np.linalg.lstsq(x, np.full(len(x), value), rcond=None)[0]
+                out += [((qs.start + i) * len(columns) + c, float(b[c])) for c in range(len(columns))]
+        return out
+
+    def full_spec(self, network):
+        x, columns = self._design(network)
+        compact = not self.curved
+        children = [("block", x[k].tolist() if compact else [], [],
+                     [t.full_spec(b.network) for t in self.formula])
+                    for k, b in enumerate(network.blocks)]
+        ints = [_VIEWS[self.op], int(self.op == "Diss"), int(compact), len(columns) if compact else 0]
+        return ("blocks", [], ints, children)
+
+    def spec(self, network):
+        raise TypeError(f"{self.op}() has no flat spec; use full_spec")
+
+    def __repr__(self) -> str:
+        lm = "" if self.lm is None else f", lm={self.lm!r}"
+        return f"{self.op}({self.formula!r}{lm})"
 
 
 # -- The functions users call, named as in ergm -------------------------------------------------
@@ -1509,6 +1686,76 @@ def F(formula, filter, negate: bool = False) -> Term:
     return Filtered(formula, filter, negate)
 
 
+def N(formula, lm=None, subset=None, weights=None, contrasts=None, offset=None,  # noqa: N802
+      label=None) -> Term:
+    """Evaluate ``formula`` on each network of :func:`ergmx.Networks`, as
+    ergm.multi's N(): with the default ``lm``, the statistics are sums over
+    the networks.
+
+    ``lm`` is a one-sided linear model over network-level attributes, in R
+    syntax: ``"~log(n)"``, ``"~I(n <= 3) + weekday"``, ``"~0 + factor(.NetworkID)"``.
+    Each term's coefficient in a network is the linear model's prediction:
+    ``N(~edges, lm=~log(n))`` gives ``N(1)~edges`` and ``N(log(n))~edges``, the
+    intercept and slope of the edges coefficient in the network size. The
+    attributes are each network's graph attributes, ``n`` (its number of
+    vertices), ``.NetworkID`` and ``.NetworkName``. In a formula string:
+    ``"N(~edges + gwesp(0.5, fixed=TRUE), lm=~log(n))"``.
+    """
+    return BlockOperator("N", formula, lm, subset, weights, contrasts, offset, label)
+
+
+_TEMPORAL_DOC = """``lm``, as in :func:`N`, makes the coefficients vary between
+    transitions, with the attributes ``.Time``, ``.TimeID`` and ``.TimeDelta``
+    as well as the networks' own (see :func:`ergmx.NetSeries`)."""
+
+
+def Form(formula, lm=None, subset=None, weights=None, contrasts=None, offset=None,  # noqa: N802
+         label=None) -> Term:
+    """tergm's formation model: ``formula`` evaluated on the union of the
+    previous and the current network, which only changes when ties form.
+    {temporal_doc}
+    """
+    return BlockOperator("Form", formula, lm, subset, weights, contrasts, offset, label)
+
+
+def Persist(formula, lm=None, subset=None, weights=None, contrasts=None, offset=None,  # noqa: N802
+            label=None) -> Term:
+    """tergm's persistence model: ``formula`` evaluated on the intersection of
+    the previous and the current network, the ties that persisted, which only
+    changes when ties dissolve. A positive coefficient means less dissolution.
+    {temporal_doc}
+    """
+    return BlockOperator("Persist", formula, lm, subset, weights, contrasts, offset, label)
+
+
+def Diss(formula, lm=None, subset=None, weights=None, contrasts=None, offset=None,  # noqa: N802
+         label=None) -> Term:
+    """tergm's dissolution model: :func:`Persist` with its statistics negated,
+    so that a positive coefficient means more dissolution. {temporal_doc}
+    """
+    return BlockOperator("Diss", formula, lm, subset, weights, contrasts, offset, label)
+
+
+def Cross(formula, lm=None, subset=None, weights=None, contrasts=None, offset=None,  # noqa: N802
+          label=None) -> Term:
+    """tergm's cross-sectional model: ``formula`` evaluated on the current
+    network of each transition. {temporal_doc}
+    """
+    return BlockOperator("Cross", formula, lm, subset, weights, contrasts, offset, label)
+
+
+def Change(formula, lm=None, subset=None, weights=None, contrasts=None, offset=None,  # noqa: N802
+           label=None) -> Term:
+    """tergm's change model: ``formula`` evaluated on the network of the dyads
+    that changed between the previous and the current network. {temporal_doc}
+    """
+    return BlockOperator("Change", formula, lm, subset, weights, contrasts, offset, label)
+
+
+for _f in (Form, Persist, Diss, Cross, Change):
+    _f.__doc__ = inspect.cleandoc(_f.__doc__).replace("{temporal_doc}", inspect.cleandoc(_TEMPORAL_DOC))
+
+
 def edgecov(x) -> Term:
     """Sum over ties of a dyadic covariate.
 
@@ -1542,5 +1789,9 @@ for _f in _PLAIN:
     globals()[_f.__name__] = _recording(_f)
 del _f
 
-#: Every term function by name; F and offset are operators.
-TERMS = {name: globals()[name] for name in [f.__name__ for f in _PLAIN] + ["F", "offset"]}
+#: The operators that evaluate terms on each network of a combined network.
+BLOCK_OPERATORS = ("N", "Form", "Persist", "Diss", "Cross", "Change")
+
+#: Every term function by name; F, offset and the block operators are operators.
+TERMS = {name: globals()[name]
+         for name in [f.__name__ for f in _PLAIN] + ["F", "offset", *BLOCK_OPERATORS]}

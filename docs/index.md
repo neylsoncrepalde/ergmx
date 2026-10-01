@@ -15,11 +15,12 @@ the same terms and statistics, and `summary()`, `gof()` and
 and runs chains in parallel threads, so fits take seconds.
 
 :::{note}
-`ergmx` is a proof of concept: 58 terms and the `offset()` and `F()`
-operators for directed, undirected and bipartite networks, curved ERGMs,
-sample space constraints, missing ties, MPLE, contrastive divergence and
-Monte Carlo MLE, MCMC diagnostics, log-likelihoods, model comparison and
-goodness of fit, all [validated against R's ergm](validation.md).
+`ergmx` is a proof of concept: 58 terms and 8 operators for directed,
+undirected and bipartite networks, curved ERGMs, sample space constraints,
+missing ties, samples of networks (as ergm.multi), temporal ERGMs and
+dynamic simulation (as tergm), MPLE, contrastive divergence and Monte Carlo
+MLE, MCMC diagnostics, log-likelihoods, model comparison and goodness of
+fit, all [validated against R](validation.md).
 :::
 
 ## A first look
@@ -62,15 +63,15 @@ those of 100 networks simulated from the model.
 :link-type: doc
 
 Networks, formulas, fitting, curved models, constraints, missing ties,
-multilevel and bipartite networks, diagnostics, goodness of fit, model
-comparison and simulation.
+multilevel and bipartite networks, samples of networks, networks over time,
+diagnostics, goodness of fit, model comparison and simulation.
 :::
 
 :::{grid-item-card} {fas}`list` Term reference
 :link: terms
 :link-type: doc
 
-The 58 terms and 2 operators, their statistics and their names.
+The 58 terms and 8 operators, their statistics and their names.
 :::
 
 :::{grid-item-card} {fas}`code` API reference

@@ -11,6 +11,8 @@
 
 suppressMessages({
   library(ergm)
+  library(ergm.multi)  # Networks() and N()
+  library(tergm)       # NetSeries() and the temporal operators
   library(igraph)
 })
 
@@ -70,7 +72,8 @@ bipartite_sim <- simulate(bipartite_sim ~ edges + b1factor("g") + b2cov("x") + g
                           coef = c(-3.2, 0.4, -0.3, 0.05, -0.5), seed = 2026,
                           control = control.simulate.formula(MCMC.burnin = 100000))
 
-networks <- list(flomarriage = flomarriage, samplk3 = samplk3, linked_sim = linked_sim,
+networks <- list(flomarriage = flomarriage, samplk1 = samplk1, samplk2 = samplk2,
+                 samplk3 = samplk3, linked_sim = linked_sim,
                  davis = davis, bipartite_sim = bipartite_sim,
                  faux.mesa.high = faux.mesa.high, faux.dixon.high = faux.dixon.high,
                  samplk3.nonresponse = samplk3.nonresponse,
@@ -99,6 +102,18 @@ for (name in names(networks)) {
   write_graph(to_igraph(networks[[name]]), file.path(out_dir, paste0(name, ".graphml")),
               format = "graphml")
 }
+
+# Networks combined from several, by name, as the ergmx tests rebuild them
+# (tests/conftest.py): Sampson's monks at three times, jointly (Networks) and
+# as a series of transitions (NetSeries), and ergm.multi's households whose
+# contact diaries were kept on a weekday (bundled with ergmx).
+data(Goeyvaerts)
+combined <- list(
+  samplk123.Networks = Networks(samplk1, samplk2, samplk3),
+  samplk123.NetSeries = NetSeries(samplk1, samplk2, samplk3),
+  samplk12.NetSeries = NetSeries(samplk1, samplk2),
+  Goeyvaerts.weekday = Networks(Filter(function(g) (g %n% "included") && (g %n% "weekday"), Goeyvaerts))
+)
 
 # The same formula strings are parsed by ergmx.
 all_checks <- c("stats", "mple", "mle")
@@ -273,7 +288,39 @@ models <- list(
                               formula = "edges + nodematch('Grade') + nodefactor('Sex')"),
   mesa_missing = list(network = "faux.mesa.high.missing", checks = c("stats", "mle"),
                       formula = paste("edges + nodematch('Grade') + nodematch('Race') +",
-                                      "gwesp(0.5, fixed=TRUE)"))
+                                      "gwesp(0.5, fixed=TRUE)")),
+
+  # Samples of networks (ergm.multi).
+  multi_stats = list(network = "samplk123.Networks", checks = "stats",
+                     formula = paste("N(~edges + mutual) + N(~edges, lm=~I(.NetworkID <= 2)) +",
+                                     "N(~gwesp(0.5, fixed=TRUE) + nodematch('group'), lm=~0 + factor(.NetworkID)) +",
+                                     "edges + mutual + dsp(0:1) + N(~dsp(0:1))")),
+  multi_mutual = list(network = "samplk123.Networks", checks = all_checks, formula = "N(~edges + mutual)"),
+  # ergm.multi and tergm fail to fit curved terms inside N() and Form() (the
+  # MPLE's gradient is not finite, CD stops with an error): statistics only.
+  multi_curved = list(network = "samplk123.Networks", checks = "stats",
+                      formula = "N(~edges + mutual + gwesp(0.5, cutoff=10))"),
+  goey_dyadind = list(network = "Goeyvaerts.weekday", checks = all_checks,
+                      formula = "N(~edges, ~I(n<=3) + I(n>=5)) + N(~nodematch('gender') + absdiff('age'))"),
+  goey_weekday = list(network = "Goeyvaerts.weekday", checks = all_checks,
+                      formula = paste("N(~edges, ~I(n<=3) + I(n>=5)) +",
+                                      "N(~kstar(2) + nodematch('gender') + absdiff('age')) +",
+                                      "N(~triangle, ~I(n>=6))")),
+
+  # Series of networks (tergm's CMLE).
+  series_stats = list(network = "samplk123.NetSeries", checks = "stats",
+                      formula = paste("Form(~edges + mutual + gwesp(0.5, fixed=TRUE) + dsp(0:1)) +",
+                                      "Persist(~mutual + ttriple) + Diss(~edges) + Cross(~edges + mutual) +",
+                                      "Change(~edges + mutual) + Form(~edges, lm=~.Time) +",
+                                      "Cross(~edges, lm=~0 + factor(.TimeID)) + edges + nodematch('group')")),
+  series_dyadind = list(network = "samplk123.NetSeries", checks = all_checks,
+                        formula = "Form(~edges + nodematch('group')) + Diss(~edges + nodematch('group'))"),
+  series_gwesp = list(network = "samplk123.NetSeries", checks = all_checks,
+                      formula = "Form(~edges + mutual + gwesp(0.5, fixed=TRUE)) + Persist(~edges + mutual)"),
+  series_one = list(network = "samplk12.NetSeries", checks = all_checks,
+                    formula = "Form(~edges + mutual) + Diss(~edges + mutual)"),
+  series_curved = list(network = "samplk123.NetSeries", checks = "stats",
+                       formula = "Form(~edges + mutual + gwesp(0.5, cutoff=10)) + Persist(~edges)")
 )
 
 named <- function(x) as.list(x)
@@ -281,7 +328,7 @@ named <- function(x) as.list(x)
 results <- list()
 for (name in names(models)) {
   m <- models[[name]]
-  net <- networks[[m$network]]
+  net <- c(networks, combined)[[m$network]]
   f <- as.formula(paste("net ~", m$formula))
   environment(f) <- environment()
   constraints <- as.formula(paste("~", if (is.null(m$constraints)) "." else m$constraints))

@@ -1,22 +1,25 @@
 # Validation
 
-`ergmx` is tested against R's ergm 4.12 on ergm's own networks (flomarriage,
-samplk3, faux.mesa.high and faux.dixon.high, the second and third also with
-missing dyads), multinets' `linked_sim`, Davis's Southern Women and a
-simulated bipartite network, and against exact results on networks small
-enough to enumerate every possible network. The R scripts in
+`ergmx` is tested against R's ergm 4.12, ergm.multi 0.3.0 and tergm 4.2.2 on
+ergm's own networks (flomarriage, samplk1 to samplk3, faux.mesa.high and
+faux.dixon.high, the latter two also with missing dyads), multinets'
+`linked_sim`, Davis's Southern Women, a simulated bipartite network,
+Sampson's monks as a sample and as a series of networks, and ergm.multi's
+225 weekday household networks (Goeyvaerts), and against exact results on
+networks small enough to enumerate every possible network. The R scripts in
 `scripts/` store R's results in `tests/data/`, and the test suite compares.
 
 ## Against R's ergm
 
 | Check | Result |
 |---|---|
-| Statistics of all 58 terms and both operators, 56 models | identical to R's `summary()` (to 1e-12), names included, except `transitive` and the edgewise RTP statistics (below) |
-| MPLE, 38 models, with offsets, `F()`, `blocks`, bipartite networks and curved terms | identical to R (to 1e-6; curved models to 1e-3, where R's optimizer stops on a flat optimum: ergmx's pseudo-likelihood is at least R's) |
-| Dyad-independent MLE, standard errors, log-likelihood and BIC, 10 models, with offsets, `blocks`, missing dyads and bipartite networks | identical to R (to 1e-6; standard errors to 1e-3, the tolerance of R's `glm`) |
+| Statistics of all 58 terms and 8 operators, 66 models | identical to R's `summary()` (to 1e-12), names included, except `transitive` and the edgewise RTP statistics (below) |
+| MPLE, 44 models, with offsets, `F()`, `N()`, tergm's operators, `blocks`, bipartite networks and curved terms | identical to R (to 1e-6; curved models to 1e-3, where R's optimizer stops on a flat optimum: ergmx's pseudo-likelihood is at least R's) |
+| Dyad-independent MLE, standard errors, log-likelihood and BIC, 12 models, with offsets, `blocks`, missing dyads, bipartite networks, samples and series of networks | identical to R (to 1e-6; standard errors to 1e-3, the tolerance of R's `glm`) |
 | Monte Carlo MLE, 7 models (4 undirected, 3 directed), 3 to 10 seeds each | within 0.12 standard errors of R's estimates; standard errors 0.89 to 1.12 times R's |
 | Monte Carlo MLE with constraints (`bd`, `blocks`, `degrees`, `odegrees`), missing dyads, offsets, `F()`, `esp` and multilevel models, 12 models x 5 seeds | all converged, within 0.17 standard errors of R's estimates; standard errors 0.91 to 1.09 times R's |
 | Monte Carlo MLE of `concurrent`, `twopath`, OSP shared partners, bipartite models and curved models (gwesp, directed and undirected, and gwb1degree), 10 models x 3 to 5 seeds | all converged, within 0.2 standard errors of R's estimates; standard errors 0.90 to 1.12 times R's, except the curved bipartite model, whose likelihood is nearly flat in the decay (R's standard error of the decay is twice its estimate) |
+| Monte Carlo MLE of samples of networks (Sampson's monks; 225 households with `N()` linear models) and of series (tergm's CMLE, one and two transitions), 4 models x 5 seeds | all converged, within 0.10 standard errors of R's estimates; standard errors 0.94 to 1.05 times R's |
 | Goodness of fit, directed and undirected | observed distributions and p-values identical to R's; simulated distributions agree within Monte Carlo error |
 | Contrastive divergence | a fixed point of its defining equation; the Monte Carlo MLE from a CD start matches R's |
 
@@ -25,7 +28,10 @@ networks, so the comparison of standard errors is only as tight as R allows.
 ergm imputes missing dyads at random before its MPLE, so MPLEs of
 dyad-dependent models with missing dyads are not compared. R fits two of the
 curved models only from a contrastive divergence start; ergmx fits them from
-its default start.
+its default start. ergm.multi and tergm can't fit curved terms inside `N()`
+or `Form()` (their MPLE's gradient is not finite, and contrastive divergence
+stops with an error), so only their statistics are compared; ergmx's fits of
+them are checked below.
 
 ### Two discrepancies in ergm 4.12.0
 
@@ -53,7 +59,11 @@ its default start.
 | Constrained MCMC: `bd` (directed and undirected), `degrees` (both), `odegrees`, `idegrees`, `blocks`, and sampling conditional on observed dyads | expected statistics match exact enumeration of every network each constraint allows; a test that only reversing cyclic triples can pass checks that directed `degrees` reaches every network |
 | `-inf` offsets | the MLE equals the logistic regression without the forbidden dyads |
 | Bipartite MCMC | expected statistics match exact enumeration of the 512 networks of a 3 x 3 bipartite network |
-| Curved terms | eta . counts equals theta times the fixed-decay statistic exactly, and the Jacobian matches finite differences |
+| Curved terms | eta . counts equals theta times the fixed-decay statistic exactly, and the Jacobian matches finite differences; inside `N()`, with a linear model, too |
+| Several networks: `Networks()` and `NetSeries()` | the MCMC matches exact enumeration of every network with ties within the networks (two undirected networks; two transitions of directed networks, with discordant-dyad and triadic proposals), and never ties networks together |
+| Curved terms inside `N()` and `Form()` | at the curved MPLE's decay, the fixed-decay MPLE has the same coefficients (to 1e-8); a series simulated with decay 0.7 gives back 0.64 |
+| Dynamic simulation | one time step is a draw from the transition's model (exact enumeration); with tergm's stopping rule, ties form and dissolve at the dyad-independent model's exact rates (within 5% and 8%) |
+| Dyad-independent CMLE | the log-odds that non-ties became ties and that ties persisted, exactly |
 | Log-likelihood, directed and undirected | unbiased against exact enumeration (6 and 4 vertices), with standard errors that match the spread across seeds |
 
 ## The log-likelihood
@@ -83,9 +93,12 @@ ergmx run is limited to one thread too.
 | faux.mesa.high, gwesp(0.5) | 205 | 16.8 s | 10.6 s (1.6x) | 2.5 s (6.6x) | 0.04 SE |
 | faux.magnolia.high, gwesp(0.25) | 1,461 | 17.3 s | 15.3 s (1.1x) | 5.5 s (3.1x) | 0.07 SE |
 | faux.dixon.high (directed), gwesp(0.1) | 248 | 142 s | 83 s (1.7x) | 17 s (8.1x) | 0.07 SE |
+| 225 household networks (ergm.multi), with `N()` linear models | 2 to 7 each | 23.3 s | 13.2 s (1.8x) | 2.9 s (8.0x) | 0.06 SE |
 
 The last column is the largest difference between the two packages'
-estimates, in R's standard errors. `ergmx`'s log-likelihood samples about 17
+estimates, in R's standard errors (the households: one R run, from
+`scripts/r_reference.R`). On small models, such as the series of Sampson's
+monks, both take about a second. `ergmx`'s log-likelihood samples about 17
 times more than ergm's, which is what makes it accurate; without the
 log-likelihood on either side, a single thread was 1.9 to 3.6 times faster
 than R on these models.

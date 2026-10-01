@@ -1,0 +1,265 @@
+"""The linear models of N() and tergm's operators: R's one-sided ``lm()``
+formulas over network-level attributes, such as ``~log(n) + weekday`` or
+``~I(n <= 3)``, giving R's design matrix and column names (with treatment
+contrasts for factors, logical and character attributes).
+
+Supported: the intercept (``~1``, removed with ``0 +`` or ``- 1``),
+attributes, arithmetic (``+ - * / ^ %% %/%``), comparisons, ``& | !``,
+``I()``, ``log``, ``exp``, ``sqrt``, ``abs``, ``factor``, ``as.numeric`` and
+``as.logical``. Interactions (``a:b``, ``a*b`` outside ``I()``) are not.
+"""
+
+from __future__ import annotations
+
+import math
+import re
+
+import numpy as np
+
+_TOKEN = re.compile(r"""
+    \s*(?:
+      (?P<num>(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?L?)
+    | (?P<str>"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')
+    | (?P<name>[A-Za-z.][A-Za-z0-9._]*)
+    | (?P<op>%%|%/%|<=|>=|==|!=|&&|\|\||[-+*/^<>!&|(),~:])
+    )""", re.VERBOSE)
+
+# Binary operators by increasing precedence, as in R.
+_BINARY = [("|", "||"), ("&", "&&"), ("==", "!=", "<", ">", "<=", ">="), ("+", "-"),
+           ("*", "/"), ("%%", "%/%"), (":",)]
+_SPACED = {"|", "||", "&", "&&", "==", "!=", "<", ">", "<=", ">=", "+", "-", "*", "%%", "%/%"}
+
+
+class LmError(ValueError):
+    """The linear model formula can't be parsed or evaluated."""
+
+
+def _tokens(text: str) -> list[tuple[str, str]]:
+    out, pos = [], 0
+    text = text.rstrip()
+    while pos < len(text):
+        m = _TOKEN.match(text, pos)
+        if not m or m.end() == pos:
+            raise LmError(f"can't parse {text!r} at {text[pos:]!r}")
+        kind = m.lastgroup
+        out.append((kind, m.group(kind)))
+        pos = m.end()
+    return out
+
+
+class _Parser:
+    """Recursive descent over R's expression grammar; nodes are tuples:
+    ("num", value, text), ("str", value), ("name", name), ("call", f, args),
+    ("unary", op, x), ("binary", op, a, b), ("paren", x)."""
+
+    def __init__(self, text: str):
+        self.tokens, self.k, self.text = _tokens(text), 0, text
+
+    def peek(self):
+        return self.tokens[self.k] if self.k < len(self.tokens) else (None, None)
+
+    def take(self, value=None):
+        token = self.peek()
+        if token[0] is None or (value is not None and token[1] != value):
+            raise LmError(f"can't parse {self.text!r}: expected {value or 'more'}")
+        self.k += 1
+        return token
+
+    def parse(self):
+        node = self.binary(0)
+        if self.k != len(self.tokens):
+            raise LmError(f"can't parse {self.text!r} at {self.tokens[self.k][1]!r}")
+        return node
+
+    def binary(self, level):
+        if level == len(_BINARY):
+            return self.unary()
+        if level == 2 and self.peek() == ("op", "!"):
+            # R's negation binds less tightly than comparisons: !a == b is !(a == b).
+            self.take()
+            return ("unary", "!", self.binary(2))
+        node = self.binary(level + 1)
+        while self.peek()[0] == "op" and self.peek()[1] in _BINARY[level]:
+            op = self.take()[1]
+            node = ("binary", op, node, self.binary(level + 1))
+        return node
+
+    def unary(self):
+        kind, value = self.peek()
+        if kind == "op" and value in ("-", "+"):
+            self.take()
+            return ("unary", value, self.unary())
+        return self.power()
+
+    def power(self):
+        node = self.atom()
+        if self.peek() == ("op", "^"):
+            self.take()
+            return ("binary", "^", node, self.unary())  # right-associative
+        return node
+
+    def atom(self):
+        kind, value = self.take()
+        if kind == "num":
+            return ("num", float(value.rstrip("L")), value)
+        if kind == "str":
+            return ("str", value[1:-1])
+        if kind == "name":
+            if self.peek() == ("op", "("):
+                self.take("(")
+                args = []
+                while self.peek() != ("op", ")"):
+                    args.append(self.binary(0))
+                    if self.peek() == ("op", ","):
+                        self.take(",")
+                self.take(")")
+                return ("call", value, args)
+            return ("name", value)
+        if value == "(":
+            node = self.binary(0)
+            self.take(")")
+            return ("paren", node)
+        raise LmError(f"can't parse {self.text!r} at {value!r}")
+
+
+def deparse(node) -> str:
+    """The expression as R deparses it (R's names of the design's columns)."""
+    kind = node[0]
+    if kind == "num":
+        value = node[1]
+        return str(int(value)) if value.is_integer() and abs(value) < 1e15 else format(value, ".15g")
+    if kind == "str":
+        return '"' + node[1] + '"'
+    if kind == "name":
+        return node[1]
+    if kind == "paren":
+        return f"({deparse(node[1])})"
+    if kind == "call":
+        return f"{node[1]}({', '.join(map(deparse, node[2]))})"
+    if kind == "unary":
+        return node[1] + deparse(node[2])
+    op = node[1]
+    sep = f" {op} " if op in _SPACED else op
+    return deparse(node[2]) + sep + deparse(node[3])
+
+
+_FUNCTIONS = {"log": np.log, "exp": np.exp, "sqrt": np.sqrt, "abs": np.abs,
+              "as.numeric": lambda x: np.asarray(x, dtype=float),
+              "as.integer": lambda x: np.trunc(np.asarray(x, dtype=float)),
+              "as.logical": lambda x: np.asarray(x, dtype=bool)}
+_CONSTANTS = {"TRUE": True, "FALSE": False, "T": True, "F": False, "pi": math.pi}
+
+
+def _evaluate(node, data: dict[str, np.ndarray]):
+    kind = node[0]
+    if kind == "num":
+        return node[1]
+    if kind == "str":
+        return node[1]
+    if kind == "name":
+        if node[1] in data:
+            return data[node[1]]
+        if node[1] in _CONSTANTS:
+            return _CONSTANTS[node[1]]
+        raise LmError(f"no network attribute {node[1]!r} (available: {', '.join(sorted(data))})")
+    if kind == "paren":
+        return _evaluate(node[1], data)
+    if kind == "call":
+        name, args = node[1], node[2]
+        if name in ("I", "factor") and len(args) == 1:
+            return _evaluate(args[0], data)
+        if name in _FUNCTIONS and len(args) == 1:
+            return _FUNCTIONS[name](_evaluate(args[0], data))
+        raise LmError(f"unsupported function in a linear model: {deparse(node)}")
+    if kind == "unary":
+        x = _evaluate(node[2], data)
+        return np.logical_not(x) if node[1] == "!" else (-np.asarray(x) if node[1] == "-" else x)
+    op, a, b = node[1], _evaluate(node[2], data), _evaluate(node[3], data)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        if op in ("&", "&&"):
+            return np.logical_and(a, b)
+        if op in ("|", "||"):
+            return np.logical_or(a, b)
+        a, b = np.asarray(a), np.asarray(b)
+        if op == ":":
+            raise LmError(f"unsupported in a linear model: {deparse(node)}")
+        return {"+": np.add, "-": np.subtract, "*": np.multiply, "/": np.true_divide,
+                "^": np.power, "%%": np.mod, "%/%": np.floor_divide, "==": np.equal,
+                "!=": np.not_equal, "<": np.less, ">": np.greater, "<=": np.less_equal,
+                ">=": np.greater_equal}[op](a, b)
+
+
+def _terms(node) -> list[tuple[int, object]]:
+    """The terms of a formula's right-hand side, with +1 or -1 (removed)."""
+    if node[0] == "binary" and node[1] in ("+", "-"):
+        sign = 1 if node[1] == "+" else -1
+        return _terms(node[2]) + [(sign * s, t) for s, t in _terms(node[3])]
+    if node[0] == "unary" and node[1] == "-":
+        return [(-s, t) for s, t in _terms(node[2])]
+    return [(1, node)]
+
+
+def _levels(values: np.ndarray) -> list:
+    """A factor's levels, sorted as R sorts them."""
+    unique = set(values.tolist())
+    return sorted(unique, key=lambda v: (not isinstance(v, (bool, np.bool_)), v))
+
+
+def _level_label(value) -> str:
+    if isinstance(value, (bool, np.bool_)):
+        return "TRUE" if value else "FALSE"
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def design(lm, attributes: list[dict]) -> tuple[np.ndarray, list[str]]:
+    """The design matrix (networks x columns) of a one-sided lm formula over
+    the networks' attributes, and its column names as N() names them ("1"
+    for the intercept)."""
+    text = "~1" if lm is None else str(lm).strip()
+    text = text[1:] if text.startswith("~") else text
+    if not text.strip():
+        raise LmError("the linear model is empty")
+    names = sorted({k for a in attributes for k in a})
+    data = {k: np.array([a.get(k) for a in attributes], dtype=object) for k in names}
+    for k, v in data.items():
+        if all(isinstance(x, (bool, np.bool_)) for x in v):
+            data[k] = v.astype(bool)
+        elif all(isinstance(x, (int, float, np.integer, np.floating)) and not isinstance(x, bool)
+                 for x in v):
+            data[k] = v.astype(float)
+    intercept, terms = True, []
+    for sign, node in _terms(_Parser(text).parse()):
+        if node[0] == "num" and node[1] in (0, 1):
+            intercept = (node[1] == 1) == (sign > 0)
+        elif node[0] == "binary" and node[1] in ("*", ":"):
+            raise LmError(f"interactions are not supported in linear models: {deparse(node)}")
+        elif sign < 0:
+            raise LmError(f"only the intercept can be removed from a linear model: -{deparse(node)}")
+        else:
+            terms.append(node)
+    n = len(attributes)
+    columns, labels = ([np.ones(n)], ["1"]) if intercept else ([], [])
+    full_levels = not intercept
+    for node in terms:
+        value = _evaluate(node, data)
+        value = np.broadcast_to(np.asarray(value), (n,)) if np.ndim(value) == 0 else np.asarray(value)
+        factor = node[0] == "call" and node[1] == "factor"
+        if factor or value.dtype == bool or value.dtype == object:
+            if value.dtype == object and any(v is None for v in value):
+                raise LmError(f"{deparse(node)} is missing for some networks")
+            levels = _levels(value)
+            for level in levels if full_levels else levels[1:]:
+                columns.append((value == level).astype(float))
+                labels.append(deparse(node) + _level_label(level))
+            full_levels = False
+        else:
+            value = value.astype(float)
+            if not np.all(np.isfinite(value)):
+                raise LmError(f"{deparse(node)} is not finite for some networks")
+            columns.append(value)
+            labels.append(deparse(node))
+    if not columns:
+        raise LmError("the linear model has no columns")
+    return np.column_stack(columns), labels

@@ -11,11 +11,19 @@ from ._diagnostics import McmcDiagnostics
 from ._estimation import Control, DegeneracyError
 from ._fit import ErgmFit, FitSummary
 from ._gof import GofResult, GofTable, gof
+from ._multi import NetSeries, Networks
 from ._simulate import ergm, simulate, summary_stats
+from ._temporal import DynamicSimulation, simulate_dynamic, tergm
 from .formula import FormulaError, parse_formula
 from .terms import (
+    Change,
+    Cross,
+    Diss,
     ErgmDifferenceWarning,
     F,
+    Form,
+    N,
+    Persist,
     Formula,
     Term,
     absdiff,
@@ -82,18 +90,27 @@ from .terms import (
 __version__ = "0.1.0.dev0"
 
 __all__ = [
+    "Change",
     "Control",
+    "Cross",
     "DegeneracyError",
+    "Diss",
+    "DynamicSimulation",
     "ErgmDifferenceWarning",
     "ErgmFit",
     "F",
     "FitSummary",
+    "Form",
     "Formula",
     "FormulaError",
     "GofResult",
     "GofTable",
     "McmcDiagnostics",
     "ModelComparison",
+    "N",
+    "NetSeries",
+    "Networks",
+    "Persist",
     "Term",
     "absdiff",
     "absdiffcat",
@@ -156,8 +173,10 @@ __all__ = [
     "receiver",
     "sender",
     "simulate",
+    "simulate_dynamic",
     "sociality",
     "summary_stats",
+    "tergm",
     "transitive",
     "triangle",
     "ttriple",

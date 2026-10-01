@@ -7,12 +7,12 @@ the spirit of R's [ergm](https://github.com/statnet/ergm) and statnet: R-style
 formulas, the same term names and statistics, and `summary()` and `gof()`
 that read like R's.
 
-> **Status: proof of concept.** 58 terms and the `offset()` and `F()`
-> operators for directed, undirected and bipartite networks; curved ERGMs;
-> sample space constraints;
-> missing ties; MPLE, contrastive divergence and Monte Carlo MLE; MCMC
-> diagnostics, log-likelihoods, model comparison and goodness of fit, all
-> validated against R's ergm. See [what's missing](#not-yet).
+> **Status: proof of concept.** 58 terms and 8 operators for directed,
+> undirected and bipartite networks; curved ERGMs; sample space constraints;
+> missing ties; samples of networks (as ergm.multi); temporal ERGMs and
+> dynamic simulation (as tergm); MPLE, contrastive divergence and Monte Carlo
+> MLE; MCMC diagnostics, log-likelihoods, model comparison and goodness of
+> fit, all validated against R. See [what's missing](#not-yet).
 
 ```python
 import ergmx
@@ -104,6 +104,16 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
 - **Multilevel networks** as one network with a level attribute: `nodemix`
   for densities by kind of tie, `F()` for terms within levels, and `blocks` to
   model some kinds of ties given others.
+- **Samples of networks**, as R's ergm.multi: `ergmx.Networks(g1, g2, ...)`
+  models many networks (classrooms, households) jointly, and
+  `N(~terms, lm=~log(n) + weekday)` lets the coefficients depend on
+  network-level attributes, with R's syntax and names.
+- **Temporal ERGMs**, as R's tergm: `ergmx.tergm([wave1, wave2, wave3],
+  "Form(~edges + mutual) + Persist(~edges)")` fits the conditional MLE of a
+  series of networks, with `Form()`, `Persist()`, `Diss()`, `Cross()` and
+  `Change()`; `fit.simulate(time_slices=20)` and `ergmx.simulate_dynamic()`
+  run the process forward, with the ties that form and dissolve and their
+  durations.
 - **Estimation**:
   - dyad-independent models: the exact MLE (logistic regression), with
     log-likelihood, AIC and BIC;
@@ -140,7 +150,8 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
 - `ergmx.summary_stats(network, formula)`: R's `summary(net ~ formula)`.
 - `ergmx.datasets`: the networks of R's ergm documentation (flomarriage,
   flobusiness, samplk1-3, faux.mesa.high, faux.dixon.high,
-  faux.magnolia.high) and multinets' multilevel `linked_sim`.
+  faux.magnolia.high), ergm.multi's 318 household networks `Goeyvaerts`, and
+  multinets' multilevel `linked_sim`.
 
 ## Documentation
 
@@ -156,17 +167,19 @@ uv run sphinx-build -W --keep-going -d docs/_build/doctrees docs docs/_build/htm
 
 ## Validation against R
 
-`scripts/r_reference.R` fits the models below with ergm 4.12 and stores the
+`scripts/r_reference.R` fits the models below with ergm 4.12 (ergm.multi 0.3.0
+and tergm 4.2.2 for samples and series of networks) and stores the
 results in `tests/data/r_reference.json`; the test suite compares.
 
 | Check | Result |
 |---|---|
-| Statistics of all 58 terms and both operators, 56 models | identical to R's `summary()` (1e-12), names included, except two statistics that ergm 4.12.0 computes differently from its documentation, where ergmx follows the documentation: `transitive`, and the edgewise RTP statistics, which ergmx gives as ergm does with its shared-partner cache off (see [validation](docs/validation.md)) |
-| MPLE, 38 models | identical to R (1e-6; curved models 1e-3, with a pseudo-likelihood at least R's) |
-| Dyad-independent MLE, standard errors, log-likelihood and BIC (10 models, with offsets, `blocks`, missing dyads and bipartite networks) | identical to R (1e-6; SEs 1e-3, R's `glm` tolerance) |
+| Statistics of all 58 terms and 8 operators, 66 models | identical to R's `summary()` (1e-12), names included, except two statistics that ergm 4.12.0 computes differently from its documentation, where ergmx follows the documentation: `transitive`, and the edgewise RTP statistics, which ergmx gives as ergm does with its shared-partner cache off (see [validation](docs/validation.md)) |
+| MPLE, 44 models | identical to R (1e-6; curved models 1e-3, with a pseudo-likelihood at least R's) |
+| Dyad-independent MLE, standard errors, log-likelihood and BIC (12 models, with offsets, `blocks`, missing dyads, bipartite networks, samples and series of networks) | identical to R (1e-6; SEs 1e-3, R's `glm` tolerance) |
 | Monte Carlo MLE, 7 models (4 undirected, 3 directed) x 3–10 seeds | within 0.12 standard errors of R; SEs within 0.89–1.12 of R's |
 | Monte Carlo MLE with constraints, missing dyads, offsets, `F()` and multilevel models, 12 models x 5 seeds | within 0.17 standard errors of R; SEs within 0.91–1.09 of R's |
 | Monte Carlo MLE of the new terms, bipartite and curved models (directed and undirected), 10 models x 3–5 seeds | within 0.2 standard errors of R; SEs within 0.90–1.12 of R's, except one curved model with a nearly flat decay |
+| Monte Carlo MLE of samples of networks (ergm.multi) and of series (tergm's CMLE), 4 models x 5 seeds | within 0.10 standard errors of R; SEs within 0.94–1.05 of R's |
 | Goodness of fit, directed and undirected | observed distributions and p-values identical to R's; simulated distributions agree within Monte Carlo error |
 | MCMC stationary distribution, unconstrained and under every constraint | matches exact enumeration of every network each constraint allows on 3 to 6 vertices, directed and undirected |
 | Log-likelihood, directed and undirected | unbiased against exact enumeration (6 and 4 vertices), with calibrated standard errors |
@@ -229,13 +242,11 @@ describing it in `python/ergmx/terms.py`.
 
 ## Not yet
 
-- Curved ERGMs (the geometrically weighted terms with an estimated decay).
-- More terms: `degree(k)`, `isolates`, `nodemix`, `concurrent`, `gwnsp`,
-  bipartite terms, `edgecov` of a network attribute given as a network, and
-  directed shared partner types other than OTP.
 - `bd()` bounds by attribute, and more of ergm's constraints and terms.
-- Valued and temporal networks.
-- Wheels built for every platform in CI.
+- Valued networks (ergm.count) and egocentric data (ergm.ego).
+- tergm's EGMME estimator and duration terms; ergm.multi's `gofN()`, and
+  N()'s `subset`, `offset` and `label` arguments.
+- A release on PyPI (the wheels are built in CI).
 
 ## Installation
 

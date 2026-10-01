@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 import re
 
-from .terms import TERMS, Formula
+from .terms import BLOCK_OPERATORS, TERMS, Formula
 
 # R's constants, so formulas can be pasted from R.
 _R_CONSTANTS = {"TRUE": True, "FALSE": False, "T": True, "F": False, "NA": None, "Inf": float("inf")}
@@ -21,15 +21,71 @@ def parse_formula(formula: str) -> Formula:
     The syntax is R's: terms separated by ``+``, with arguments in
     parentheses. A left-hand side (``"net ~ edges + mutual"``) is ignored;
     ``TRUE``/``FALSE``, ``NA``, ``c(2, 3)`` and ``2:3`` are accepted as in R,
-    and so are the operators ``offset(term)`` and ``F(~terms, ~filter)``.
-    Nothing is evaluated: arguments must be literals.
+    and so are the operators ``offset(term)``, ``F(~terms, ~filter)``,
+    ``N(~terms, lm=~attributes)`` and tergm's ``Form()``, ``Persist()``,
+    ``Diss()``, ``Cross()`` and ``Change()``. Nothing is evaluated: arguments
+    must be literals.
     """
-    rhs = _r_syntax(_strip_lhs(formula))
+    text, models = _protect_linear_models(_strip_lhs(formula))
+    rhs = _r_syntax(text)
     try:
         tree = ast.parse(rhs, mode="eval").body
     except SyntaxError as e:
         raise FormulaError(f"can't parse the formula {formula!r}: {e.msg}") from None
-    return Formula(_terms(tree, formula))
+    return Formula(_terms(tree, formula, models))
+
+
+def _arguments(text: str, open_at: int) -> tuple[list[tuple[int, int]], int]:
+    """The spans of the top-level arguments of the call whose "(" is at
+    `open_at`, and the position of its ")"."""
+    depth, quote, spans, start = 0, None, [], open_at + 1
+    for k in range(open_at, len(text)):
+        ch = text[k]
+        if quote:
+            quote = None if ch == quote and text[k - 1] != "\\" else quote
+        elif ch in "'\"":
+            quote = ch
+        elif ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth -= 1
+            if depth == 0:
+                spans.append((start, k))
+                return spans, k
+        elif ch == "," and depth == 1:
+            spans.append((start, k))
+            start = k + 1
+    raise FormulaError(f"unbalanced parentheses in {text!r}")
+
+
+def _protect_linear_models(text: str) -> tuple[str, list[str]]:
+    """The formula with the linear models of the block operators (their `lm`
+    argument, or second positional one) replaced by placeholders, since they
+    use R syntax that Python doesn't parse (such as `.NetworkID`), and the
+    linear models' R text."""
+    models: list[str] = []
+    pattern = re.compile(r"(?<![\w.])(" + "|".join(BLOCK_OPERATORS) + r")\s*\(")
+    pos = 0
+    while (m := pattern.search(text, pos)) is not None:
+        if text[:m.start()].count('"') % 2 or text[:m.start()].count("'") % 2:
+            pos = m.end()  # inside a string
+            continue
+        spans, close = _arguments(text, m.end() - 1)
+        positional = 0
+        for start, stop in reversed(spans):
+            argument = text[start:stop]
+            keyword = re.match(r"\s*([A-Za-z_.][\w.]*)\s*=(?!=)", argument)
+            is_lm = keyword is not None and keyword.group(1) == "lm"
+            if keyword is None:
+                positional = sum(1 for a, b in spans[:spans.index((start, stop))]
+                                 if not re.match(r"\s*[A-Za-z_.][\w.]*\s*=(?!=)", text[a:b]))
+                is_lm = positional == 1
+            if is_lm:
+                value = argument[keyword.end():] if keyword else argument
+                models.append(value.strip())
+                text = text[:start] + f"lm={len(models) - 1}" + text[stop:]
+        pos = m.end()
+    return text, models
 
 
 def _strip_lhs(formula: str) -> str:
@@ -52,9 +108,9 @@ def _strip_lhs(formula: str) -> str:
     return text
 
 
-def _terms(node: ast.expr, formula: str) -> list:
+def _terms(node: ast.expr, formula: str, models: list[str] = ()) -> list:
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
-        return _terms(node.left, formula) + _terms(node.right, formula)
+        return _terms(node.left, formula, models) + _terms(node.right, formula, models)
     if isinstance(node, ast.Name):
         return [_make(node.id, [], {})]
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
@@ -62,12 +118,14 @@ def _terms(node: ast.expr, formula: str) -> list:
         if name == "offset":
             if len(node.args) != 1 or node.keywords:
                 raise FormulaError(f"offset() takes one term, in {formula!r}")
-            inner = _terms(node.args[0], formula)
+            inner = _terms(node.args[0], formula, models)
             if len(inner) != 1:
                 raise FormulaError(f"offset() takes one term, in {formula!r}")
             return [_make("offset", inner, {})]
         if name == "F":
-            return [_filter_term(node, formula)]
+            return [_filter_term(node, formula, models)]
+        if name in BLOCK_OPERATORS:
+            return [_block_term(node, formula, models)]
         args = [_literal(a) for a in node.args]
         kwargs = {k.arg: _literal(k.value) for k in node.keywords}
         return [_make(name, args, kwargs)]
@@ -86,15 +144,36 @@ def _one_sided(node: ast.expr, formula: str) -> ast.expr:
     return node
 
 
-def _filter_term(node: ast.Call, formula: str):
+def _block_term(node: ast.Call, formula: str, models: list[str]):
+    name = node.func.id
+    args = list(node.args)
+    kwargs = {k.arg: k.value for k in node.keywords}
+    if "formula" in kwargs:
+        args.insert(0, kwargs.pop("formula"))
+    if len(args) != 1:
+        raise FormulaError(f"{name}() takes a formula and keyword arguments, in {formula!r}")
+    terms = _terms(_one_sided(args[0], formula), formula, models)
+    options = {}
+    for key, value in kwargs.items():
+        if key == "lm":
+            options["lm"] = models[_literal(value)]
+        else:
+            options[key] = _literal(value)
+    try:
+        return TERMS[name](Formula(terms), **options)
+    except TypeError as e:
+        raise FormulaError(f"{name}: {e}") from None
+
+
+def _filter_term(node: ast.Call, formula: str, models: list[str] = ()):
     args = list(node.args) + [k.value for k in node.keywords if k.arg in ("formula", "filter")]
     if len(args) != 2:
         raise FormulaError(f"F() takes a formula and a filter, in {formula!r}")
-    terms = _terms(_one_sided(args[0], formula), formula)
+    terms = _terms(_one_sided(args[0], formula), formula, models)
     filter_node, negate = _one_sided(args[1], formula), False
     if isinstance(filter_node, ast.UnaryOp) and isinstance(filter_node.op, ast.USub):
         filter_node, negate = filter_node.operand, True  # R's `!`, rewritten as `-`
-    filters = _terms(filter_node, formula)
+    filters = _terms(filter_node, formula, models)
     if len(filters) != 1:
         raise FormulaError(f"F(): the filter must be a single term, in {formula!r}")
     try:

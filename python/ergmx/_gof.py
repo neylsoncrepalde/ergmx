@@ -48,6 +48,8 @@ def _distribution(n: int, directed: bool, edges: np.ndarray, stat: str, mode=Non
     if stat == "idegree":
         return np.bincount(np.asarray(a.sum(axis=0)).ravel(), minlength=n)
     if stat == "espartners":
+        if not len(edges):
+            return np.zeros(n - 1, dtype=np.int64)
         # Shared partners of each tie i -> j: two-paths i -> k -> j (OTP if directed).
         two_paths = (a @ a).tocsr()
         partners = np.asarray(two_paths[edges[:, 0], edges[:, 1]]).ravel().astype(np.int64)
@@ -58,6 +60,23 @@ def _distribution(n: int, directed: bool, edges: np.ndarray, stat: str, mode=Non
         finite = d[np.isfinite(d)].astype(np.int64)
         return np.append(np.bincount(finite, minlength=n)[1:], np.sum(~np.isfinite(d)))
     raise ValueError(f"unknown goodness-of-fit statistic {stat!r}")
+
+
+def _pooled(network, edges: np.ndarray, stat: str) -> np.ndarray:
+    """A statistic's distribution, summed over the networks of a combined
+    network (counting no pairs of vertices in different networks)."""
+    if not network.combined:
+        return _distribution(network.n, network.directed, edges, stat, network.mode)
+    size = max(b.network.n for b in network.blocks)
+    total = np.zeros(size, dtype=np.int64)
+    for block, part in zip(network.blocks, network.split(edges)):
+        d = _distribution(block.network.n, network.directed, part, stat, block.network.mode)
+        if stat == "distance":  # distances 1..n-1, then unreachable pairs
+            total[:len(d) - 1] += d[:-1]
+            total[-1] += d[-1]
+        else:
+            total[:len(d)] += d
+    return total[:size - 1] if stat in ("espartners", "dspartners") else total
 
 
 def _labels(n: int, stat: str) -> list[str]:
@@ -215,6 +234,11 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
 
     Notes
     -----
+    With several networks (:func:`ergmx.Networks`, :func:`ergmx.NetSeries`),
+    the distributions are summed over the networks, and only pairs of
+    vertices in the same network count (ergm's gof also counts the pairs in
+    different networks, as unreachable).
+
     With missing dyads, the "observed" distributions are averages over
     ``nsim`` networks drawn from the model conditional on the observed dyads,
     rather than those of the network with missing dyads as non-ties, which
@@ -273,8 +297,7 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
         imputed_edges, imputed_stats = [network.edges], model.observed()[None, :]
 
     def distributions(edge_lists, stat):
-        return np.array([_distribution(network.n, network.directed, e, stat, network.mode)
-                         for e in edge_lists])
+        return np.array([_pooled(network, e, stat) for e in edge_lists])
 
     tables = {}
     for stat in stats:
@@ -283,6 +306,7 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
                                     model_stats)
             continue
         observed = distributions(imputed_edges, stat).mean(axis=0)
-        tables[stat] = GofTable(stat, _labels(network.n, stat), observed,
+        size = max(b.network.n for b in network.blocks) if network.combined else network.n
+        tables[stat] = GofTable(stat, _labels(size, stat), observed,
                                 distributions(simulated_edges, stat))
     return GofResult(tables, nsim)

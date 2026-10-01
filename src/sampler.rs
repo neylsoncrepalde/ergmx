@@ -14,6 +14,12 @@
 //! the dyad, before and after the toggle. Only free dyads are proposed, and
 //! toggles that break degree bounds are rejected.
 //!
+//! Models of transitions between networks (tergm's) also mix in, with
+//! probability 1/2, toggles of a random *discordant* dyad, one that differs
+//! from the previous network (tergm's discordTNT): they undo formations and
+//! dissolutions, which keeps proposals of persisting ties from being rejected
+//! nearly always.
+//!
 //! Degree-preserving constraints use moves that keep the degrees:
 //!
 //! * `degrees`: swap the endpoints of two ties (a -- b, c -- d become
@@ -22,6 +28,12 @@
 //!   with the same in- and out-degrees can't reach each other (Rao, Jana and
 //!   Bandyopadhyay 1996);
 //! * `odegrees` (`idegrees`): move the head (tail) of a tie to another vertex.
+//!
+//! Dynamic simulation (tergm's, of a model conditional on the previous
+//! network) runs one chain per time step, from the previous network, until the
+//! number of dyads that differ from it stops growing (`run_series`).
+
+use rustc_hash::FxHashMap;
 
 use crate::network::{Network, count_common, for_each_common};
 use crate::rng::Rng;
@@ -32,6 +44,62 @@ use crate::terms::{Model, State};
 const TIE_PROB: f64 = 0.5;
 /// Share of cyclic triple reversals among degree-preserving moves (directed).
 const CYCLE_PROB: f64 = 0.2;
+/// Share of toggles of discordant dyads, when there are some (tergm's default).
+const DISCORD_PROB: f64 = 0.5;
+
+/// The dyads where a network differs from a reference network (the previous
+/// one, in models of transitions), with O(1) random draws.
+pub struct Discord {
+    directed: bool,
+    dyads: Vec<(u32, u32)>,
+    position: FxHashMap<u64, usize>,
+}
+
+impl Discord {
+    pub fn new(reference: &Network, net: &Network) -> Self {
+        let mut d = Self { directed: net.directed(), dyads: Vec::new(), position: FxHashMap::default() };
+        for &(i, j) in net.edges().iter().filter(|&&(i, j)| !reference.has_edge(i, j)) {
+            d.toggle(i, j);
+        }
+        for &(i, j) in reference.edges().iter().filter(|&&(i, j)| !net.has_edge(i, j)) {
+            d.toggle(i, j);
+        }
+        d
+    }
+
+    fn key(&self, i: u32, j: u32) -> (u64, (u32, u32)) {
+        let (a, b) = if !self.directed && i > j { (j, i) } else { (i, j) };
+        (((a as u64) << 32) | b as u64, (a, b))
+    }
+
+    pub fn len(&self) -> usize {
+        self.dyads.len()
+    }
+
+    fn contains(&self, i: u32, j: u32) -> bool {
+        self.position.contains_key(&self.key(i, j).0)
+    }
+
+    fn random(&self, rng: &mut Rng) -> (u32, u32) {
+        self.dyads[rng.below(self.dyads.len() as u64) as usize]
+    }
+
+    /// Records the toggle of (i, j): discordant dyads become concordant and
+    /// the other way round.
+    fn toggle(&mut self, i: u32, j: u32) {
+        let (key, dyad) = self.key(i, j);
+        if let Some(p) = self.position.remove(&key) {
+            self.dyads.swap_remove(p);
+            if p < self.dyads.len() {
+                let moved = self.key(self.dyads[p].0, self.dyads[p].1).0;
+                self.position.insert(moved, p);
+            }
+        } else {
+            self.position.insert(key, self.dyads.len());
+            self.dyads.push(dyad);
+        }
+    }
+}
 
 pub struct Chain {
     /// Sampled statistics, one row of `n_stats` values per sample.
@@ -131,50 +199,55 @@ pub struct Proposal<'a> {
 
 impl Proposal<'_> {
     /// Draws a move, or None if the draw found nothing to change.
-    fn propose(&self, net: &Network, ties: &EdgeIndex, rng: &mut Rng) -> Option<Move> {
+    fn propose(&self, net: &Network, ties: &EdgeIndex, discord: Option<&Discord>, rng: &mut Rng) -> Option<Move> {
         match self.space.preserve {
-            Preserve::Nothing => self.toggle(net, ties, rng),
+            Preserve::Nothing => self.toggle(net, ties, discord, rng),
             Preserve::Degrees if net.directed() && rng.unif() < CYCLE_PROB => self.reverse_cycle(net, ties, rng),
             Preserve::Degrees => self.swap(net, ties, rng),
             Preserve::OutDegrees | Preserve::InDegrees => self.move_end(net, ties, rng),
         }
     }
 
-    /// A TNT or triadic toggle of one free dyad.
-    fn toggle(&self, net: &Network, ties: &EdgeIndex, rng: &mut Rng) -> Option<Move> {
+    /// A TNT, triadic or discordant toggle of one free dyad.
+    fn toggle(&self, net: &Network, ties: &EdgeIndex, discord: Option<&Discord>, rng: &mut Rng) -> Option<Move> {
         let space = self.space;
         let w = self.triadic_weight;
         let edges = ties.count(net) as f64;
         let dyads = space.n_free() as f64;
-        let (i, j) = if w > 0.0 && rng.unif() < w {
-            let (i, j) = triadic_draw(net, rng)?;
-            if !space.is_free(i, j) {
-                return None;
-            }
-            (i, j)
-        } else if edges > 0.0 && rng.unif() < TIE_PROB {
-            ties.random(net, rng)
-        } else {
-            space.random_dyad(net, rng)?
+        let share = |d: &Discord| if d.len() > 0 { DISCORD_PROB } else { 0.0 };
+        let (i, j) = match discord {
+            Some(d) if rng.unif() < share(d) => d.random(rng),
+            _ if w > 0.0 && rng.unif() < w => triadic_draw(net, rng)?,
+            _ if edges > 0.0 && rng.unif() < TIE_PROB => ties.random(net, rng),
+            _ => space.random_dyad(net, rng)?,
         };
-        let tie = net.has_edge(i, j);
-        if w == 0.0 {
-            let after = edges + if tie { -1.0 } else { 1.0 };
-            let ratio = tnt_prob(after, dyads, !tie) / tnt_prob(edges, dyads, tie);
-            return Some(Move::single(i, j, ratio.ln()));
+        if !space.is_free(i, j) {
+            return None;
         }
-        let (ni, nj) = (net.neighbours(i), net.neighbours(j));
-        let mut s = 0.0;
-        for_each_common(ni, nj, |k| s += 1.0 / (net.neighbours(k).len() - 1) as f64);
-        let (di, dj, n) = (ni.len() as f64, nj.len() as f64, net.n() as f64);
-        let directions = if net.directed() { 2.0 } else { 1.0 };
+        let tie = net.has_edge(i, j);
         let change = if tie { -1.0 } else { 1.0 };
-        // i and j stay neighbours if the opposite tie j -> i exists.
-        let degree_change = if net.directed() && net.has_edge(j, i) { 0.0 } else { change };
-        let forward = w * triadic_prob(n, directions, di, dj, s)
-            + (1.0 - w) * tnt_prob(edges, dyads, tie);
-        let reverse = w * triadic_prob(n, directions, di + degree_change, dj + degree_change, s)
-            + (1.0 - w) * tnt_prob(edges + change, dyads, !tie);
+        // Probabilities that the TNT and triadic moves propose (i, j), now and
+        // after the toggle.
+        let (mut forward, mut reverse) = (tnt_prob(edges, dyads, tie), tnt_prob(edges + change, dyads, !tie));
+        if w > 0.0 {
+            let (ni, nj) = (net.neighbours(i), net.neighbours(j));
+            let mut s = 0.0;
+            for_each_common(ni, nj, |k| s += 1.0 / (net.neighbours(k).len() - 1) as f64);
+            let (di, dj, n) = (ni.len() as f64, nj.len() as f64, net.n() as f64);
+            let directions = if net.directed() { 2.0 } else { 1.0 };
+            // i and j stay neighbours if the opposite tie j -> i exists.
+            let degree_change = if net.directed() && net.has_edge(j, i) { 0.0 } else { change };
+            forward = w * triadic_prob(n, directions, di, dj, s) + (1.0 - w) * forward;
+            reverse = w * triadic_prob(n, directions, di + degree_change, dj + degree_change, s) + (1.0 - w) * reverse;
+        }
+        if let Some(d) = discord {
+            // The toggle makes a discordant dyad concordant, or the reverse.
+            let (inside, size) = (d.contains(i, j), d.len() as f64);
+            let after = if inside { size - 1.0 } else { size + 1.0 };
+            let (now, then) = (if size > 0.0 { DISCORD_PROB } else { 0.0 }, if after > 0.0 { DISCORD_PROB } else { 0.0 });
+            forward = now * if inside { 1.0 / size } else { 0.0 } + (1.0 - now) * forward;
+            reverse = then * if inside { 0.0 } else { 1.0 / after } + (1.0 - then) * reverse;
+        }
         Some(Move::single(i, j, (reverse / forward).ln()))
     }
 
@@ -270,18 +343,45 @@ struct Sampler<'a> {
     stats: Vec<f64>,
     delta: Vec<f64>,
     scratch: Vec<f64>,
+    /// For models of transitions: the dyads that differ from the previous
+    /// network (in dynamic simulation, the network the time step started from).
+    discord: Option<Discord>,
 }
 
-impl Sampler<'_> {
+impl<'a> Sampler<'a> {
+    fn new(model: &'a Model, proposal: &'a Proposal<'a>, theta: &'a [f64], state: State, stats: Vec<f64>) -> Self {
+        let p = stats.len();
+        let ties = EdgeIndex::new(proposal.space, &state.net);
+        Self {
+            model,
+            proposal,
+            theta,
+            state,
+            ties,
+            stats,
+            delta: vec![0.0; p],
+            scratch: vec![0.0; p],
+            discord: None,
+        }
+    }
+
     fn apply(&mut self, i: u32, j: u32) {
         let removed = self.state.net.has_edge(i, j);
         self.model.toggle(&mut self.state, i, j);
         self.ties.toggle(self.state.net.directed(), i, j, removed);
+        if let Some(discord) = &mut self.discord {
+            discord.toggle(i, j);
+        }
+    }
+
+    /// Number of dyads that differ from the reference network.
+    fn hamming(&self) -> i64 {
+        self.discord.as_ref().map_or(0, |d| d.len() as i64)
     }
 
     /// One Metropolis-Hastings step.
     fn step(&mut self, rng: &mut Rng) {
-        let Some(mv) = self.proposal.propose(&self.state.net, &self.ties, rng) else { return };
+        let Some(mv) = self.proposal.propose(&self.state.net, &self.ties, self.discord.as_ref(), rng) else { return };
         let space = self.proposal.space;
         if mv.len == 1 {
             let (i, j) = mv.toggles[0];
@@ -342,17 +442,9 @@ pub fn run_chain(
 ) -> Chain {
     let stats = model.summary(&net);
     let p = stats.len();
-    let ties = EdgeIndex::new(proposal.space, &net);
-    let mut s = Sampler {
-        model,
-        proposal,
-        theta,
-        state: model.state(net),
-        ties,
-        stats,
-        delta: vec![0.0; p],
-        scratch: vec![0.0; p],
-    };
+    let previous = model.previous_network(net.directed());
+    let mut s = Sampler::new(model, proposal, theta, model.state(net), stats);
+    s.discord = previous.map(|prev| Discord::new(&prev, &s.state.net));
     let mut sample = Vec::with_capacity(samplesize * p);
     let mut networks = Vec::new();
     for step in 1..=burnin + interval * samplesize as u64 {
@@ -368,4 +460,120 @@ pub fn run_chain(
         }
     }
     Chain { stats: sample, networks, last: s.state.net, exceeded: false }
+}
+
+/// When a time step of a dynamic simulation ends, as tergm's
+/// MCMC.burnin.min, .max, .pval and .add.
+pub struct StepRule {
+    pub min: u64,
+    pub max: u64,
+    pub pval: f64,
+    pub add: f64,
+}
+
+/// P(Z > z) for a standard normal Z.
+fn normal_upper(z: f64) -> f64 {
+    // erfc by Chebyshev fitting (Numerical Recipes' erfcc), relative error < 1.2e-7.
+    let x = z / std::f64::consts::SQRT_2;
+    let t = 1.0 / (1.0 + 0.5 * x.abs());
+    let poly = -x * x - 1.26551223
+        + t * (1.00002368
+            + t * (0.37409196
+                + t * (0.09678418
+                    + t * (-0.18628806
+                        + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277))))))));
+    let erfc = t * poly.exp();
+    0.5 * if x >= 0.0 { erfc } else { 2.0 - erfc }
+}
+
+/// Runs the chain of one time step, as tergm does: the per-step increments in
+/// the number of dyads that differ from the start (the Hamming distance) are
+/// averaged with exponentially decaying weights (decay 1 - 1/min); from `min`
+/// steps on, once a z-test no longer finds them positive (p-value above
+/// `pval`), the chain runs `add` times as many steps again, and stops.
+/// Returns the number of steps, at most `max`.
+fn run_until_stable(s: &mut Sampler, rule: &StepRule, rng: &mut Rng) -> u64 {
+    let decay = 1.0 - 1.0 / rule.min.max(1) as f64;
+    let (mut si, mut si2, mut sw, mut sw2) = (0.0, 0.0, 0.0, 0.0);
+    let mut stop_at: Option<u64> = None;
+    let mut step = 0;
+    while step < rule.max && stop_at.is_none_or(|end| step < end) {
+        let before = s.hamming();
+        s.step(rng);
+        step += 1;
+        if s.state.net.n_edges() > s.proposal.max_edges {
+            break;
+        }
+        let i = (s.hamming() - before) as f64;
+        sw = sw * decay + 1.0;
+        si = si * decay + i;
+        sw2 = sw2 * decay * decay + 1.0;
+        si2 = si2 * decay + i * i;
+        if step >= rule.min && stop_at.is_none() {
+            let (mi, mi2) = (si / sw, si2 / sw);
+            let variance = mi2 - mi * mi;
+            // No change at all: nothing left to wait for.
+            let p = if variance <= 0.0 { 1.0 } else { normal_upper(mi / (variance * sw2 / (sw * sw)).sqrt()) };
+            if p > rule.pval {
+                let extra = (step as f64 * rule.add + rng.unif()).round() as u64;
+                stop_at = Some(step + extra);
+            }
+        }
+    }
+    step
+}
+
+/// A dynamic simulation: the network after each time step, the model's
+/// statistics then (each step's model is conditional on the previous network),
+/// and the MCMC steps each took.
+pub struct Series {
+    pub networks: Vec<Vec<(u32, u32)>>,
+    pub stats: Vec<f64>,
+    pub steps: Vec<u64>,
+    pub exceeded: bool,
+}
+
+/// Runs `slices` time steps of a model with tergm's operators from `start`:
+/// at each, the blocks' previous networks are their networks at the start.
+#[allow(clippy::too_many_arguments)]
+pub fn run_series(
+    model: &Model,
+    proposal: &Proposal,
+    start: Network,
+    theta: &[f64],
+    slices: usize,
+    rule: &StepRule,
+    rng: &mut Rng,
+) -> Series {
+    let layout = model.layout().expect("dynamic simulation needs a block layout");
+    let mut out = Series { networks: Vec::new(), stats: Vec::new(), steps: Vec::new(), exceeded: false };
+    let mut net = start;
+    for _ in 0..slices {
+        let prev = layout.split(&net);
+        let stats = model.summary_with(&net, &prev);
+        let mut s = Sampler::new(model, proposal, theta, model.state_with(net.clone(), prev), stats);
+        s.discord = Some(Discord::new(&net, &net));
+        let steps = run_until_stable(&mut s, rule, rng);
+        out.exceeded = s.state.net.n_edges() > proposal.max_edges;
+        out.networks.push(s.state.net.edges().to_vec());
+        out.stats.extend_from_slice(&s.stats);
+        out.steps.push(steps);
+        net = s.state.net;
+        if out.exceeded {
+            break;
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normal_upper;
+
+    #[test]
+    fn normal_tail() {
+        for (z, p) in [(0.0, 0.5), (1.0, 0.15865525393145707), (-2.0, 0.9772498680518208), (3.0, 0.0013498980316301)] {
+            assert!((normal_upper(z) - p).abs() < 2e-7 * p.max(1e-3), "{z}");
+        }
+    }
 }

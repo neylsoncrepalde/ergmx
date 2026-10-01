@@ -277,13 +277,48 @@ directed, `gwdegree` and `gwdegree.decay`...
   `F(<filter>)~<name>`, with the filter as R prints it, such as
   `F(nodematch("Grade"))~gwesp.fixed.0.5`.
 
+### Several networks
+
+These operators evaluate their terms on each network of networks combined
+with {func}`ergmx.Networks` or {func}`ergmx.NetSeries`, and combine them
+through a linear model `lm` of network-level attributes (by default `~1`,
+which sums them). Each statistic $g$ of the formula gives, for each column
+$c$ of the linear model's design matrix $X$, the statistic
+$\sum_k X_{kc}\, g(y_k)$, named `<operator>(<column>)~<name>`, such as
+`N(1)~edges` or `N(log(n))~edges`. With curved terms, the statistics are each
+network's instead, named `N#<k>~<name>`, as in ergm.multi and tergm. See
+[](user-guide/multiple-networks.md) and [](user-guide/temporal.md).
+
+`N(formula, lm=~1)`
+: ergm.multi's operator: `formula` on each network.
+
+`Form(formula, lm=~1)`
+: tergm's formation: `formula` on the union of the previous and the current
+  network of each transition of a {func}`~ergmx.NetSeries`.
+
+`Persist(formula, lm=~1)`
+: tergm's persistence: `formula` on the intersection of the previous and the
+  current network.
+
+`Diss(formula, lm=~1)`
+: tergm's dissolution: `Persist()` with its statistics negated.
+
+`Cross(formula, lm=~1)`
+: tergm's cross-section: `formula` on the current network.
+
+`Change(formula, lm=~1)`
+: tergm's change: `formula` on the network of the dyads that changed.
+
 ## Proposals
 
 Models with `triangle`, `ttriple`, `ctriple`, `transitive`, `cycle`, or a
-shared partner term (also inside `F()`) mix half tie/no-tie (TNT) MCMC proposals with
+shared partner term (also inside `F()` or `N()`) mix half tie/no-tie (TNT) MCMC proposals with
 *triadic* proposals, which pick a vertex, one of its neighbors and one of
 that neighbor's neighbors, and toggle the tie that would close or open the
 triangle. Like ergm's default for these models, this explores clustered
 networks much faster. `triadic_weight` in {class}`ergmx.Control` changes the
 share. Degree-preserving [constraints](user-guide/constraints.md) use their
 own moves, and bipartite networks only tie/no-tie proposals between the modes.
+Models of a series of networks (with tergm's operators) also mix in, half
+the time, toggles of a dyad that differs from the previous network, as
+tergm's discordTNT proposal does.

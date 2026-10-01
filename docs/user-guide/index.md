@@ -16,6 +16,8 @@ constraints
 missing-data
 multilevel
 bipartite
+multiple-networks
+temporal
 diagnostics
 goodness-of-fit
 model-comparison

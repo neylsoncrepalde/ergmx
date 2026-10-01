@@ -150,11 +150,41 @@ class ErgmFit:
 
     # -- Using the model --------------------------------------------------------------
 
-    def simulate(self, nsim: int = 1, *, seed=None, output: str = "network", **options):
+    def simulate(self, nsim: int = 1, *, seed=None, output: str = "network", time_slices=None,
+                 nw_start="last", **options):
         """Simulate networks from the fitted model, starting from the observed one.
 
-        See :func:`ergmx.simulate`.
+        See :func:`ergmx.simulate`. For a model fitted to a series of networks
+        (:func:`ergmx.tergm`), ``time_slices=`` simulates the process forward
+        in time from the network ``nw_start`` instead, as tergm's
+        ``simulate(fit, nw.start=, time.slices=)``: ``"last"`` (the default)
+        or ``"first"`` network of the series, its 1-based position, or a
+        network. See :func:`ergmx.simulate_dynamic`, whose options apply.
         """
+        if time_slices is not None:
+            from ._temporal import simulate_dynamic
+
+            network = self._model.network
+            if not network.series:
+                raise ValueError("time_slices= needs a model fitted to a series of networks "
+                                 "(ergmx.tergm() or a NetSeries())")
+            series = [network.blocks[0].prev, *(b.network for b in network.blocks)]
+            if isinstance(nw_start, str):
+                if nw_start not in ("first", "last"):
+                    raise ValueError(f"nw_start must be 'first', 'last', a position or a network, "
+                                     f"not {nw_start!r}")
+                start = series[0 if nw_start == "first" else -1]
+            elif isinstance(nw_start, (int, np.integer)):
+                if not 1 <= nw_start <= len(series):
+                    raise ValueError(f"nw_start must be between 1 and {len(series)}")
+                start = series[nw_start - 1]
+            else:
+                start = nw_start
+            if output != "network":
+                raise ValueError("dynamic simulation returns DynamicSimulation objects; their "
+                                 ".stats and .monitor hold the statistics")
+            return simulate_dynamic(start, self._model.formula, self.params, time_slices, nsim=nsim,
+                                    constraints=self._model.constraints, seed=seed, **options)
         from ._simulate import simulate
 
         return simulate(
@@ -215,10 +245,11 @@ class FitSummary:
         with np.errstate(invalid="ignore", divide="ignore"):
             pct = np.where(se > 0, 100 * mc / se**2, 0.0)
             z = fit.params / se
+        conditional = "Conditional " if model.network.series else ""
         header = {
-            "MLE": "Maximum Likelihood Results",
-            "MCMLE": "Monte Carlo Maximum Likelihood Results",
-            "MPLE": "Maximum Pseudolikelihood Results",
+            "MLE": f"{conditional}Maximum Likelihood Results",
+            "MCMLE": f"Monte Carlo {conditional}Maximum Likelihood Results",
+            "MPLE": f"{conditional}Maximum Pseudolikelihood Results",
             "CD": "Contrastive Divergence Results",
         }[fit.method]
         width = max(map(len, fit.names))
@@ -251,6 +282,10 @@ class FitSummary:
             lines.append(f"Constraints: {model.constraints!r}.")
         if model.has_missing:
             lines.append(f"Missing dyads: {len(model.network.missing)}, assumed missing at random.")
+        if model.network.combined:
+            what = "transitions, each conditional on the network before it" if model.network.series \
+                else "networks"
+            lines.append(f"Fitted to {len(model.network.blocks)} {what}.")
         if fit.method == "MCMLE":
             status = "Converged" if fit.converged else "Did NOT converge"
             lines.append(f"{status} after {fit.iterations} iterations "

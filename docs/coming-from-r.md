@@ -3,9 +3,9 @@
 :::{important}
 **Last updated on 1 October 2026**, against ergm 4.12.0, the version on CRAN
 then, and its development version on GitHub (4.13.0-8214, commit
-[a85e6a9](https://github.com/statnet/ergm/tree/a85e6a9839e711286f59d95b16c14733929ba0ec)).
-The differences below describe ergm at that point; later versions of ergm may
-have changed them.
+[a85e6a9](https://github.com/statnet/ergm/tree/a85e6a9839e711286f59d95b16c14733929ba0ec)),
+ergm.multi 0.3.0 and tergm 4.2.2. The differences below describe these
+packages at that point; later versions may have changed them.
 :::
 
 `ergmx` follows R's ergm closely: the same formulas, term names, statistics,
@@ -41,6 +41,12 @@ tables compared line by line.
 | `net[i, j] <- NA` | `g.add_edge(i, j, na=True)` (an edge marked missing) |
 | `simulate(net ~ ..., constraints = ~degrees)` | `ergmx.simulate(g, ..., constraints="degrees")` |
 | `data(faux.mesa.high)` | {func}`ergmx.datasets.load("faux.mesa.high") <ergmx.datasets.load>` |
+| `ergm(Networks(g1, g2) ~ N(~edges, lm = ~log(n)))` | `ergmx.ergm(ergmx.Networks(g1, g2), "N(~edges, lm=~log(n))")` |
+| `tergm(list(g1, g2, g3) ~ Form(~edges) + Persist(~edges), estimate = "CMLE")` | {func}`ergmx.tergm([g1, g2, g3], "Form(~edges) + Persist(~edges)") <ergmx.tergm>` |
+| `ergm(NetSeries(g1, g2) ~ Form(~edges) + Diss(~edges))` | `ergmx.ergm(ergmx.NetSeries(g1, g2), "Form(~edges) + Diss(~edges)")` |
+| `simulate(fit, nw.start = "last", time.slices = 10)` | {meth}`fit.simulate(time_slices=10) <ergmx.ErgmFit.simulate>` |
+| `simulate(g ~ Form(...) + Persist(...), coef = c(...), time.slices = 10, dynamic = TRUE)` | {func}`ergmx.simulate_dynamic(g, "Form(...) + Persist(...)", [...], 10) <ergmx.simulate_dynamic>` |
+| `data(Goeyvaerts)` (ergm.multi) | `ergmx.datasets.load("Goeyvaerts")`, a list of graphs |
 
 ## Formulas
 
@@ -112,6 +118,27 @@ accepted: R expressions such as `log(n)` must be computed first.
   fix reaches CRAN, `term.options = list(cache.sp = FALSE)` in `summary()` or
   `ergm()` gives the right values in ergm 4.12.0, which match ergmx's.
 
+**Several networks are pooled in goodness of fit.**
+: For models of several networks (`Networks()`, `NetSeries()`), ergmx's
+  `gof()` sums the distributions over the networks and only counts pairs of
+  vertices in the same network; ergm's counts the pairs in different
+  networks too, as unreachable (with distance `Inf`) and without shared
+  partners.
+
+**N()'s linear models cover the common cases.**
+: `lm` formulas take attributes, arithmetic, comparisons, `&`, `|`, `!`,
+  `I()`, `log()`, `exp()`, `sqrt()`, `abs()` and `factor()`, with R's column
+  names; not interactions (`a:b`), nor `N()`'s `subset`, `offset` and `label`
+  arguments.
+
+**Dynamic simulation uses tergm's stopping rule and discordant proposals.**
+: Each time step's chain runs until the number of changed dyads stops
+  growing, as tergm's `MCMC.burnin.min`, `.max`, `.pval` and `.add`
+  (`min_steps`, `max_steps`, `pval`, `add`), with tergm's discordTNT proposal
+  mixed into the TNT and triadic proposals. Linear models that vary over
+  time (`lm=~.Time`) can be fitted but not simulated forward.
+
 **Not yet available.**
-: `bd()` bounds by attribute, valued networks, temporal ERGMs, and many of
+: `bd()` bounds by attribute, valued networks, tergm's EGMME estimator and
+  duration terms (`edgeages`, `mean.age`), ergm.multi's `gofN()`, and many of
   ergm's terms and constraints.

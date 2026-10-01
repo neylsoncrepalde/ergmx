@@ -21,6 +21,9 @@ from ergmx import datasets
 
 for name in datasets.names():
     g = datasets.load(name)
+    if isinstance(g, list):  # a sample of networks
+        print(f"{name:20} {len(g):5} networks, {sum(x.vcount() for x in g)} vertices in all")
+        continue
     kind = "directed" if g.is_directed() else "undirected"
     print(f"{name:20} {g.vcount():5} vertices {g.ecount():5} edges  {kind}")
 ```

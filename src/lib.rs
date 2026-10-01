@@ -17,12 +17,14 @@ use rayon::prelude::*;
 use network::Network;
 use rng::Rng;
 use space::{Bounds, Preserve};
-use terms::TermSpec;
+use terms::{Layout, TermSpec};
 
 type EdgeArray<'py> = Bound<'py, PyArray2<u32>>;
 
 create_exception!(_core, DensityGuardError, PyRuntimeError, "A simulated network exceeded max_edges.");
 type MpleData<'py> = (Bound<'py, PyArray2<f64>>, Bound<'py, PyArray1<f64>>);
+/// A dynamic simulation's networks, statistics (time steps x statistics) and MCMC steps.
+type SeriesData<'py> = (Vec<EdgeArray<'py>>, Bound<'py, PyArray2<f64>>, Vec<u64>);
 /// Degree bounds per vertex: (min_out, max_out, min_in, max_in).
 type DegreeBounds = (Vec<u32>, Vec<u32>, Vec<u32>, Vec<u32>);
 
@@ -92,7 +94,9 @@ impl PySpace {
 }
 
 /// An ERGM for networks with `n` vertices: its terms, ready to compute
-/// statistics and sample networks.
+/// statistics and sample networks. For networks combined from several,
+/// `blocks` are the (first vertex, size) of each, and `prev` their previous
+/// networks (edges numbered within the block) for tergm's operators.
 #[pyclass(name = "Model", module = "ergmx._core", frozen)]
 struct PyModel {
     model: terms::Model,
@@ -109,11 +113,33 @@ impl PyModel {
 #[pymethods]
 impl PyModel {
     #[new]
-    fn new(n: u32, directed: bool, terms: Vec<TermSpec>) -> PyResult<Self> {
+    #[pyo3(signature = (n, directed, terms, blocks = None, prev = None))]
+    fn new(
+        n: u32,
+        directed: bool,
+        terms: Vec<TermSpec>,
+        blocks: Option<Vec<(u32, u32)>>,
+        prev: Option<Vec<PyReadonlyArray2<u32>>>,
+    ) -> PyResult<Self> {
         if n < 2 {
             return Err(PyValueError::new_err("networks need at least 2 vertices"));
         }
-        let model = terms::Model::new(n, directed, &terms).map_err(PyValueError::new_err)?;
+        let layout = blocks.map(|b| Layout::new(&b, n)).transpose().map_err(PyValueError::new_err)?;
+        let prev = match (&layout, prev) {
+            (_, None) => Vec::new(),
+            (None, Some(_)) => return Err(PyValueError::new_err("previous networks need blocks")),
+            (Some(layout), Some(prev)) => {
+                if prev.len() != layout.len() {
+                    return Err(PyValueError::new_err("need one previous network per block"));
+                }
+                prev.iter()
+                    .enumerate()
+                    .map(|(k, edges)| Network::from_edges(layout.size(k), directed, &to_edges(edges)?)
+                        .map_err(PyValueError::new_err))
+                    .collect::<PyResult<Vec<_>>>()?
+            }
+        };
+        let model = terms::Model::new(n, directed, &terms, layout, prev).map_err(PyValueError::new_err)?;
         Ok(Self { model, n, directed })
     }
 
@@ -222,6 +248,73 @@ impl PyModel {
             .map(|c| c.networks.iter().map(|e| to_array(py, e)).collect())
             .collect();
         Ok((stats, last, networks))
+    }
+
+    /// Runs `slices` time steps of a model with tergm's operators, from each
+    /// starting network (one replication each, in parallel threads): at each
+    /// step, the previous networks are the networks at its start, and the
+    /// chain runs until the number of dyads that changed stops growing, as
+    /// tergm's MCMC.burnin.min, .max, .pval and .add (`min_steps`...).
+    #[pyo3(signature = (starts, theta, slices, seed, min_steps = 1000, max_steps = 100_000, pval = 0.5, add = 1.0, triadic_weight = 0.0, max_edges = None, space = None))]
+    #[allow(clippy::too_many_arguments)]
+    fn simulate_series<'py>(
+        &self,
+        py: Python<'py>,
+        starts: Vec<PyReadonlyArray2<u32>>,
+        theta: Vec<f64>,
+        slices: usize,
+        seed: u64,
+        min_steps: u64,
+        max_steps: u64,
+        pval: f64,
+        add: f64,
+        triadic_weight: f64,
+        max_edges: Option<usize>,
+        space: Option<PyRef<'py, PySpace>>,
+    ) -> PyResult<Vec<SeriesData<'py>>> {
+        if self.model.layout().is_none() {
+            return Err(PyValueError::new_err("dynamic simulation needs a model with blocks"));
+        }
+        if theta.len() != self.model.n_stats() {
+            return Err(PyValueError::new_err(format!(
+                "expected {} coefficients, got {}",
+                self.model.n_stats(),
+                theta.len()
+            )));
+        }
+        if !(0.0..1.0).contains(&triadic_weight) || min_steps == 0 || max_steps < min_steps {
+            return Err(PyValueError::new_err("need triadic_weight in [0, 1) and 0 < min_steps <= max_steps"));
+        }
+        let max_edges = max_edges.unwrap_or(usize::MAX);
+        let all = space::Space::unconstrained(self.n, self.directed);
+        let space = space.as_ref().map_or(&all, |s| &s.space);
+        let proposal = sampler::Proposal { triadic_weight, max_edges, space };
+        let rule = sampler::StepRule { min: min_steps, max: max_steps, pval, add };
+        let nets = starts.iter().map(|s| self.network(s)).collect::<PyResult<Vec<_>>>()?;
+        let mut master = Rng::new(seed);
+        let seeds: Vec<u64> = nets.iter().map(|_| master.next_u64()).collect();
+        let runs: Vec<sampler::Series> = py.detach(|| {
+            nets.into_par_iter()
+                .zip(seeds)
+                .map(|(net, chain_seed)| {
+                    let mut rng = Rng::new(chain_seed);
+                    sampler::run_series(&self.model, &proposal, net, &theta, slices, &rule, &mut rng)
+                })
+                .collect()
+        });
+        if runs.iter().any(|r| r.exceeded) {
+            return Err(DensityGuardError::new_err(format!(
+                "a simulated network has more than {max_edges} edges"
+            )));
+        }
+        let p = self.model.n_stats();
+        Ok(runs
+            .into_iter()
+            .map(|r| {
+                let stats = Array2::from_shape_vec((r.steps.len(), p), r.stats).unwrap().into_pyarray(py);
+                (r.networks.iter().map(|e| to_array(py, e)).collect(), stats, r.steps)
+            })
+            .collect())
     }
 }
 

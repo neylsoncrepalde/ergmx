@@ -41,7 +41,7 @@
       },
       "loglik": -50.7610235284313,
       "nobs": 120,
-      "seconds": 0.0229999999999999
+      "seconds": 0.022
     },
     "flo_edgecov": {
       "network": "flomarriage",
@@ -77,7 +77,7 @@
       },
       "loglik": -47.6790537455384,
       "nobs": 120,
-      "seconds": 0.0190000000000001
+      "seconds": 0.0179999999999998
     },
     "flo_triangle": {
       "network": "flomarriage",
@@ -113,7 +113,7 @@
       },
       "loglik": -54.0320435345241,
       "nobs": 120,
-      "seconds": 0.236
+      "seconds": 0.233
     },
     "flo_gwdegree": {
       "network": "flomarriage",
@@ -149,7 +149,7 @@
       },
       "loglik": -54.068740079075,
       "nobs": 120,
-      "seconds": 0.21
+      "seconds": 0.207
     },
     "samplk_mutual": {
       "network": "samplk3",
@@ -185,7 +185,7 @@
       },
       "loglik": -133.98562510637,
       "nobs": 306,
-      "seconds": 0.29
+      "seconds": 0.288
     },
     "mesa_gwesp": {
       "network": "faux.mesa.high",
@@ -236,7 +236,7 @@
       },
       "loglik": -867.557609659408,
       "nobs": 20910,
-      "seconds": 18.682
+      "seconds": 18.742
     },
     "mesa_gwdegree": {
       "network": "faux.mesa.high",
@@ -287,7 +287,7 @@
       },
       "loglik": -866.012346547627,
       "nobs": 20910,
-      "seconds": 8.932
+      "seconds": 8.907
     },
     "mesa_terms": {
       "network": "faux.mesa.high",
@@ -513,7 +513,7 @@
       },
       "loglik": -5124.51287371576,
       "nobs": 61256,
-      "seconds": 0.826999999999998
+      "seconds": 0.888999999999999
     },
     "samplk_gwesp": {
       "network": "samplk3",
@@ -554,7 +554,7 @@
       },
       "loglik": -131.36062013783,
       "nobs": 306,
-      "seconds": 1.278
+      "seconds": 1.173
     },
     "dixon_gwesp": {
       "network": "faux.dixon.high",
@@ -605,7 +605,7 @@
       },
       "loglik": -4206.09836270207,
       "nobs": 61256,
-      "seconds": 130.449
+      "seconds": 135.407
     },
     "mesa_terms2": {
       "network": "faux.mesa.high",
@@ -826,7 +826,7 @@
       },
       "loglik": -1126.73397689881,
       "nobs": 20910,
-      "seconds": 0.0219999999999914
+      "seconds": 0.0250000000000057
     },
     "flo_offset": {
       "network": "flomarriage",
@@ -903,7 +903,7 @@
       },
       "loglik": -871.301000661384,
       "nobs": 20910,
-      "seconds": 12.609
+      "seconds": 12.642
     },
     "mesa_F": {
       "network": "faux.mesa.high",
@@ -949,7 +949,7 @@
       },
       "loglik": -894.461634466298,
       "nobs": 20910,
-      "seconds": 13.573
+      "seconds": 13.664
     },
     "mesa_esp": {
       "network": "faux.mesa.high",
@@ -995,7 +995,7 @@
       },
       "loglik": -887.866214926062,
       "nobs": 20910,
-      "seconds": 3.47499999999999
+      "seconds": 3.46799999999999
     },
     "samplk_bd": {
       "network": "samplk3",
@@ -1026,7 +1026,7 @@
       },
       "loglik": 17.8427864007292,
       "nobs": 306,
-      "seconds": 0.192000000000007
+      "seconds": 0.182000000000016
     },
     "mesa_blocks_dyadind": {
       "network": "faux.mesa.high",
@@ -1103,7 +1103,7 @@
       },
       "loglik": -598.689896411797,
       "nobs": 4174,
-      "seconds": 8.524
+      "seconds": 8.34700000000001
     },
     "mesa_degrees": {
       "network": "faux.mesa.high",
@@ -1134,7 +1134,7 @@
       },
       "loglik": 252.501839209832,
       "nobs": 20910,
-      "seconds": 5.56
+      "seconds": 5.57999999999998
     },
     "samplk_odegrees": {
       "network": "samplk3",
@@ -1165,7 +1165,7 @@
       },
       "loglik": 22.1304939016467,
       "nobs": 306,
-      "seconds": 0.459000000000003
+      "seconds": 0.456999999999994
     },
     "samplk_degrees": {
       "network": "samplk3",
@@ -1196,7 +1196,7 @@
       },
       "loglik": 23.572417419548,
       "nobs": 306,
-      "seconds": 0.576999999999998
+      "seconds": 0.587999999999994
     },
     "linked_mix": {
       "network": "linked_sim",
@@ -1283,7 +1283,7 @@
       },
       "loglik": -2323.33875872408,
       "nobs": 11175,
-      "seconds": 2.577
+      "seconds": 2.554
     },
     "linked_blocks": {
       "network": "linked_sim",
@@ -1324,7 +1324,7 @@
       },
       "loglik": -1461.57097284041,
       "nobs": 6175,
-      "seconds": 1.41799999999998
+      "seconds": 1.33000000000001
     },
     "mesa_terms3": {
       "network": "faux.mesa.high",
@@ -1755,7 +1755,7 @@
       },
       "loglik": -968.15013958721,
       "nobs": 20910,
-      "seconds": 0.0250000000000057
+      "seconds": 0.0240000000000009
     },
     "mesa_concurrent": {
       "network": "faux.mesa.high",
@@ -1794,7 +1794,7 @@
       },
       "loglik": -868.887405935006,
       "nobs": 20910,
-      "seconds": 8.678
+      "seconds": 8.846
     },
     "samplk_osp": {
       "network": "samplk3",
@@ -1835,7 +1835,7 @@
       },
       "loglik": -130.72096399524,
       "nobs": 306,
-      "seconds": 0.853000000000009
+      "seconds": 0.864000000000004
     },
     "samplk_twopath": {
       "network": "samplk3",
@@ -1876,7 +1876,7 @@
       },
       "loglik": -130.725977541971,
       "nobs": 306,
-      "seconds": 0.24799999999999
+      "seconds": 0.249000000000024
     },
     "davis_terms": {
       "network": "davis",
@@ -1995,7 +1995,7 @@
       },
       "loglik": -410.790218041907,
       "nobs": 2400,
-      "seconds": 0.0289999999999964
+      "seconds": 0.0300000000000011
     },
     "bipartite_gw": {
       "network": "bipartite_sim",
@@ -2046,7 +2046,7 @@
       },
       "loglik": -412.775771108326,
       "nobs": 2400,
-      "seconds": 0.245999999999981
+      "seconds": 0.25200000000001
     },
     "bipartite_match": {
       "network": "bipartite_sim",
@@ -2087,7 +2087,7 @@
       },
       "loglik": -424.900980434804,
       "nobs": 2400,
-      "seconds": 0.215000000000003
+      "seconds": 0.222000000000008
     },
     "bipartite_dsp": {
       "network": "bipartite_sim",
@@ -2133,7 +2133,7 @@
       },
       "loglik": -424.353599642212,
       "nobs": 2400,
-      "seconds": 0.245999999999981
+      "seconds": 0.247000000000014
     },
     "davis_dsp": {
       "network": "davis",
@@ -2169,7 +2169,7 @@
       },
       "loglik": -160.751678720953,
       "nobs": 252,
-      "seconds": 0.36099999999999
+      "seconds": 0.34899999999999
     },
     "mesa_curved_mple": {
       "network": "faux.mesa.high",
@@ -2291,7 +2291,7 @@
       },
       "loglik": -867.543918475316,
       "nobs": 20910,
-      "seconds": 17.098
+      "seconds": 17.24
     },
     "bipartite_curved": {
       "network": "bipartite_sim",
@@ -2370,7 +2370,7 @@
       },
       "loglik": -412.979790952134,
       "nobs": 2400,
-      "seconds": 0.225999999999999
+      "seconds": 0.22399999999999
     },
     "flo_curved": {
       "network": "flomarriage",
@@ -2479,7 +2479,7 @@
       },
       "loglik": -4207.21600557685,
       "nobs": 61256,
-      "seconds": 175.824
+      "seconds": 176.39
     },
     "samplk_missing": {
       "network": "samplk3.nonresponse",
@@ -2510,7 +2510,7 @@
       },
       "loglik": -124.621398261725,
       "nobs": 272,
-      "seconds": 0.389999999999986
+      "seconds": 0.390999999999963
     },
     "mesa_missing_dyadind": {
       "network": "faux.mesa.high.missing",
@@ -2551,7 +2551,7 @@
       },
       "loglik": -907.45973068687,
       "nobs": 19864,
-      "seconds": 0.0440000000000396
+      "seconds": 0.0450000000000159
     },
     "mesa_missing": {
       "network": "faux.mesa.high.missing",
@@ -2590,7 +2590,446 @@
       },
       "loglik": -824.162129900173,
       "nobs": 19864,
-      "seconds": 15.645
+      "seconds": 15.662
+    },
+    "multi_stats": {
+      "network": "samplk123.Networks",
+      "formula": "N(~edges + mutual) + N(~edges, lm=~I(.NetworkID <= 2)) + N(~gwesp(0.5, fixed=TRUE) + nodematch('group'), lm=~0 + factor(.NetworkID)) + edges + mutual + dsp(0:1) + N(~dsp(0:1))",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "bipartite": false,
+      "stats": {
+        "N(1)~edges": 168,
+        "N(1)~mutual": 44,
+        "N(1)~edges.1": 168,
+        "N(I(.NetworkID <= 2)TRUE)~edges": 112,
+        "N(factor(.NetworkID)1)~gwesp.OTP.fixed.0.5": 20.3608160417242,
+        "N(factor(.NetworkID)2)~gwesp.OTP.fixed.0.5": 34.9474352301457,
+        "N(factor(.NetworkID)3)~gwesp.OTP.fixed.0.5": 40.8764502051946,
+        "N(factor(.NetworkID)1)~nodematch.group": 30,
+        "N(factor(.NetworkID)2)~nodematch.group": 38,
+        "N(factor(.NetworkID)3)~nodematch.group": 38,
+        "edges": 168,
+        "mutual": 44,
+        "dsp.OTP0": 2521,
+        "dsp.OTP1": 257,
+        "N(1)~dsp.OTP0": 577,
+        "N(1)~dsp.OTP1": 257
+      }
+    },
+    "multi_mutual": {
+      "network": "samplk123.Networks",
+      "formula": "N(~edges + mutual)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "bipartite": false,
+      "stats": {
+        "N(1)~edges": 168,
+        "N(1)~mutual": 44
+      },
+      "mple": {
+        "N(1)~edges": -2.12525106084048,
+        "N(1)~mutual": 2.2205612406448
+      },
+      "dyad_independent": false,
+      "mle": {
+        "N(1)~edges": -2.13243576808622,
+        "N(1)~mutual": 2.24666431642852
+      },
+      "se": {
+        "N(1)~edges": 0.122122056864358,
+        "N(1)~mutual": 0.279590358554704
+      },
+      "mcmc_pct": {
+        "N(1)~edges": 0,
+        "N(1)~mutual": 0
+      },
+      "loglik": -403.571006240378,
+      "nobs": 918,
+      "seconds": 0.538000000000011
+    },
+    "multi_curved": {
+      "network": "samplk123.Networks",
+      "formula": "N(~edges + mutual + gwesp(0.5, cutoff=10))",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "bipartite": false,
+      "stats": {
+        "N#1~edges": 55,
+        "N#1~mutual": 14,
+        "N#1~esp.OTP#1": 12,
+        "N#1~esp.OTP#2": 6,
+        "N#1~esp.OTP#3": 0,
+        "N#1~esp.OTP#4": 0,
+        "N#1~esp.OTP#5": 0,
+        "N#1~esp.OTP#6": 0,
+        "N#1~esp.OTP#7": 0,
+        "N#1~esp.OTP#8": 0,
+        "N#1~esp.OTP#9": 0,
+        "N#1~esp.OTP#10": 0,
+        "N#2~edges": 57,
+        "N#2~mutual": 15,
+        "N#2~esp.OTP#1": 19,
+        "N#2~esp.OTP#2": 7,
+        "N#2~esp.OTP#3": 4,
+        "N#2~esp.OTP#4": 0,
+        "N#2~esp.OTP#5": 0,
+        "N#2~esp.OTP#6": 0,
+        "N#2~esp.OTP#7": 0,
+        "N#2~esp.OTP#8": 0,
+        "N#2~esp.OTP#9": 0,
+        "N#2~esp.OTP#10": 0,
+        "N#3~edges": 56,
+        "N#3~mutual": 15,
+        "N#3~esp.OTP#1": 24,
+        "N#3~esp.OTP#2": 11,
+        "N#3~esp.OTP#3": 1,
+        "N#3~esp.OTP#4": 0,
+        "N#3~esp.OTP#5": 0,
+        "N#3~esp.OTP#6": 0,
+        "N#3~esp.OTP#7": 0,
+        "N#3~esp.OTP#8": 0,
+        "N#3~esp.OTP#9": 0,
+        "N#3~esp.OTP#10": 0
+      }
+    },
+    "goey_dyadind": {
+      "network": "Goeyvaerts.weekday",
+      "formula": "N(~edges, ~I(n<=3) + I(n>=5)) + N(~nodematch('gender') + absdiff('age'))",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "bipartite": false,
+      "stats": {
+        "N(1)~edges": 1300,
+        "N(I(n <= 3)TRUE)~edges": 162,
+        "N(I(n >= 5)TRUE)~edges": 520,
+        "N(1)~nodematch.gender": 552,
+        "N(1)~absdiff.age": 27860
+      },
+      "mple": {
+        "N(1)~edges": 2.21282014983924,
+        "N(I(n <= 3)TRUE)~edges": 0.671483466488402,
+        "N(I(n >= 5)TRUE)~edges": -0.513758276258595,
+        "N(1)~nodematch.gender": -0.240718530889902,
+        "N(1)~absdiff.age": 0.0225026484517103
+      },
+      "dyad_independent": true,
+      "mle": {
+        "N(1)~edges": 2.21282014983924,
+        "N(I(n <= 3)TRUE)~edges": 0.671483466488399,
+        "N(I(n >= 5)TRUE)~edges": -0.513758276258595,
+        "N(1)~nodematch.gender": -0.240718530889902,
+        "N(1)~absdiff.age": 0.0225026484517103
+      },
+      "se": {
+        "N(1)~edges": 0.202616211554054,
+        "N(I(n <= 3)TRUE)~edges": 0.443392379216163,
+        "N(I(n >= 5)TRUE)~edges": 0.197941540236766,
+        "N(1)~nodematch.gender": 0.193719254742869,
+        "N(1)~absdiff.age": 0.0068460183496873
+      },
+      "mcmc_pct": {
+        "N(1)~edges": 0,
+        "N(I(n <= 3)TRUE)~edges": 0,
+        "N(I(n >= 5)TRUE)~edges": 0,
+        "N(1)~nodematch.gender": 0,
+        "N(1)~absdiff.age": 0
+      },
+      "loglik": -409.670882917116,
+      "nobs": 1425,
+      "seconds": 0.961999999999989
+    },
+    "goey_weekday": {
+      "network": "Goeyvaerts.weekday",
+      "formula": "N(~edges, ~I(n<=3) + I(n>=5)) + N(~kstar(2) + nodematch('gender') + absdiff('age')) + N(~triangle, ~I(n>=6))",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "bipartite": false,
+      "stats": {
+        "N(1)~edges": 1300,
+        "N(I(n <= 3)TRUE)~edges": 162,
+        "N(I(n >= 5)TRUE)~edges": 520,
+        "N(1)~kstar2": 2926,
+        "N(1)~nodematch.gender": 552,
+        "N(1)~absdiff.age": 27860,
+        "N(1)~triangle": 934,
+        "N(I(n >= 6)TRUE)~triangle": 195
+      },
+      "mple": {
+        "N(1)~edges": -1.03676811623881,
+        "N(I(n <= 3)TRUE)~edges": 2.1420033155468,
+        "N(I(n >= 5)TRUE)~edges": -1.50380204584666,
+        "N(1)~kstar2": 0.211896687779725,
+        "N(1)~nodematch.gender": -0.277961420043468,
+        "N(1)~absdiff.age": 0.0314931404302118,
+        "N(1)~triangle": 1.62240385638254,
+        "N(I(n >= 6)TRUE)~triangle": -0.54616343679946
+      },
+      "dyad_independent": false,
+      "mle": {
+        "N(1)~edges": 0.266183948507402,
+        "N(I(n <= 3)TRUE)~edges": 1.4138012109354,
+        "N(I(n >= 5)TRUE)~edges": -0.744188642814351,
+        "N(1)~kstar2": -0.540433016051006,
+        "N(1)~nodematch.gender": -0.226348914285756,
+        "N(1)~absdiff.age": 0.0332267236121801,
+        "N(1)~triangle": 2.39983964835534,
+        "N(I(n >= 6)TRUE)~triangle": -0.344455269319444
+      },
+      "se": {
+        "N(1)~edges": 0.472599981778534,
+        "N(I(n <= 3)TRUE)~edges": 0.451700677308878,
+        "N(I(n >= 5)TRUE)~edges": 0.22888098226703,
+        "N(1)~kstar2": 0.238328747703508,
+        "N(1)~nodematch.gender": 0.210694782087181,
+        "N(1)~absdiff.age": 0.0088532617979642,
+        "N(1)~triangle": 0.326909701382662,
+        "N(I(n >= 6)TRUE)~triangle": 0.11172472627111
+      },
+      "mcmc_pct": {
+        "N(1)~edges": 0,
+        "N(I(n <= 3)TRUE)~edges": 0,
+        "N(I(n >= 5)TRUE)~edges": 0,
+        "N(1)~kstar2": 0,
+        "N(1)~nodematch.gender": 0,
+        "N(1)~absdiff.age": 0,
+        "N(1)~triangle": 0,
+        "N(I(n >= 6)TRUE)~triangle": 0
+      },
+      "loglik": -327.040260914753,
+      "nobs": 1425,
+      "seconds": 23.257
+    },
+    "series_stats": {
+      "network": "samplk123.NetSeries",
+      "formula": "Form(~edges + mutual + gwesp(0.5, fixed=TRUE) + dsp(0:1)) + Persist(~mutual + ttriple) + Diss(~edges) + Cross(~edges + mutual) + Change(~edges + mutual) + Form(~edges, lm=~.Time) + Cross(~edges, lm=~0 + factor(.TimeID)) + edges + nodematch('group')",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "bipartite": false,
+      "stats": {
+        "Form(1)~edges": 150,
+        "Form(1)~mutual": 46,
+        "Form(1)~gwesp.OTP.fixed.0.5": 131.791641974465,
+        "Form(1)~dsp.OTP0": 262,
+        "Form(1)~dsp.OTP1": 206,
+        "Persist(1)~mutual": 16,
+        "Persist(1)~ttriple": 28,
+        "Diss(1)~edges": -75,
+        "Cross(1)~edges": 113,
+        "Cross(1)~mutual": 30,
+        "Change(1)~edges": 75,
+        "Change(1)~mutual": 7,
+        "Form(1)~edges.1": 150,
+        "Form(.Time)~edges": 223,
+        "Cross(factor(.TimeID)1)~edges": 57,
+        "Cross(factor(.TimeID)2)~edges": 56,
+        "edges": 113,
+        "nodematch.group": 76
+      }
+    },
+    "series_dyadind": {
+      "network": "samplk123.NetSeries",
+      "formula": "Form(~edges + nodematch('group')) + Diss(~edges + nodematch('group'))",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "bipartite": false,
+      "stats": {
+        "Form(1)~edges": 150,
+        "Form(1)~nodematch.group": 90,
+        "Diss(1)~edges": -75,
+        "Diss(1)~nodematch.group": -54
+      },
+      "mple": {
+        "Form(1)~edges": -3.22882615561601,
+        "Form(1)~nodematch.group": 2.2594255984279,
+        "Diss(1)~edges": 0.0909717782057262,
+        "Diss(1)~nodematch.group": -1.44089849515474
+      },
+      "dyad_independent": true,
+      "mle": {
+        "Form(1)~edges": -3.22882615561601,
+        "Form(1)~nodematch.group": 2.2594255984279,
+        "Diss(1)~edges": 0.0909717782057262,
+        "Diss(1)~nodematch.group": -1.44089849515474
+      },
+      "se": {
+        "Form(1)~edges": 0.254900649216375,
+        "Form(1)~nodematch.group": 0.357309761601639,
+        "Diss(1)~edges": 0.30182330673527,
+        "Diss(1)~nodematch.group": 0.425493123840682
+      },
+      "mcmc_pct": {
+        "Form(1)~edges": 0,
+        "Form(1)~nodematch.group": 0,
+        "Diss(1)~edges": 0,
+        "Diss(1)~nodematch.group": 0
+      },
+      "loglik": -180.05503922944,
+      "nobs": 612,
+      "seconds": 0.0480000000000018
+    },
+    "series_gwesp": {
+      "network": "samplk123.NetSeries",
+      "formula": "Form(~edges + mutual + gwesp(0.5, fixed=TRUE)) + Persist(~edges + mutual)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "bipartite": false,
+      "stats": {
+        "Form(1)~edges": 150,
+        "Form(1)~mutual": 46,
+        "Form(1)~gwesp.OTP.fixed.0.5": 131.791641974465,
+        "Persist(1)~edges": 75,
+        "Persist(1)~mutual": 16
+      },
+      "mple": {
+        "Form(1)~edges": -3.56879120722567,
+        "Form(1)~mutual": 1.82401215789591,
+        "Form(1)~gwesp.OTP.fixed.0.5": 0.28965948160368,
+        "Persist(1)~edges": 0.50310357767208,
+        "Persist(1)~mutual": 0.564737052329276
+      },
+      "dyad_independent": false,
+      "mle": {
+        "Form(1)~edges": -3.78112662077241,
+        "Form(1)~mutual": 1.92880236913591,
+        "Form(1)~gwesp.OTP.fixed.0.5": 0.369351243464977,
+        "Persist(1)~edges": 0.445670227174574,
+        "Persist(1)~mutual": 0.705598978910155
+      },
+      "se": {
+        "Form(1)~edges": 0.37496936737826,
+        "Form(1)~mutual": 0.41688304198683,
+        "Form(1)~gwesp.OTP.fixed.0.5": 0.15567617864489,
+        "Persist(1)~edges": 0.257120242946026,
+        "Persist(1)~mutual": 0.492592286964735
+      },
+      "mcmc_pct": {
+        "Form(1)~edges": 0,
+        "Form(1)~mutual": 0,
+        "Form(1)~gwesp.OTP.fixed.0.5": 0,
+        "Persist(1)~edges": 0,
+        "Persist(1)~mutual": 0
+      },
+      "loglik": -187.786870006814,
+      "nobs": 612,
+      "seconds": 1.23599999999999
+    },
+    "series_one": {
+      "network": "samplk12.NetSeries",
+      "formula": "Form(~edges + mutual) + Diss(~edges + mutual)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "bipartite": false,
+      "stats": {
+        "Form(1)~edges": 77,
+        "Form(1)~mutual": 24,
+        "Diss(1)~edges": -35,
+        "Diss(1)~mutual": -8
+      },
+      "mple": {
+        "Form(1)~edges": -2.90042209374917,
+        "Form(1)~mutual": 1.93102153656107,
+        "Diss(1)~edges": -0.23638877806423,
+        "Diss(1)~mutual": -0.92676203174145
+      },
+      "dyad_independent": false,
+      "mle": {
+        "Form(1)~edges": -2.98287234280177,
+        "Form(1)~mutual": 2.08910857674575,
+        "Diss(1)~edges": -0.209978502936581,
+        "Diss(1)~mutual": -1.11067184926037
+      },
+      "se": {
+        "Form(1)~edges": 0.303544949833144,
+        "Form(1)~mutual": 0.522694016489478,
+        "Diss(1)~edges": 0.376535901756039,
+        "Diss(1)~mutual": 0.722213556642459
+      },
+      "mcmc_pct": {
+        "Form(1)~edges": 0,
+        "Form(1)~mutual": 0,
+        "Diss(1)~edges": 0,
+        "Diss(1)~mutual": 0
+      },
+      "loglik": -102.243341198072,
+      "nobs": 306,
+      "seconds": 0.330000000000041
+    },
+    "series_curved": {
+      "network": "samplk123.NetSeries",
+      "formula": "Form(~edges + mutual + gwesp(0.5, cutoff=10)) + Persist(~edges)",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "bipartite": false,
+      "stats": {
+        "N#1~edges": 77,
+        "N#1~mutual": 24,
+        "N#1~esp.OTP#1": 24,
+        "N#1~esp.OTP#2": 16,
+        "N#1~esp.OTP#3": 11,
+        "N#1~esp.OTP#4": 1,
+        "N#1~esp.OTP#5": 0,
+        "N#1~esp.OTP#6": 0,
+        "N#1~esp.OTP#7": 0,
+        "N#1~esp.OTP#8": 0,
+        "N#1~esp.OTP#9": 0,
+        "N#1~esp.OTP#10": 0,
+        "N#2~edges": 73,
+        "N#2~mutual": 22,
+        "N#2~esp.OTP#1": 25,
+        "N#2~esp.OTP#2": 11,
+        "N#2~esp.OTP#3": 14,
+        "N#2~esp.OTP#4": 2,
+        "N#2~esp.OTP#5": 1,
+        "N#2~esp.OTP#6": 0,
+        "N#2~esp.OTP#7": 0,
+        "N#2~esp.OTP#8": 0,
+        "N#2~esp.OTP#9": 0,
+        "N#2~esp.OTP#10": 0,
+        "Persist(1)~edges": 75
+      }
     }
   },
   "ergm_differences": {

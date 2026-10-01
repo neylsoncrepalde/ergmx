@@ -14,6 +14,18 @@ Fitting and simulating
    summary_stats
    Control
 
+Several networks, and networks over time
+----------------------------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   Networks
+   NetSeries
+   tergm
+   simulate_dynamic
+   DynamicSimulation
+
 Results
 -------
 
@@ -123,6 +135,12 @@ Operators
 
    offset
    F
+   N
+   Form
+   Persist
+   Diss
+   Cross
+   Change
    terms.Curved
 
 Constraints

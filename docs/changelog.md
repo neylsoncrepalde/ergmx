@@ -23,6 +23,14 @@ The first version, a proof of concept.
   estimated (`fixed=FALSE`), in the MPLE, contrastive divergence, the Monte
   Carlo MLE and the log-likelihood.
 - **Operators**: `offset()` (with `-inf` to forbid ties) and `F()`.
+- **Samples of networks**, as R's ergm.multi: `Networks()` and the `N()`
+  operator, with linear models of network-level attributes (`lm=`), curved
+  terms, and pooled goodness of fit.
+- **Temporal ERGMs**, as R's tergm: `NetSeries()`, the operators `Form()`,
+  `Persist()`, `Diss()`, `Cross()` and `Change()`, `tergm()` for the
+  conditional MLE (and MPLE), and dynamic simulation (`simulate_dynamic()`,
+  `fit.simulate(time_slices=)`) with tergm's per-step stopping rule and
+  discordant-dyad proposals.
 - **Constraints**: `bd`, `blocks`, `degrees`, `odegrees` and `idegrees`, with
   degree-preserving MCMC moves.
 - **Missing ties**: likelihood inference conditional on the observed dyads
@@ -36,8 +44,9 @@ The first version, a proof of concept.
   density guard.
 - **Checking models**: MCMC diagnostics, goodness of fit, log-likelihoods by
   path sampling with an Euler–Maclaurin corrected rule, and model comparison.
-- **Datasets**: the networks of R's ergm documentation, and multinets'
-  multilevel network `linked_sim`.
+- **Datasets**: the networks of R's ergm documentation, ergm.multi's
+  household networks `Goeyvaerts`, and multinets' multilevel network
+  `linked_sim`.
 - **Packaging**: Python 3.11 or newer; wheels with the compiled Rust core for
   Linux, macOS and Windows, one per platform for every Python version;
   development with uv, and the Rust version pinned in `rust-toolchain.toml`.

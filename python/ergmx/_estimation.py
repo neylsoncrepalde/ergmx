@@ -202,7 +202,7 @@ def regression(x, y, model: BoundModel, params=None, zero=None):
 def _decays_of(model: BoundModel):
     from ._model import _decays
 
-    return _decays(model.formula, model.blocks)
+    return _decays(model.blocks, model.network)
 
 
 def _maximize(value, grad_hess, theta, free, max_iter=500, tol=1e-9):

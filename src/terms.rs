@@ -777,28 +777,171 @@ impl Filter {
     }
 }
 
+/// How an operator on the blocks of a combined network turns a block's
+/// network y into the network its terms see, given the block's previous
+/// network p (tergm's operators): y itself (ergm.multi's N(), Cross()), the
+/// union y | p (Form()), the intersection y & p (Persist(), Diss()), or the
+/// dyads that changed, y ^ p (Change()).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum View {
+    Same,
+    Union,
+    Intersection,
+    Change,
+}
+
+impl View {
+    fn from_code(code: i64) -> Result<Self, String> {
+        Ok(match code {
+            0 => View::Same,
+            1 => View::Union,
+            2 => View::Intersection,
+            3 => View::Change,
+            _ => return Err(format!("unknown network view {code}")),
+        })
+    }
+
+    /// Whether toggling the dyad (i, j) of y toggles it in the view.
+    #[inline]
+    fn sees(self, prev: Option<&Network>, i: u32, j: u32) -> bool {
+        match self {
+            View::Same | View::Change => true,
+            View::Union => prev.is_some_and(|p| !p.has_edge(i, j)),
+            View::Intersection => prev.is_some_and(|p| p.has_edge(i, j)),
+        }
+    }
+
+    /// The view of y.
+    fn of(self, y: &Network, prev: Option<&Network>) -> Network {
+        let empty = Network::new(y.n(), y.directed());
+        let prev = prev.unwrap_or(&empty);
+        match self {
+            View::Same => y.clone(),
+            View::Union | View::Change => {
+                let mut view = prev.clone();
+                for &(i, j) in y.edges() {
+                    // Union: add y's ties; change: toggle them, leaving y ^ p.
+                    if self == View::Change || !view.has_edge(i, j) {
+                        view.toggle(i, j);
+                    }
+                }
+                view
+            }
+            View::Intersection => {
+                let mut view = empty.clone();
+                for &(i, j) in y.edges().iter().filter(|&&(i, j)| prev.has_edge(i, j)) {
+                    view.toggle(i, j);
+                }
+                view
+            }
+        }
+    }
+}
+
+/// The blocks of a combined network (ergm.multi's Networks(), tergm's
+/// NetSeries()): the vertices start..start + size of each, with no ties
+/// between blocks.
+pub struct Layout {
+    starts: Vec<u32>,
+    sizes: Vec<u32>,
+}
+
+impl Layout {
+    pub fn new(blocks: &[(u32, u32)], n: u32) -> Result<Self, String> {
+        let mut end = 0;
+        for &(start, size) in blocks {
+            if start < end || size == 0 || start as u64 + size as u64 > n as u64 {
+                return Err("blocks must be disjoint, ordered ranges of the vertices".into());
+            }
+            end = start + size;
+        }
+        Ok(Self { starts: blocks.iter().map(|b| b.0).collect(), sizes: blocks.iter().map(|b| b.1).collect() })
+    }
+
+    pub fn len(&self) -> usize {
+        self.starts.len()
+    }
+
+    pub fn size(&self, k: usize) -> u32 {
+        self.sizes[k]
+    }
+
+    /// The block of the dyad (i, j) and its vertices' numbers in the block, if
+    /// both are in one block.
+    #[inline]
+    fn locate(&self, i: u32, j: u32) -> Option<(usize, u32, u32)> {
+        let k = self.starts.partition_point(|&s| s <= i).checked_sub(1)?;
+        let (s, n) = (self.starts[k], self.sizes[k]);
+        (i < s + n && j >= s && j < s + n).then(|| (k, i - s, j - s))
+    }
+
+    /// Each block's network in `net`, with the vertices numbered within the block.
+    pub fn split(&self, net: &Network) -> Vec<Network> {
+        let mut parts: Vec<Network> = self.sizes.iter().map(|&n| Network::new(n, net.directed())).collect();
+        for &(i, j) in net.edges() {
+            if let Some((k, a, b)) = self.locate(i, j) {
+                parts[k].toggle(a, b);
+            }
+        }
+        parts
+    }
+}
+
+/// The terms of a block operator for one block: a model of the block's
+/// network, with the block's row of the operator's linear model.
+struct SubBlock {
+    model: Model,
+    design: Vec<f64>,
+    /// Position of the block's statistics, when they are kept apart.
+    offset: usize,
+}
+
 enum Entry {
     Plain(Box<dyn Term>),
     /// Terms of F(formula, filter), evaluated on the network of the ties that
     /// pass filter `filter` (the auxiliary network of that index).
     Filtered { terms: Vec<Box<dyn Term>>, filter: usize, n_stats: usize },
+    /// Terms evaluated on a view of each block of a combined network, as
+    /// ergm.multi's N() and tergm's Form(), Persist(), Diss(), Cross() and
+    /// Change(). The statistics are, with `compact`, sums over the blocks of
+    /// each statistic times each column of the operator's linear model (q
+    /// columns, statistic-major), or else each block's statistics in turn
+    /// (for curved terms, whose coefficients differ between blocks). `scale`
+    /// is -1 for Diss(), which negates Persist().
+    Blocks { view: View, scale: f64, slot: usize, blocks: Vec<SubBlock>, compact: bool, q: usize, n_stats: usize },
 }
 
 impl Entry {
     fn n_stats(&self) -> usize {
         match self {
             Entry::Plain(term) => term.n_stats(),
-            Entry::Filtered { n_stats, .. } => *n_stats,
+            Entry::Filtered { n_stats, .. } | Entry::Blocks { n_stats, .. } => *n_stats,
         }
     }
 }
 
-/// A network with the auxiliary networks that F() terms need: for each filter,
-/// the ties that pass it.
+/// Adds a block's statistics `inner` to an operator's statistics `out`.
+fn place(inner: &[f64], block: &SubBlock, compact: bool, q: usize, scale: f64, out: &mut [f64]) {
+    if compact {
+        for (s, &g) in inner.iter().enumerate() {
+            for (r, &x) in block.design.iter().enumerate() {
+                out[s * q + r] += scale * g * x;
+            }
+        }
+    } else {
+        out[block.offset..block.offset + inner.len()].iter_mut().zip(inner).for_each(|(o, g)| *o += scale * g);
+    }
+}
+
+/// A network with the auxiliary networks that its terms need: for each
+/// filter of F(), the ties that pass it; with blocks, each block's previous
+/// network and, for each block operator, the state of each block's view.
 #[derive(Clone)]
 pub struct State {
     pub net: Network,
     aux: Vec<Network>,
+    prev: Vec<Network>,
+    subs: Vec<Vec<State>>,
 }
 
 /// The terms of a model, with the position of each term's statistics.
@@ -807,11 +950,31 @@ pub struct Model {
     offsets: Vec<usize>,
     filters: Vec<Filter>,
     n_stats: usize,
+    layout: Option<Layout>,
+    /// Each block's previous network, for tergm's operators (NetSeries()).
+    prev: Vec<Network>,
+    /// Number of block operators.
+    n_slots: usize,
+    n_vertices: u32,
 }
 
 impl Model {
-    pub fn new(n: u32, directed: bool, specs: &[TermSpec]) -> Result<Self, String> {
-        let (n_usize, mut entries, mut filters) = (n as usize, Vec::new(), Vec::new());
+    /// A model for networks with `n` vertices; `layout` and `prev` give the
+    /// blocks of a combined network and their previous networks.
+    pub fn new(
+        n: u32,
+        directed: bool,
+        specs: &[TermSpec],
+        layout: Option<Layout>,
+        prev: Vec<Network>,
+    ) -> Result<Self, String> {
+        let (n_usize, mut entries, mut filters, mut n_slots) = (n as usize, Vec::new(), Vec::new(), 0);
+        if let Some(layout) = &layout
+            && !prev.is_empty()
+            && (prev.len() != layout.len() || prev.iter().enumerate().any(|(k, p)| p.n() != layout.size(k)))
+        {
+            return Err("need one previous network per block, of the block's size".into());
+        }
         for spec in specs {
             if spec.0 == "F" {
                 let children = &spec.3;
@@ -829,6 +992,48 @@ impl Model {
                 let n_stats = terms.iter().map(|t| t.n_stats()).sum();
                 filters.push(Filter { term: filter_term, negate: spec.2.first() == Some(&1) });
                 entries.push(Entry::Filtered { terms, filter: filters.len() - 1, n_stats });
+            } else if spec.0 == "blocks" {
+                // ints: [view, negate, compact, q]; children: one "block" per block,
+                // with its row of the linear model as reals and its terms as children.
+                let Some(layout) = &layout else {
+                    return Err("N() and tergm's operators need networks combined with Networks() or \
+                                NetSeries(), and can't be nested"
+                        .into());
+                };
+                let &[view, negate, compact, q] = spec.2.as_slice() else {
+                    return Err("block operator: bad parameters".into());
+                };
+                let view = View::from_code(view)?;
+                if view != View::Same && prev.is_empty() {
+                    return Err("Form(), Persist(), Diss() and Change() need the previous networks of a NetSeries()".into());
+                }
+                let (compact, q) = (compact == 1, q as usize);
+                if spec.3.len() != layout.len() {
+                    return Err(format!("block operator: {} blocks for {}", spec.3.len(), layout.len()));
+                }
+                let mut blocks = Vec::with_capacity(spec.3.len());
+                let mut offset = 0;
+                for (k, block) in spec.3.iter().enumerate() {
+                    let model = Model::new(layout.size(k), directed, &block.3, None, Vec::new())?;
+                    if compact && block.1.len() != q {
+                        return Err("block operator: each block needs a row of the linear model".into());
+                    }
+                    let size = model.n_stats();
+                    blocks.push(SubBlock { model, design: block.1.clone(), offset });
+                    offset += size;
+                }
+                let n_stats = if compact {
+                    let p = blocks.first().map_or(0, |b| b.model.n_stats());
+                    if blocks.iter().any(|b| b.model.n_stats() != p) {
+                        return Err("block operator: the blocks have different numbers of statistics".into());
+                    }
+                    p * q
+                } else {
+                    offset
+                };
+                let scale = if negate == 1 { -1.0 } else { 1.0 };
+                entries.push(Entry::Blocks { view, scale, slot: n_slots, blocks, compact, q, n_stats });
+                n_slots += 1;
             } else {
                 entries.push(Entry::Plain(build_term(n_usize, directed, spec)?));
             }
@@ -839,15 +1044,38 @@ impl Model {
             offsets.push(n_stats);
             n_stats += entry.n_stats();
         }
-        Ok(Self { entries, offsets, filters, n_stats })
+        Ok(Self { entries, offsets, filters, n_stats, layout, prev, n_slots, n_vertices: n })
     }
 
     pub fn n_stats(&self) -> usize {
         self.n_stats
     }
 
+    pub fn layout(&self) -> Option<&Layout> {
+        self.layout.as_ref()
+    }
+
+    /// For models of transitions (tergm's operators), the previous networks
+    /// of the blocks, as one network with the model's vertices.
+    pub fn previous_network(&self, directed: bool) -> Option<Network> {
+        let layout = self.layout.as_ref().filter(|_| !self.prev.is_empty())?;
+        let n = layout.starts.last().zip(layout.sizes.last()).map_or(0, |(s, z)| s + z);
+        let mut joined = Network::new(n.max(self.n_vertices), directed);
+        for (k, prev) in self.prev.iter().enumerate() {
+            for &(i, j) in prev.edges() {
+                joined.toggle(i + layout.starts[k], j + layout.starts[k]);
+            }
+        }
+        Some(joined)
+    }
+
     /// The state of a network: the network and the auxiliary networks of its filters.
     pub fn state(&self, net: Network) -> State {
+        self.state_with(net, self.prev.clone())
+    }
+
+    /// The state of a network whose blocks have the previous networks `prev`.
+    pub fn state_with(&self, net: Network, prev: Vec<Network>) -> State {
         let aux = self
             .filters
             .iter()
@@ -861,7 +1089,22 @@ impl Model {
                 filtered
             })
             .collect();
-        State { net, aux }
+        let mut subs = Vec::with_capacity(self.n_slots);
+        if let Some(layout) = self.layout.as_ref().filter(|_| self.n_slots > 0) {
+            let parts = layout.split(&net);
+            for entry in &self.entries {
+                if let Entry::Blocks { view, blocks, .. } = entry {
+                    let states = blocks
+                        .iter()
+                        .zip(&parts)
+                        .enumerate()
+                        .map(|(k, (block, y))| block.model.state(view.of(y, prev.get(k))))
+                        .collect();
+                    subs.push(states);
+                }
+            }
+        }
+        State { net, aux, prev, subs }
     }
 
     /// Toggles (i, j) in the network and in the auxiliary networks it belongs to.
@@ -871,6 +1114,17 @@ impl Model {
                 aux.toggle(i, j);
             }
         }
+        if self.n_slots > 0
+            && let Some((k, a, b)) = self.layout.as_ref().and_then(|l| l.locate(i, j))
+        {
+            for entry in &self.entries {
+                if let Entry::Blocks { view, slot, blocks, .. } = entry
+                    && view.sees(state.prev.get(k), a, b)
+                {
+                    blocks[k].model.toggle(&mut state.subs[*slot][k], a, b);
+                }
+            }
+        }
         state.net.toggle(i, j);
     }
 
@@ -878,6 +1132,7 @@ impl Model {
     pub fn change(&self, state: &State, i: u32, j: u32, out: &mut [f64]) {
         out.fill(0.0);
         let sign = if state.net.has_edge(i, j) { -1.0 } else { 1.0 };
+        let located = if self.n_slots > 0 { self.layout.as_ref().and_then(|l| l.locate(i, j)) } else { None };
         for (entry, &offset) in self.entries.iter().zip(&self.offsets) {
             let out = &mut out[offset..offset + entry.n_stats()];
             match entry {
@@ -892,6 +1147,32 @@ impl Model {
                         }
                     }
                 }
+                Entry::Blocks { view, scale, slot, blocks, compact, q, .. } => {
+                    let Some((k, a, b)) = located else { continue };
+                    if !view.sees(state.prev.get(k), a, b) {
+                        continue;
+                    }
+                    let (block, sub) = (&blocks[k], &state.subs[*slot][k]);
+                    let p = block.model.n_stats();
+                    if *compact {
+                        // The block's changes in out[..p], then spread over the
+                        // q columns from the last, which never overwrites an
+                        // unread change.
+                        block.model.change(sub, a, b, &mut out[..p]);
+                        for s in (0..p).rev() {
+                            let g = scale * out[s];
+                            for r in (0..*q).rev() {
+                                out[s * q + r] = g * block.design[r];
+                            }
+                        }
+                    } else {
+                        let out = &mut out[block.offset..block.offset + p];
+                        block.model.change(sub, a, b, out);
+                        if *scale != 1.0 {
+                            out.iter_mut().for_each(|x| *x *= scale);
+                        }
+                    }
+                }
             }
         }
     }
@@ -899,7 +1180,12 @@ impl Model {
     /// Statistics of `net`: those of the empty network, plus the changes from
     /// adding its edges one by one.
     pub fn summary(&self, net: &Network) -> Vec<f64> {
-        let mut build = self.state(Network::new(net.n(), net.directed()));
+        self.summary_with(net, &self.prev)
+    }
+
+    /// Statistics of `net`, whose blocks have the previous networks `prev`.
+    pub fn summary_with(&self, net: &Network, prev: &[Network]) -> Vec<f64> {
+        let mut build = self.state_with(Network::new(net.n(), net.directed()), prev.to_vec());
         let mut stats = vec![0.0; self.n_stats];
         for (entry, &offset) in self.entries.iter().zip(&self.offsets) {
             let out = &mut stats[offset..offset + entry.n_stats()];
@@ -910,6 +1196,14 @@ impl Model {
                     for term in terms {
                         term.empty(net.n(), net.directed(), &mut out[start..start + term.n_stats()]);
                         start += term.n_stats();
+                    }
+                }
+                // The statistics of each block's view of the empty network: of
+                // the previous network itself, for Form() and Change().
+                Entry::Blocks { scale, slot, blocks, compact, q, .. } => {
+                    for (k, block) in blocks.iter().enumerate() {
+                        let inner = block.model.summary(&build.subs[*slot][k].net);
+                        place(&inner, block, *compact, *q, *scale, out);
                     }
                 }
             }

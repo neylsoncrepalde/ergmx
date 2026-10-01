@@ -11,7 +11,7 @@ from ._estimation import Control
 from ._fit import ErgmFit
 from ._loglik import bridge_loglik
 from ._model import bind
-from ._network import to_graph
+from ._network import to_graphs
 
 
 def summary_stats(network, formula, *, bipartite=None) -> dict[str, float]:
@@ -39,11 +39,14 @@ def ergm(network, formula, *, constraints=None, offset_coef=None, bipartite=None
 
     Parameters
     ----------
-    network : igraph.Graph or networkx.Graph
+    network : igraph.Graph, networkx.Graph, Networks or NetSeries
         The observed network. Vertex attributes are available to the terms.
         Edges with a true ``na`` attribute mark dyads whose value is unknown:
         the fit is then conditional on the observed dyads (missing at random,
-        as in ergm).
+        as in ergm). Several networks combined with :func:`ergmx.Networks`
+        are modeled jointly (with N() terms), and the transitions of a
+        :func:`ergmx.NetSeries` conditionally on the network before each
+        (with tergm's operators; see :func:`ergmx.tergm`).
     formula : str or terms
         The model, in R syntax: ``"edges + nodematch('Grade') + gwesp(0.5, fixed=TRUE)"``,
         or terms combined with ``+``.
@@ -126,9 +129,13 @@ def simulate(network, formula, coef, nsim: int = 1, *, constraints=None, biparti
 
     Parameters
     ----------
-    network : igraph.Graph or networkx.Graph
+    network : igraph.Graph, networkx.Graph, Networks or NetSeries
         The starting network, which also provides the vertex attributes.
         Missing dyads (``na`` edges) start as non-ties and are simulated too.
+        With several networks combined, each simulation is a list of
+        networks, one per network (for a NetSeries, each transition's
+        current network, given the previous one). For simulating a network
+        over time, see :func:`ergmx.simulate_dynamic`.
     formula : str or terms
     coef : array-like or dict
         Coefficients, in the order of the formula's parameters or by name,
@@ -141,8 +148,9 @@ def simulate(network, formula, coef, nsim: int = 1, *, constraints=None, biparti
         For a bipartite network, the vertex attribute with each vertex's mode,
         as in :func:`ergm`.
     output : {"network", "stats"}
-        Return graphs of the same kind as ``network``, or an ``nsim x
-        statistics`` array of their statistics.
+        Return graphs of the same kind as ``network`` (lists of them, with
+        combined networks), or an ``nsim x statistics`` array of their
+        statistics.
     burnin, interval : int, optional
         MCMC proposals before the first network and between networks.
         Default to ergm's 16384 and 1024.
@@ -166,4 +174,4 @@ def simulate(network, formula, coef, nsim: int = 1, *, constraints=None, biparti
     )
     if output == "stats":
         return sample[0]
-    return [to_graph(model.network, edges) for edges in networks[0]]
+    return [to_graphs(model.network, edges) for edges in networks[0]]

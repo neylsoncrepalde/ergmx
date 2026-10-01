@@ -113,7 +113,7 @@ class BoundModel:
         """Starting parameters: 0, the decay argument of curved terms, and the
         fixed values."""
         theta = np.zeros(self.n_params)
-        for position, decay in _decays(self.formula, self.blocks):
+        for position, decay in _decays(self.blocks, self.network):
             theta[position] = decay
         return np.where(self.fixed, self.fixed_values, theta)
 
@@ -131,9 +131,10 @@ class BoundModel:
 
     @cached_property
     def fixed_dyads(self) -> np.ndarray:
-        """n x n mask of the dyads fixed by the constraints, by -inf offsets, or,
-        in bipartite networks, within a mode."""
-        mask = self.constraints.fixed(self.network)
+        """n x n mask of the dyads fixed by the constraints, by -inf offsets,
+        in bipartite networks within a mode, and in combined networks between
+        networks."""
+        mask = self.constraints.fixed(self.network) | self.network.between_blocks()
         if self.network.bipartite:
             mode = self.network.mode
             mask |= mode[:, None] == mode[None, :]
@@ -216,14 +217,9 @@ class BoundModel:
                                   space=space, **options)
 
 
-def _decays(formula, blocks) -> list[tuple[int, float]]:
+def _decays(blocks, network) -> list[tuple[int, float]]:
     """Positions and starting values of the decay parameters of curved terms."""
-    out = []
-    for term, _, qs in blocks:
-        inner = term.term if term.is_offset else term
-        if inner.curved and hasattr(inner, "initial"):
-            out.append((qs.stop - 1, inner.initial()))
-    return out
+    return [(qs.start + i, value) for term, _, qs in blocks for i, value in term.starts(network)]
 
 
 def _make_unique(names: list[str]) -> list[str]:
@@ -261,7 +257,13 @@ def bind(network, formula, constraints=None, offset_coef=None, fitting=False,
     constraints.check(network)
     stat_names = _make_unique([name for term in formula for name in term.names(network)])
     names = _make_unique([name for term in formula for name in term.param_names(network)])
-    core = _core.Model(network.n, network.directed, [t.full_spec(network) for t in formula])
+    specs = [t.full_spec(network) for t in formula]
+    if network.combined:
+        layout = [(b.start, b.network.n) for b in network.blocks]
+        prev = [b.prev.edges for b in network.blocks] if network.series else None
+        core = _core.Model(network.n, network.directed, specs, layout, prev)
+    else:
+        core = _core.Model(network.n, network.directed, specs)
     if core.n_stats != len(stat_names):
         raise RuntimeError(f"internal error: {core.n_stats} statistics, {len(stat_names)} names")
 
@@ -296,7 +298,7 @@ def bind(network, formula, constraints=None, offset_coef=None, fitting=False,
         )
     # A constant curved term: theta 0, and the decay (irrelevant) at its start.
     blocks = BoundModel(network, formula, names, core, stat_names=stat_names).blocks
-    for position, decay in _decays(formula, blocks):
+    for position, decay in _decays(blocks, network):
         if constant[position]:
             values[position] = decay
     model = BoundModel(network, formula, names, core, constraints, offsets | constant, values,

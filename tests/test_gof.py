@@ -70,3 +70,12 @@ def test_plot():
     fit = ergmx.ergm(load("samplk3"), "edges + mutual", seed=1)
     figure = fit.gof(nsim=20, seed=1).plot()
     assert len(figure.axes) == 5
+
+
+def test_distributions_of_empty_networks():
+    from ergmx._gof import _distribution
+
+    empty = np.zeros((0, 2), dtype=np.uint32)
+    for directed in (False, True):
+        assert _distribution(4, directed, empty, "espartners").tolist() == [0, 0, 0]
+        assert _distribution(4, directed, empty, "distance").tolist() == [0, 0, 0, 12 if directed else 6]

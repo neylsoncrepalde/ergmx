@@ -6,8 +6,9 @@
 (205, 203)
 
 They are the networks of ergm's documentation and tutorials, distributed
-with ergm under the GPL-3, multinets' multilevel network ``linked_sim``, and
-Davis's Southern Women, from networkx.
+with ergm under the GPL-3, ergm.multi's household networks ``Goeyvaerts`` (a
+list of networks), multinets' multilevel network ``linked_sim``, and Davis's
+Southern Women, from networkx.
 """
 
 from __future__ import annotations
@@ -64,7 +65,19 @@ _DESCRIPTIONS = {
         "US South, from the Add Health study design. Undirected. Vertex attributes: "
         "Grade (7 to 12), Race and Sex."
     ),
+    "Goeyvaerts": (
+        "A list of 318 networks: the contacts within households with at least one "
+        "child aged 12 or under, in Flanders and Brussels, from contact diaries "
+        "(Goeyvaerts et al. 2018, Proc. R. Soc. B 285: 20182201; curated by Pietro "
+        "Coletti for R's ergm.multi; cite both when publishing). Undirected. Vertex "
+        "attributes: age, gender ('F', 'M') and role ('Father', 'Mother', 'Child', "
+        "'Grandmother'). Graph attributes: weekday (whether the diary was kept on a "
+        "weekday) and included (whether Goeyvaerts et al. analysed it; two were not)."
+    ),
 }
+
+#: Datasets that are lists of networks, stored as JSON.
+_LISTS = {"Goeyvaerts"}
 
 
 def names() -> list[str]:
@@ -93,8 +106,11 @@ def load(name: str, backend: str = "igraph") -> Any:
     Returns
     -------
     igraph.Graph or networkx.Graph
+        A list of them for lists of networks (``"Goeyvaerts"``).
     """
     _check(name)
+    if name in _LISTS:
+        return _load_list(name, backend)
     path = resources.files("ergmx") / "data" / f"{name}.graphml.gz"
     with resources.as_file(path) as file:
         if backend == "igraph":
@@ -110,6 +126,38 @@ def load(name: str, backend: str = "igraph") -> Any:
             g = nx.read_graphml(file)
             return nx.relabel_nodes(g, {v: data["name"] for v, data in g.nodes(data=True)})
     raise ValueError(f"backend must be 'igraph' or 'networkx', not {backend!r}")
+
+
+def _load_list(name: str, backend: str) -> list:
+    import gzip
+    import json
+
+    with resources.as_file(resources.files("ergmx") / "data" / f"{name}.json.gz") as file:
+        with gzip.open(file, "rt") as f:
+            records = json.load(f)
+    graphs = []
+    for r in records:
+        edges = [tuple(e) for e in r["edges"]]
+        if backend == "igraph":
+            import igraph as ig
+
+            g = ig.Graph(n=r["n"], edges=edges)
+            for a, values in r["vertex"].items():
+                g.vs[a] = values
+            for a, value in r["graph"].items():
+                g[a] = value
+        elif backend == "networkx":
+            import networkx as nx
+
+            g = nx.Graph(**r["graph"])
+            names = r["vertex"]["name"]
+            g.add_nodes_from((names[v], {a: values[v] for a, values in r["vertex"].items() if a != "name"})
+                             for v in range(r["n"]))
+            g.add_edges_from((names[i], names[j]) for i, j in edges)
+        else:
+            raise ValueError(f"backend must be 'igraph' or 'networkx', not {backend!r}")
+        graphs.append(g)
+    return graphs
 
 
 def _check(name: str) -> None:
