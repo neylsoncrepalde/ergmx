@@ -22,7 +22,7 @@ jobs:
         python: ["3.11", "3.14"]
     steps:
     - uses: actions/checkout@v7
-    - uses: astral-sh/setup-uv@v10
+    - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
       with:
         python-version: ${{ matrix.python }}
         enable-cache: true
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
-    - uses: astral-sh/setup-uv@v10
+    - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
     - name: Install the Rust toolchain of rust-toolchain.toml
       run: rustup toolchain install
     - name: Install ergmx with the oldest versions its requirements allow
