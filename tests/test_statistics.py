@@ -85,16 +85,48 @@ def test_networks_must_be_binary_without_loops():
         ergmx.summary_stats(np.eye(3), "edges")
 
 
+DIFFERENCES = json.loads((DATA / "r_reference.json").read_text())["ergm_differences"]
+
+
 def test_reciprocated_two_paths_follow_the_definition():
     """ergm's edgewise RTP statistics depend on the order of the vertices (they
     change when the same network is relabeled) and don't match the definition;
     ergmx's match the definition, computed in R."""
-    rtp = json.loads((DATA / "r_reference.json").read_text())["rtp_direct"]
+    rtp = DIFFERENCES["rtp"]
     assert rtp["summary_original"] != rtp["summary_relabeled"]  # ergm's bug, as recorded
     stats = ergmx.summary_stats(load("faux.dixon.high"),
                                 "esp(0:3, type='RTP') + gwesp(0.5, fixed=TRUE, type='RTP')")
     assert list(stats.values())[:4] == rtp["esp"]
     assert stats["gwesp.RTP.fixed.0.5"] == pytest.approx(rtp["gwesp"], rel=1e-12)
+
+
+@pytest.mark.parametrize("name", ["samplk3", "faux.dixon.high"])
+def test_transitive_counts_transitive_triads(name):
+    """ergm documents transitive as transitive triads but computes transitive
+    triples (ttriple); ergmx counts the triads, which R's igraph counts too, and
+    warns that ergm differs."""
+    r = DIFFERENCES["transitive"][name]
+    assert r["ergm_transitive"] == r["ttriple"] != r["triads"]  # ergm's bug, as recorded
+    g = load(name)
+    with pytest.warns(ergmx.ErgmDifferenceWarning, match="use ttriple"):
+        stats = ergmx.summary_stats(g, "transitive + ttriple")
+    assert stats == {"transitive": r["triads"], "ttriple": r["ttriple"]}
+
+
+def test_transitive_matches_the_triad_census_on_simulated_networks():
+    import warnings
+
+    g = load("faux.dixon.high")
+    types = ("030T", "120D", "120U", "300")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ergmx.ErgmDifferenceWarning)
+        stats = ergmx.simulate(g, "edges + mutual + transitive", [-4.5, 1.5, 0.3], 10, seed=1,
+                               output="stats", interval=20_000)
+        networks = ergmx.simulate(g, "edges + mutual + transitive", [-4.5, 1.5, 0.3], 10, seed=1,
+                                  interval=20_000)
+    census = [sum(h.triad_census()[t] for t in types) for h in networks]
+    assert stats[:, 2].tolist() == census
+    assert len(set(census)) > 1
 
 
 def test_curved_terms_weight_their_histograms_like_the_fixed_terms():

@@ -88,9 +88,11 @@ accepted: R expressions such as `log(n)` must be computed first.
   cutoff, ergm stops with an error; ergmx counts them in an overflow
   statistic.
 
-**`transitive` is `ttriple`, as in ergm's code.**
+**`transitive` counts transitive triads, as ergm documents.**
 : ergm 4.12 documents `transitive` as a count of transitive triads but
-  computes transitive triples; ergmx follows the computation.
+  computes transitive triples, the same as `ttriple`. ergmx counts the triads
+  and warns; to reproduce a model fitted in R with `transitive`, use
+  `ttriple`, which gives ergm's statistic and estimates exactly.
 
 **Edgewise RTP statistics follow their definition.**
 : ergm 4.12's `esp`, `gwesp` and `nsp` with `type = "RTP"` change when the

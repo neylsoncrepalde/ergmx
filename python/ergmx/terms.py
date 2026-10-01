@@ -9,6 +9,7 @@ Terms can be combined with ``+`` or written as a formula string::
 from __future__ import annotations
 
 import inspect
+import warnings
 
 import numpy as np
 
@@ -457,12 +458,25 @@ class Cycle(_Stars):
         return ("cycle", [], self.ks)
 
 
+class ErgmDifferenceWarning(UserWarning):
+    """A term whose statistic differs from what R's ergm computes for it,
+    because ergmx follows ergm's documented definition."""
+
+
 class Transitive(Term):
-    """Transitive triples, as ergm's transitive computes them (see transitive())."""
+    """Transitive triads: Davis and Leinhardt's types 030T, 120D, 120U and 300."""
 
     dyad_independent = False
     triadic = True
     directed = True
+
+    def __init__(self):
+        warnings.warn(
+            "transitive counts transitive triads (types 030T, 120D, 120U and 300), as R's "
+            "ergm documents; ergm 4.12 computes transitive triples instead, the same as "
+            "ttriple. To reproduce ergm's results, use ttriple.",
+            ErgmDifferenceWarning, stacklevel=4,
+        )
 
 
 class TwoPath(Term):
@@ -1217,12 +1231,14 @@ def asymmetric() -> Term:
 
 
 def transitive() -> Term:
-    """Transitive triples, as R's ergm (4.12) computes this term.
+    """Number of transitive triads (directed networks): triads of types 030T,
+    120D, 120U and 300 in Davis and Leinhardt's (1972) census, which have at
+    least one transitive triple and no intransitive two-path.
 
-    ergm documents transitive as the number of transitive *triads* (types
-    030T, 120D, 120U and 300), but computes the number of transitive triples
-    i -> j -> k, i -> k, the same as ttriple. ergmx follows the computation, so
-    that models give ergm's estimates.
+    This is how R's ergm documents its ``transitive`` term, but ergm 4.12
+    computes the number of transitive triples instead, the same as
+    :func:`ttriple`. Use ``ttriple`` to reproduce ergm's results; using
+    ``transitive`` warns with :class:`ErgmDifferenceWarning`.
     """
     return Transitive()
 

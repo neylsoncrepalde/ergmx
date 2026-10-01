@@ -206,3 +206,14 @@ def test_bipartite_networks_only_have_ties_between_modes():
     cross = {(i, j) for i in range(3) for j in range(3, 6)}
     allowed = lambda e: {tuple(sorted(p)) for p in e.tolist()} <= cross  # noqa: E731
     assert check(model, np.array([-0.3, 0.4, -0.2, 0.3]), allowed, weights=(0.0,)) == 512
+
+
+def test_transitive_triads_sampler():
+    """The MCMC with transitive triads against every directed network on 4 vertices."""
+    import warnings
+
+    g = graph(4, [(0, 1), (1, 2), (0, 2)], directed=True)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ergmx.ErgmDifferenceWarning)
+        model = bind(g, "edges + mutual + transitive")
+    check(model, np.array([-0.4, 0.5, 0.6]), lambda e: True)

@@ -35,9 +35,11 @@ its default start.
   269, 37, 2 to 886, 273, 36, 2. Computed from ergm's definition in R, the
   counts are 847, 309, 39, 2, which ergmx gives.
 - **`transitive`.** ergm documents it as the number of transitive triads
-  (types 030T, 120D, 120U and 300: 371 on faux.dixon.high) but computes the
-  number of transitive triples, the same as `ttriple` (1,254). ergmx follows
-  the computation, so that models give ergm's estimates.
+  (types 030T, 120D, 120U and 300: 371 on faux.dixon.high, 13 on samplk3,
+  counted by R's igraph) but computes the number of transitive triples, the
+  same as `ttriple` (1,254 and 49). ergmx counts the triads, which match the
+  triad census on every directed network of 4 vertices, and warns that ergm
+  differs; `ttriple` reproduces ergm's statistic.
 
 ## Against exact results
 

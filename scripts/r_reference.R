@@ -209,7 +209,7 @@ models <- list(
                      formula = paste("cycle(3:5) + twopath + concurrent + gwnsp(0.5, fixed=TRUE) +",
                                      "absdiffcat('Grade') + sociality + nsp(0:2)")),
   dixon_terms3 = list(network = "faux.dixon.high", checks = "stats",
-                      formula = paste("cycle(2:4) + transitive + twopath + asymmetric +",
+                      formula = paste("cycle(2:4) + twopath + asymmetric +",
                                       "gwnsp(0.5, fixed=TRUE) + dsp(0:2, type='RTP') +",
                                       "gwdsp(0.5, fixed=TRUE, type='RTP') +",
                                       "esp(0:3, type='ITP') + gwesp(0.5, fixed=TRUE, type='ITP') +",
@@ -315,9 +315,11 @@ for (name in names(models)) {
   results[[name]] <- result
 }
 
-# ergm's edgewise RTP statistics (esp, gwesp, nsp with type = "RTP") depend on
-# the order of the vertices, and don't match ergm's definition: these are the
-# statistics computed from the definition, which ergmx follows.
+# Two places where ergm 4.12's computation differs from its documentation.
+#
+# 1. Edgewise RTP statistics (esp, gwesp, nsp with type = "RTP") depend on the
+#    order of the vertices, and don't match ergm's definition: these are the
+#    statistics computed from the definition, which ergmx follows.
 d <- faux.dixon.high
 A <- as.matrix(d)
 M <- A * t(A)  # reciprocated ties
@@ -332,8 +334,21 @@ rtp_direct <- list(esp = tabulate(rtp + 1, 4), gwesp = exp(0.5) * sum(1 - r^rtp)
                                           esp(0:3, type = "RTP")))
                    })
 
+# 2. transitive is documented as the number of transitive triads (types 030T,
+#    120D, 120U and 300) but computes transitive triples, as ttriple: ergm's
+#    value, ttriple, and the triads counted with igraph's triad census.
+transitive <- lapply(list(samplk3 = samplk3, faux.dixon.high = faux.dixon.high), function(net) {
+  census <- triad_census(graph_from_adjacency_matrix(as.matrix(net), mode = "directed"))
+  names(census) <- c("003", "012", "102", "021D", "021U", "021C", "111D", "111U", "030T", "030C",
+                     "201", "120D", "120U", "120C", "210", "300")
+  list(ergm_transitive = as.numeric(summary(net ~ transitive)),
+       ttriple = as.numeric(summary(net ~ ttriple)),
+       triads = sum(census[c("030T", "120D", "120U", "300")]))
+})
+
 jsonlite::write_json(
   list(ergm_version = as.character(packageVersion("ergm")),
-       r_version = R.version.string, models = results, rtp_direct = rtp_direct),
+       r_version = R.version.string, models = results,
+       ergm_differences = list(rtp = rtp_direct, transitive = transitive)),
   file.path(out_dir, "r_reference.json"), auto_unbox = TRUE, digits = NA, pretty = TRUE
 )

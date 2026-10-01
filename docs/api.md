@@ -160,6 +160,7 @@ Errors
 
    DegeneracyError
    FormulaError
+   ErgmDifferenceWarning
 
 Datasets
 --------

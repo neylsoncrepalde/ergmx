@@ -12,7 +12,8 @@ The first version, a proof of concept.
   `nodemix`, `nodefactor`, `nodeifactor`, `nodeofactor`, `nodecov`,
   `nodeicov`, `nodeocov` and `absdiff`.
 - **More terms**: `asymmetric`, `sender`, `receiver`, `sociality`,
-  `concurrent`, `twopath`, `transitive`, `cycle`, `gwnsp`, `nsp`,
+  `concurrent`, `twopath`, `transitive` (transitive triads, as ergm documents
+  it; ergm computes `ttriple`), `cycle`, `gwnsp`, `nsp`,
   `absdiffcat`, and the shared partner types of directed networks (OTP,
   ITP, RTP, OSP, ISP) for every shared partner term.
 - **Bipartite networks**, with 18 terms (`b1star`, `b1degree`,

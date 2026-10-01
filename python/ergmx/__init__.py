@@ -14,6 +14,7 @@ from ._gof import GofResult, GofTable, gof
 from ._simulate import ergm, simulate, summary_stats
 from .formula import FormulaError, parse_formula
 from .terms import (
+    ErgmDifferenceWarning,
     F,
     Formula,
     Term,
@@ -83,6 +84,7 @@ __version__ = "0.1.0.dev0"
 __all__ = [
     "Control",
     "DegeneracyError",
+    "ErgmDifferenceWarning",
     "ErgmFit",
     "F",
     "FitSummary",

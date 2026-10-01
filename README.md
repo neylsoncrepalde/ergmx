@@ -161,7 +161,7 @@ results in `tests/data/r_reference.json`; the test suite compares.
 
 | Check | Result |
 |---|---|
-| Statistics of all 58 terms and both operators, 56 models | identical to R's `summary()` (1e-12), names included, except ergm's order-dependent edgewise RTP statistics, which match their definition computed in R |
+| Statistics of all 58 terms and both operators, 56 models | identical to R's `summary()` (1e-12), names included, except two statistics that ergm computes differently from its documentation, where ergmx follows the documentation: `transitive` and the edgewise RTP statistics (see [validation](docs/validation.md)) |
 | MPLE, 38 models | identical to R (1e-6; curved models 1e-3, with a pseudo-likelihood at least R's) |
 | Dyad-independent MLE, standard errors, log-likelihood and BIC (10 models, with offsets, `blocks`, missing dyads and bipartite networks) | identical to R (1e-6; SEs 1e-3, R's `glm` tolerance) |
 | Monte Carlo MLE, 7 models (4 undirected, 3 directed) x 3–10 seeds | within 0.12 standard errors of R; SEs within 0.89–1.12 of R's |

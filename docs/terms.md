@@ -90,10 +90,12 @@ only those is fitted exactly, by logistic regression.
 : Number of cyclic triples: $i \to j \to k \to i$. Name: `ctriple`.
 
 `transitive()`, directed
-: As computed by R's ergm 4.12: the number of transitive triples, the same
-  as `ttriple`. ergm documents it as the number of transitive *triads*
-  (types 030T, 120D, 120U and 300), which is a different statistic; ergmx
-  follows the computation, so that models give ergm's estimates. Name:
+: Number of transitive triads: triads of types 030T, 120D, 120U and 300 in
+  Davis and Leinhardt's (1972) census, those with at least one transitive
+  triple and no intransitive two-path. This is how ergm documents its
+  `transitive` term, but ergm 4.12 computes transitive triples instead, the
+  same as `ttriple`: use `ttriple` to reproduce ergm's results. Using
+  `transitive` warns with {class}`ergmx.ErgmDifferenceWarning`. Name:
   `transitive`.
 
 `cycle(k)`

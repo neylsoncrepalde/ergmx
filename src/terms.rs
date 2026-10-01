@@ -258,6 +258,95 @@ impl Term for DirectedTriangle {
     }
 }
 
+/// Number of transitive triads (directed networks): triads of types 030T,
+/// 120D, 120U and 300 in Davis and Leinhardt's (1972) census, those with at
+/// least one transitive triple and no open two-path. (R's ergm 4.12 documents
+/// its `transitive` term so, but computes transitive triples, as `ttriple`.)
+///
+/// Toggling i -> j only changes the triads {i, j, k} with k tied to i or j;
+/// each is classified from its six possible ties with a lookup table.
+struct TransitiveTriads {
+    /// Whether a triad is transitive, by its ties as bits: i->j, j->i, i->k,
+    /// k->i, j->k, k->j.
+    table: [bool; 64],
+}
+
+impl TransitiveTriads {
+    fn new() -> Self {
+        // tie(a, b) for the vertices 0 = i, 1 = j, 2 = k.
+        let bit = |a: usize, b: usize| match (a, b) {
+            (0, 1) => 0,
+            (1, 0) => 1,
+            (0, 2) => 2,
+            (2, 0) => 3,
+            (1, 2) => 4,
+            (2, 1) => 5,
+            _ => unreachable!(),
+        };
+        let mut table = [false; 64];
+        for (mask, transitive) in table.iter_mut().enumerate() {
+            let tie = |a, b| mask >> bit(a, b) & 1 == 1;
+            let (mut closed, mut open) = (false, false);
+            for (x, y, z) in [(0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0)] {
+                if tie(x, y) && tie(y, z) {
+                    if tie(x, z) { closed = true } else { open = true }
+                }
+            }
+            *transitive = closed && !open;
+        }
+        Self { table }
+    }
+}
+
+impl Term for TransitiveTriads {
+    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
+        let tied = (net.has_edge(i, j) as usize) | (net.has_edge(j, i) as usize) << 1;
+        let mut total = 0i64;
+        let mut visit = |k: u32| {
+            let rest = (net.has_edge(i, k) as usize) << 2
+                | (net.has_edge(k, i) as usize) << 3
+                | (net.has_edge(j, k) as usize) << 4
+                | (net.has_edge(k, j) as usize) << 5;
+            let (with, without) = (rest | tied | 1, rest | (tied & !1));
+            total += self.table[with] as i64 - self.table[without] as i64;
+        };
+        // The vertices tied to i or j, in either direction: a merge of two sorted lists.
+        let (ni, nj) = (net.neighbours(i), net.neighbours(j));
+        let (mut a, mut b) = (0, 0);
+        while a < ni.len() || b < nj.len() {
+            let k = match (ni.get(a), nj.get(b)) {
+                (Some(&x), Some(&y)) if x == y => {
+                    a += 1;
+                    b += 1;
+                    x
+                }
+                (Some(&x), Some(&y)) if x < y => {
+                    a += 1;
+                    x
+                }
+                (Some(_), Some(&y)) => {
+                    b += 1;
+                    y
+                }
+                (Some(&x), None) => {
+                    a += 1;
+                    x
+                }
+                (None, Some(&y)) => {
+                    b += 1;
+                    y
+                }
+                (None, None) => unreachable!(),
+            };
+            if k != i && k != j {
+                visit(k);
+            }
+        }
+        // `total` is the change from adding i -> j; removing it reverses it.
+        out[0] += if sign > 0.0 { total as f64 } else { -(total as f64) };
+    }
+}
+
 /// Number of 2-paths i -> j -> k with i != k (directed networks; kstar(2) if undirected).
 struct TwoPath;
 
@@ -579,10 +668,13 @@ fn build_term(n: usize, directed: bool, spec: &TermSpec) -> Result<Box<dyn Term>
         }
         "triangle" if directed => Box::new(DirectedTriangle),
         "triangle" => Box::new(Triangle),
-        // ergm's transitive counts transitive triples, as ttriple does.
-        "ttriple" | "transitive" => {
+        "ttriple" => {
             only(true)?;
             Box::new(TTriple)
+        }
+        "transitive" => {
+            only(true)?;
+            Box::new(TransitiveTriads::new())
         }
         "ctriple" => {
             only(true)?;

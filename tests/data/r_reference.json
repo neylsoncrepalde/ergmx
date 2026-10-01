@@ -41,7 +41,7 @@
       },
       "loglik": -50.7610235284313,
       "nobs": 120,
-      "seconds": 0.0210000000000001
+      "seconds": 0.0209999999999999
     },
     "flo_edgecov": {
       "network": "flomarriage",
@@ -113,7 +113,7 @@
       },
       "loglik": -54.0320435345241,
       "nobs": 120,
-      "seconds": 0.231
+      "seconds": 0.233
     },
     "flo_gwdegree": {
       "network": "flomarriage",
@@ -149,7 +149,7 @@
       },
       "loglik": -54.068740079075,
       "nobs": 120,
-      "seconds": 0.214
+      "seconds": 0.209
     },
     "samplk_mutual": {
       "network": "samplk3",
@@ -185,7 +185,7 @@
       },
       "loglik": -133.98562510637,
       "nobs": 306,
-      "seconds": 0.284
+      "seconds": 0.294
     },
     "mesa_gwesp": {
       "network": "faux.mesa.high",
@@ -236,7 +236,7 @@
       },
       "loglik": -867.557609659408,
       "nobs": 20910,
-      "seconds": 18.614
+      "seconds": 18.734
     },
     "mesa_gwdegree": {
       "network": "faux.mesa.high",
@@ -287,7 +287,7 @@
       },
       "loglik": -866.012346547627,
       "nobs": 20910,
-      "seconds": 8.928
+      "seconds": 9.062
     },
     "mesa_terms": {
       "network": "faux.mesa.high",
@@ -513,7 +513,7 @@
       },
       "loglik": -5124.51287371576,
       "nobs": 61256,
-      "seconds": 0.825000000000003
+      "seconds": 0.832999999999998
     },
     "samplk_gwesp": {
       "network": "samplk3",
@@ -554,7 +554,7 @@
       },
       "loglik": -131.36062013783,
       "nobs": 306,
-      "seconds": 1.181
+      "seconds": 1.182
     },
     "dixon_gwesp": {
       "network": "faux.dixon.high",
@@ -605,7 +605,7 @@
       },
       "loglik": -4206.09836270207,
       "nobs": 61256,
-      "seconds": 130.21
+      "seconds": 130.432
     },
     "mesa_terms2": {
       "network": "faux.mesa.high",
@@ -903,7 +903,7 @@
       },
       "loglik": -871.301000661384,
       "nobs": 20910,
-      "seconds": 12.644
+      "seconds": 12.698
     },
     "mesa_F": {
       "network": "faux.mesa.high",
@@ -949,7 +949,7 @@
       },
       "loglik": -894.461634466298,
       "nobs": 20910,
-      "seconds": 13.576
+      "seconds": 13.612
     },
     "mesa_esp": {
       "network": "faux.mesa.high",
@@ -995,7 +995,7 @@
       },
       "loglik": -887.866214926062,
       "nobs": 20910,
-      "seconds": 3.42399999999998
+      "seconds": 3.423
     },
     "samplk_bd": {
       "network": "samplk3",
@@ -1026,7 +1026,7 @@
       },
       "loglik": 17.8427864007292,
       "nobs": 306,
-      "seconds": 0.180000000000007
+      "seconds": 0.183999999999997
     },
     "mesa_blocks_dyadind": {
       "network": "faux.mesa.high",
@@ -1103,7 +1103,7 @@
       },
       "loglik": -598.689896411797,
       "nobs": 4174,
-      "seconds": 8.279
+      "seconds": 8.36599999999999
     },
     "mesa_degrees": {
       "network": "faux.mesa.high",
@@ -1134,7 +1134,7 @@
       },
       "loglik": 252.501839209832,
       "nobs": 20910,
-      "seconds": 5.55000000000001
+      "seconds": 5.59100000000001
     },
     "samplk_odegrees": {
       "network": "samplk3",
@@ -1165,7 +1165,7 @@
       },
       "loglik": 22.1304939016467,
       "nobs": 306,
-      "seconds": 0.449000000000012
+      "seconds": 0.453000000000003
     },
     "samplk_degrees": {
       "network": "samplk3",
@@ -1196,7 +1196,7 @@
       },
       "loglik": 23.572417419548,
       "nobs": 306,
-      "seconds": 0.599000000000018
+      "seconds": 0.578000000000003
     },
     "linked_mix": {
       "network": "linked_sim",
@@ -1237,7 +1237,7 @@
       },
       "loglik": -2323.55276293794,
       "nobs": 11175,
-      "seconds": 0.0240000000000009
+      "seconds": 0.0229999999999961
     },
     "linked_multilevel": {
       "network": "linked_sim",
@@ -1283,7 +1283,7 @@
       },
       "loglik": -2323.33875872408,
       "nobs": 11175,
-      "seconds": 2.55200000000002
+      "seconds": 2.54499999999999
     },
     "linked_blocks": {
       "network": "linked_sim",
@@ -1324,7 +1324,7 @@
       },
       "loglik": -1461.57097284041,
       "nobs": 6175,
-      "seconds": 1.34999999999999
+      "seconds": 1.32999999999998
     },
     "mesa_terms3": {
       "network": "faux.mesa.high",
@@ -1558,7 +1558,7 @@
     },
     "dixon_terms3": {
       "network": "faux.dixon.high",
-      "formula": "cycle(2:4) + transitive + twopath + asymmetric + gwnsp(0.5, fixed=TRUE) + dsp(0:2, type='RTP') + gwdsp(0.5, fixed=TRUE, type='RTP') + esp(0:3, type='ITP') + gwesp(0.5, fixed=TRUE, type='ITP') + esp(0:3, type='OSP') + dsp(0:2, type='OSP') + gwesp(0.5, fixed=TRUE, type='OSP') + gwnsp(0.5, fixed=TRUE, type='OSP') + esp(0:3, type='ISP') + dsp(0:2, type='ISP') + gwdsp(0.5, fixed=TRUE, type='ISP') + nsp(1, type='ITP')",
+      "formula": "cycle(2:4) + twopath + asymmetric + gwnsp(0.5, fixed=TRUE) + dsp(0:2, type='RTP') + gwdsp(0.5, fixed=TRUE, type='RTP') + esp(0:3, type='ITP') + gwesp(0.5, fixed=TRUE, type='ITP') + esp(0:3, type='OSP') + dsp(0:2, type='OSP') + gwesp(0.5, fixed=TRUE, type='OSP') + gwnsp(0.5, fixed=TRUE, type='OSP') + esp(0:3, type='ISP') + dsp(0:2, type='ISP') + gwdsp(0.5, fixed=TRUE, type='ISP') + nsp(1, type='ITP')",
       "checks": [
         "stats"
       ],
@@ -1569,7 +1569,6 @@
         "cycle2": 219,
         "cycle3": 341,
         "cycle4": 1026,
-        "transitive": 1254,
         "twopath": 8006,
         "asymmetric": 759,
         "gwnsp.OTP.fixed.0.5": 5873.14607109669,
@@ -1756,7 +1755,7 @@
       },
       "loglik": -968.15013958721,
       "nobs": 20910,
-      "seconds": 0.0240000000000009
+      "seconds": 0.0239999999999725
     },
     "mesa_concurrent": {
       "network": "faux.mesa.high",
@@ -1795,7 +1794,7 @@
       },
       "loglik": -868.887405935006,
       "nobs": 20910,
-      "seconds": 8.55799999999999
+      "seconds": 8.56400000000002
     },
     "samplk_osp": {
       "network": "samplk3",
@@ -1836,7 +1835,7 @@
       },
       "loglik": -130.72096399524,
       "nobs": 306,
-      "seconds": 0.837999999999994
+      "seconds": 0.885999999999996
     },
     "samplk_twopath": {
       "network": "samplk3",
@@ -1877,7 +1876,7 @@
       },
       "loglik": -130.725977541971,
       "nobs": 306,
-      "seconds": 0.244999999999976
+      "seconds": 0.262
     },
     "davis_terms": {
       "network": "davis",
@@ -1996,7 +1995,7 @@
       },
       "loglik": -410.790218041907,
       "nobs": 2400,
-      "seconds": 0.0290000000000248
+      "seconds": 0.0279999999999916
     },
     "bipartite_gw": {
       "network": "bipartite_sim",
@@ -2047,7 +2046,7 @@
       },
       "loglik": -412.775771108326,
       "nobs": 2400,
-      "seconds": 0.240000000000009
+      "seconds": 0.247000000000014
     },
     "bipartite_match": {
       "network": "bipartite_sim",
@@ -2088,7 +2087,7 @@
       },
       "loglik": -424.900980434804,
       "nobs": 2400,
-      "seconds": 0.211999999999989
+      "seconds": 0.213999999999999
     },
     "bipartite_dsp": {
       "network": "bipartite_sim",
@@ -2170,7 +2169,7 @@
       },
       "loglik": -160.751678720953,
       "nobs": 252,
-      "seconds": 0.341000000000008
+      "seconds": 0.349999999999994
     },
     "mesa_curved_mple": {
       "network": "faux.mesa.high",
@@ -2292,7 +2291,7 @@
       },
       "loglik": -867.543918475316,
       "nobs": 20910,
-      "seconds": 17.068
+      "seconds": 17.065
     },
     "bipartite_curved": {
       "network": "bipartite_sim",
@@ -2371,7 +2370,7 @@
       },
       "loglik": -412.979790952134,
       "nobs": 2400,
-      "seconds": 0.222999999999985
+      "seconds": 0.225000000000023
     },
     "flo_curved": {
       "network": "flomarriage",
@@ -2480,7 +2479,7 @@
       },
       "loglik": -4207.21600557685,
       "nobs": 61256,
-      "seconds": 175.556
+      "seconds": 175.576
     },
     "samplk_missing": {
       "network": "samplk3.nonresponse",
@@ -2511,7 +2510,7 @@
       },
       "loglik": -124.621398261725,
       "nobs": 272,
-      "seconds": 0.385000000000048
+      "seconds": 0.384999999999991
     },
     "mesa_missing_dyadind": {
       "network": "faux.mesa.high.missing",
@@ -2552,7 +2551,7 @@
       },
       "loglik": -907.45973068687,
       "nobs": 19864,
-      "seconds": 0.0449999999999591
+      "seconds": 0.049000000000035
     },
     "mesa_missing": {
       "network": "faux.mesa.high.missing",
@@ -2591,13 +2590,27 @@
       },
       "loglik": -824.162129900173,
       "nobs": 19864,
-      "seconds": 15.63
+      "seconds": 15.662
     }
   },
-  "rtp_direct": {
-    "esp": [847, 309, 39, 2],
-    "gwesp": 366.441879195274,
-    "summary_original": [889, 269, 37, 2],
-    "summary_relabeled": [886, 273, 36, 2]
+  "ergm_differences": {
+    "rtp": {
+      "esp": [847, 309, 39, 2],
+      "gwesp": 366.441879195274,
+      "summary_original": [889, 269, 37, 2],
+      "summary_relabeled": [886, 273, 36, 2]
+    },
+    "transitive": {
+      "samplk3": {
+        "ergm_transitive": 49,
+        "ttriple": 49,
+        "triads": 13
+      },
+      "faux.dixon.high": {
+        "ergm_transitive": 1254,
+        "ttriple": 1254,
+        "triads": 371
+      }
+    }
   }
 }
