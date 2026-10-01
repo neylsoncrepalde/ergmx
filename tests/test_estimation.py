@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from conftest import REFERENCE, load, models_with
+from conftest import REFERENCE, estimated, load, models_with, options
 
 import ergmx
 
@@ -13,7 +13,7 @@ INDEPENDENT = [name for name in FITTED if REFERENCE[name]["dyad_independent"]]
 def test_mple_matches_r(name):
     model = REFERENCE[name]
     g = load(model["network"])
-    fit = ergmx.ergm(g, model["formula"], estimate="MPLE")
+    fit = ergmx.ergm(g, model["formula"], estimate="MPLE", **options(model))
     assert fit.names == list(model["mple"])
     np.testing.assert_allclose(list(fit.mple.values()), list(model["mple"].values()),
                                rtol=1e-6, atol=1e-8)
@@ -22,22 +22,26 @@ def test_mple_matches_r(name):
 @pytest.mark.parametrize("name", INDEPENDENT)
 def test_dyad_independent_models_get_the_exact_mle(name):
     model = REFERENCE[name]
-    fit = ergmx.ergm(load(model["network"]), model["formula"])
+    fit = ergmx.ergm(load(model["network"]), model["formula"], **options(model))
     assert fit.method == "MLE"
     np.testing.assert_allclose(list(fit.coef.values()), list(model["mle"].values()), rtol=1e-6)
     # R's glm stops at a relative deviance change of 1e-8: its SEs are accurate to ~1e-4.
-    np.testing.assert_allclose(list(fit.stderr.values()), list(model["se"].values()), rtol=1e-4)
+    terms = estimated(model)
+    np.testing.assert_allclose([fit.stderr[t] for t in terms], [model["se"][t] for t in terms],
+                               rtol=1e-4)
     assert fit.loglik == pytest.approx(model["loglik"], rel=1e-9)
-    assert fit.aic == pytest.approx(-2 * model["loglik"] + 2 * len(fit.names))
+    assert fit.aic == pytest.approx(-2 * model["loglik"] + 2 * len(terms))
+    assert fit.bic == pytest.approx(-2 * model["loglik"] + np.log(model["nobs"]) * len(terms))
 
 
 @pytest.mark.parametrize("name", DEPENDENT)
 def test_monte_carlo_mle_matches_r(name):
     model = REFERENCE[name]
-    fit = ergmx.ergm(load(model["network"]), model["formula"], seed=2026, eval_loglik=False)
+    fit = ergmx.ergm(load(model["network"]), model["formula"], seed=2026, eval_loglik=False,
+                     **options(model))
     assert fit.method == "MCMLE" and fit.converged
-    for term, r_estimate in model["mle"].items():
-        r_se = model["se"][term]
+    for term in estimated(model):
+        r_estimate, r_se = model["mle"][term], model["se"][term]
         assert abs(fit.coef[term] - r_estimate) < 0.25 * r_se, term
         assert fit.stderr[term] == pytest.approx(r_se, rel=0.2), term
 

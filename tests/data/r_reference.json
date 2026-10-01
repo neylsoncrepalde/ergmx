@@ -10,6 +10,8 @@
         "mple",
         "mle"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 20,
         "nodecov.wealth": 2168,
@@ -37,7 +39,8 @@
         "absdiff.wealth": 0
       },
       "loglik": -50.7610235284313,
-      "seconds": 0.0329999999999999
+      "nobs": 120,
+      "seconds": 0.022
     },
     "flo_edgecov": {
       "network": "flomarriage",
@@ -47,6 +50,8 @@
         "mple",
         "mle"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 20,
         "edgecov.business": 8
@@ -69,7 +74,8 @@
         "edgecov.business": 0
       },
       "loglik": -47.6790537455384,
-      "seconds": 0.0229999999999999
+      "nobs": 120,
+      "seconds": 0.0190000000000001
     },
     "flo_triangle": {
       "network": "flomarriage",
@@ -79,6 +85,8 @@
         "mple",
         "mle"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 20,
         "triangle": 3
@@ -101,7 +109,8 @@
         "triangle": 0
       },
       "loglik": -54.0320435345241,
-      "seconds": 0.307
+      "nobs": 120,
+      "seconds": 0.235
     },
     "flo_gwdegree": {
       "network": "flomarriage",
@@ -111,6 +120,8 @@
         "mple",
         "mle"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 20,
         "gwdeg.fixed.0.25": 17.9089460794447
@@ -133,7 +144,8 @@
         "gwdeg.fixed.0.25": 0
       },
       "loglik": -54.068740079075,
-      "seconds": 0.281
+      "nobs": 120,
+      "seconds": 0.211
     },
     "samplk_mutual": {
       "network": "samplk3",
@@ -143,6 +155,8 @@
         "mple",
         "mle"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 56,
         "mutual": 15
@@ -165,7 +179,8 @@
         "mutual": 0
       },
       "loglik": -133.98562510637,
-      "seconds": 0.344
+      "nobs": 306,
+      "seconds": 0.289
     },
     "mesa_gwesp": {
       "network": "faux.mesa.high",
@@ -175,6 +190,8 @@
         "mple",
         "mle"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 203,
         "nodefactor.Sex.M": 171,
@@ -212,7 +229,8 @@
         "gwesp.fixed.0.5": 0
       },
       "loglik": -867.557609659408,
-      "seconds": 21.443
+      "nobs": 20910,
+      "seconds": 18.696
     },
     "mesa_gwdegree": {
       "network": "faux.mesa.high",
@@ -222,6 +240,8 @@
         "mple",
         "mle"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 203,
         "nodematch.Grade": 163,
@@ -259,7 +279,8 @@
         "gwesp.fixed.0.5": 0
       },
       "loglik": -866.012346547627,
-      "seconds": 10.238
+      "nobs": 20910,
+      "seconds": 8.967
     },
     "mesa_terms": {
       "network": "faux.mesa.high",
@@ -267,6 +288,8 @@
       "checks": [
         "stats"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 203,
         "kstar2": 659,
@@ -289,6 +312,8 @@
         "stats",
         "mple"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 203,
         "kstar2": 659,
@@ -322,6 +347,8 @@
       "checks": [
         "stats"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 1197,
         "mutual": 219,
@@ -356,6 +383,8 @@
         "stats",
         "mple"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 1197,
         "mutual": 219,
@@ -387,6 +416,8 @@
         "mple",
         "mle"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 1197,
         "nodeicov.grade": 11123,
@@ -469,7 +500,8 @@
         "edgecov.asym": 0
       },
       "loglik": -5124.51287371576,
-      "seconds": 0.942
+      "nobs": 61256,
+      "seconds": 0.829999999999998
     },
     "samplk_gwesp": {
       "network": "samplk3",
@@ -479,6 +511,8 @@
         "mple",
         "mle"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 56,
         "mutual": 15,
@@ -506,7 +540,8 @@
         "gwesp.OTP.fixed.0.5": 0
       },
       "loglik": -131.36062013783,
-      "seconds": 1.384
+      "nobs": 306,
+      "seconds": 1.176
     },
     "dixon_gwesp": {
       "network": "faux.dixon.high",
@@ -516,6 +551,8 @@
         "mple",
         "mle"
       ],
+      "constraints": {},
+      "offset_coef": {},
       "stats": {
         "edges": 1197,
         "mutual": 219,
@@ -553,7 +590,817 @@
         "gwesp.OTP.fixed.0.1": 0
       },
       "loglik": -4206.09836270207,
-      "seconds": 149.153
+      "nobs": 61256,
+      "seconds": 134.727
+    },
+    "mesa_terms2": {
+      "network": "faux.mesa.high",
+      "formula": "nodemix('Race') + nodemix('Grade', levels2=TRUE) + nodemix('Race', levels=c('White', 'Hisp'), levels2=TRUE) + degree(0:3) + isolates + esp(0:3) + dsp(0:2) + F(~gwesp(0.5, fixed=TRUE), ~nodematch('Grade')) + F(~edges + triangle, ~!nodematch('Race')) + offset(edges)",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "stats": {
+        "mix.Race.Black.Hisp": 8,
+        "mix.Race.Hisp.Hisp": 53,
+        "mix.Race.Black.NatAm": 13,
+        "mix.Race.Hisp.NatAm": 41,
+        "mix.Race.NatAm.NatAm": 46,
+        "mix.Race.Black.Other": 0,
+        "mix.Race.Hisp.Other": 1,
+        "mix.Race.NatAm.Other": 0,
+        "mix.Race.Other.Other": 0,
+        "mix.Race.Black.White": 5,
+        "mix.Race.Hisp.White": 22,
+        "mix.Race.NatAm.White": 10,
+        "mix.Race.Other.White": 0,
+        "mix.Race.White.White": 4,
+        "mix.Grade.7.7": 75,
+        "mix.Grade.7.8": 0,
+        "mix.Grade.8.8": 33,
+        "mix.Grade.7.9": 0,
+        "mix.Grade.8.9": 2,
+        "mix.Grade.9.9": 23,
+        "mix.Grade.7.10": 1,
+        "mix.Grade.8.10": 4,
+        "mix.Grade.9.10": 7,
+        "mix.Grade.10.10": 9,
+        "mix.Grade.7.11": 1,
+        "mix.Grade.8.11": 2,
+        "mix.Grade.9.11": 6,
+        "mix.Grade.10.11": 1,
+        "mix.Grade.11.11": 17,
+        "mix.Grade.7.12": 1,
+        "mix.Grade.8.12": 1,
+        "mix.Grade.9.12": 4,
+        "mix.Grade.10.12": 5,
+        "mix.Grade.11.12": 5,
+        "mix.Grade.12.12": 6,
+        "mix.Race.White.White.1": 4,
+        "mix.Race.White.Hisp": 22,
+        "mix.Race.Hisp.Hisp.1": 53,
+        "degree0": 57,
+        "degree1": 51,
+        "degree2": 30,
+        "degree3": 28,
+        "isolates": 57,
+        "esp0": 83,
+        "esp1": 70,
+        "esp2": 36,
+        "esp3": 13,
+        "dsp0": 20379,
+        "dsp1": 431,
+        "dsp2": 75,
+        "F(nodematch(\"Grade\"))~gwesp.fixed.0.5": 116.410171390393,
+        "F(!nodematch(\"Race\"))~edges": 100,
+        "F(!nodematch(\"Race\"))~triangle": 12,
+        "offset(edges)": 203
+      }
+    },
+    "dixon_terms2": {
+      "network": "faux.dixon.high",
+      "formula": "nodemix('race') + nodemix('sex', levels2=TRUE) + idegree(0:2) + odegree(0:3) + isolates + esp(0:2) + dsp(0:2) + gwdsp(0.5, fixed=TRUE) + F(~mutual + ttriple, ~nodematch('sex'))",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "stats": {
+        "mix.race.H.B": 12,
+        "mix.race.O.B": 16,
+        "mix.race.W.B": 33,
+        "mix.race.B.H": 13,
+        "mix.race.H.H": 0,
+        "mix.race.O.H": 12,
+        "mix.race.W.H": 35,
+        "mix.race.B.O": 19,
+        "mix.race.H.O": 10,
+        "mix.race.O.O": 5,
+        "mix.race.W.O": 29,
+        "mix.race.B.W": 49,
+        "mix.race.H.W": 29,
+        "mix.race.O.W": 28,
+        "mix.race.W.W": 577,
+        "mix.sex.1.1": 311,
+        "mix.sex.2.1": 263,
+        "mix.sex.1.2": 253,
+        "mix.sex.2.2": 370,
+        "idegree0": 19,
+        "idegree1": 29,
+        "idegree2": 30,
+        "odegree0": 50,
+        "odegree1": 8,
+        "odegree2": 19,
+        "odegree3": 30,
+        "isolates": 9,
+        "esp.OTP0": 370,
+        "esp.OTP1": 516,
+        "esp.OTP2": 222,
+        "dsp.OTP0": 55010,
+        "dsp.OTP1": 4871,
+        "dsp.OTP2": 1077,
+        "gwdsp.OTP.fixed.0.5": 6837.82774313541,
+        "F(nodematch(\"sex\"))~mutual": 130,
+        "F(nodematch(\"sex\"))~ttriple": 477
+      }
+    },
+    "mesa_mple2": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodemix('Sex') + degree(1) + esp(1) + F(~gwesp(0.5, fixed=TRUE), ~nodematch('Grade'))",
+      "checks": [
+        "stats",
+        "mple"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "stats": {
+        "edges": 203,
+        "mix.Sex.F.M": 71,
+        "mix.Sex.M.M": 50,
+        "degree1": 51,
+        "esp1": 70,
+        "F(nodematch(\"Grade\"))~gwesp.fixed.0.5": 116.410171390393
+      },
+      "mple": {
+        "edges": -4.97365659809667,
+        "mix.Sex.F.M": -0.491526329011256,
+        "mix.Sex.M.M": -0.14626145986416,
+        "degree1": 0.0929797675998605,
+        "esp1": 0.0472882455896563,
+        "F(nodematch(\"Grade\"))~gwesp.fixed.0.5": 1.62314244595733
+      }
+    },
+    "dixon_mple2": {
+      "network": "faux.dixon.high",
+      "formula": "edges + mutual + idegree(1) + odegree(0:1) + isolates + esp(1) + dsp(1) + gwdsp(0.5, fixed=TRUE) + nodemix('sex')",
+      "checks": [
+        "stats",
+        "mple"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "stats": {
+        "edges": 1197,
+        "mutual": 219,
+        "idegree1": 29,
+        "odegree0": 50,
+        "odegree1": 8,
+        "isolates": 9,
+        "esp.OTP1": 516,
+        "dsp.OTP1": 4871,
+        "gwdsp.OTP.fixed.0.5": 6837.82774313541,
+        "mix.sex.2.1": 263,
+        "mix.sex.1.2": 253,
+        "mix.sex.2.2": 370
+      },
+      "mple": {
+        "edges": -4.54755731653271,
+        "mutual": 2.91297593229561,
+        "idegree1": -0.0775459679295053,
+        "odegree0": 2.17941022771908,
+        "odegree1": -0.522919024381527,
+        "isolates": -0.38117235361768,
+        "esp.OTP1": 0.749269127198103,
+        "dsp.OTP1": -0.298117637600954,
+        "gwdsp.OTP.fixed.0.5": 0.231826941821284,
+        "mix.sex.2.1": -0.0734236098654504,
+        "mix.sex.1.2": -0.0882585384159416,
+        "mix.sex.2.2": 0.183037299958793
+      }
+    },
+    "mesa_nodemix": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodemix('Sex')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "stats": {
+        "edges": 203,
+        "mix.Sex.F.M": 71,
+        "mix.Sex.M.M": 50
+      },
+      "mple": {
+        "edges": -4.06317267103348,
+        "mix.Sex.F.M": -0.925917628966619,
+        "mix.Sex.M.M": -0.640031254953361
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -4.06317267103348,
+        "mix.Sex.F.M": -0.925917628966619,
+        "mix.Sex.M.M": -0.640031254953361
+      },
+      "se": {
+        "edges": 0.111376826441217,
+        "mix.Sex.F.M": 0.163045640894204,
+        "mix.Sex.M.M": 0.180514969331417
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "mix.Sex.F.M": 0,
+        "mix.Sex.M.M": 0
+      },
+      "loglik": -1126.73397689881,
+      "nobs": 20910,
+      "seconds": 0.0579999999999927
+    },
+    "flo_offset": {
+      "network": "flomarriage",
+      "formula": "offset(edges) + nodecov('wealth')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": -2.6,
+      "stats": {
+        "offset(edges)": 20,
+        "nodecov.wealth": 2168
+      },
+      "mple": {
+        "offset(edges)": -2.6,
+        "nodecov.wealth": 0.0105849795585387
+      },
+      "dyad_independent": true,
+      "mle": {
+        "offset(edges)": -2.6,
+        "nodecov.wealth": 0.0105849795585387
+      },
+      "se": {
+        "offset(edges)": 0,
+        "nodecov.wealth": 0.00218782291074846
+      },
+      "mcmc_pct": {
+        "offset(edges)": 0,
+        "nodecov.wealth": 0
+      },
+      "loglik": -51.5543309118758,
+      "nobs": 120,
+      "seconds": 0.0440000000000111
+    },
+    "mesa_offset": {
+      "network": "faux.mesa.high",
+      "formula": "offset(edges) + nodematch('Grade') + gwesp(0.5, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": -6.2,
+      "stats": {
+        "offset(edges)": 203,
+        "nodematch.Grade": 163,
+        "gwesp.fixed.0.5": 141.925805553864
+      },
+      "mple": {
+        "offset(edges)": -6.2,
+        "nodematch.Grade": 1.96721432111285,
+        "gwesp.fixed.0.5": 1.351626927463
+      },
+      "dyad_independent": false,
+      "mle": {
+        "offset(edges)": -6.2,
+        "nodematch.Grade": 1.96525085939008,
+        "gwesp.fixed.0.5": 1.25447445043139
+      },
+      "se": {
+        "offset(edges)": 0,
+        "nodematch.Grade": 0.121403888484197,
+        "gwesp.fixed.0.5": 0.08235932706196
+      },
+      "mcmc_pct": {
+        "offset(edges)": 0,
+        "nodematch.Grade": 0,
+        "gwesp.fixed.0.5": 0
+      },
+      "loglik": -871.301000661384,
+      "nobs": 20910,
+      "seconds": 16.737
+    },
+    "mesa_F": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodematch('Grade') + nodematch('Race') + F(~gwesp(0.5, fixed=TRUE), ~nodematch('Grade'))",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "stats": {
+        "edges": 203,
+        "nodematch.Grade": 163,
+        "nodematch.Race": 103,
+        "F(nodematch(\"Grade\"))~gwesp.fixed.0.5": 116.410171390393
+      },
+      "mple": {
+        "edges": -6.22707047638825,
+        "nodematch.Grade": 1.99999843660109,
+        "nodematch.Race": 0.429982623862611,
+        "F(nodematch(\"Grade\"))~gwesp.fixed.0.5": 1.20668019126134
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -6.16501338014215,
+        "nodematch.Grade": 2.00266784527826,
+        "nodematch.Race": 0.297895577960864,
+        "F(nodematch(\"Grade\"))~gwesp.fixed.0.5": 1.09882867086496
+      },
+      "se": {
+        "edges": 0.165876361748918,
+        "nodematch.Grade": 0.197281252392208,
+        "nodematch.Race": 0.119336876875959,
+        "F(nodematch(\"Grade\"))~gwesp.fixed.0.5": 0.08620247008694
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodematch.Grade": 0,
+        "nodematch.Race": 0,
+        "F(nodematch(\"Grade\"))~gwesp.fixed.0.5": 0
+      },
+      "loglik": -894.461634466298,
+      "nobs": 20910,
+      "seconds": 16.695
+    },
+    "mesa_esp": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodematch('Grade') + esp(1:2)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "stats": {
+        "edges": 203,
+        "nodematch.Grade": 163,
+        "esp1": 70,
+        "esp2": 36
+      },
+      "mple": {
+        "edges": -6.13860348576545,
+        "nodematch.Grade": 2.43375954710768,
+        "esp1": 1.00887224491168,
+        "esp2": 1.60215343559435
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -6.19128576163566,
+        "nodematch.Grade": 2.1108345271804,
+        "esp1": 1.15225613161403,
+        "esp2": 1.93298173854813
+      },
+      "se": {
+        "edges": 0.146740568888179,
+        "nodematch.Grade": 0.172159223553171,
+        "esp1": 0.138353663459182,
+        "esp2": 0.156501004110388
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodematch.Grade": 0,
+        "esp1": 0,
+        "esp2": 0
+      },
+      "loglik": -887.866214926062,
+      "nobs": 20910,
+      "seconds": 3.68899999999999
+    },
+    "samplk_bd": {
+      "network": "samplk3",
+      "formula": "edges + mutual",
+      "checks": [
+        "stats",
+        "mle"
+      ],
+      "constraints": "bd(maxout=4)",
+      "offset_coef": {},
+      "stats": {
+        "edges": 56,
+        "mutual": 15
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -1.63724580890771,
+        "mutual": 2.31688029370789
+      },
+      "se": {
+        "edges": 0.312207623720281,
+        "mutual": 0.49929937392204
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "mutual": 0
+      },
+      "loglik": 17.8427864007292,
+      "nobs": 306,
+      "seconds": 0.188999999999993
+    },
+    "mesa_blocks_dyadind": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodematch('Race')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": "blocks('Grade', levels2=-1)",
+      "offset_coef": {},
+      "stats": {
+        "edges": 203,
+        "nodematch.Race": 103
+      },
+      "mple": {
+        "edges": -3.24419363211893,
+        "nodematch.Race": 0.123298215788611
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -3.24419363211893,
+        "nodematch.Race": 0.123298215788611
+      },
+      "se": {
+        "edges": 0.163217781738775,
+        "nodematch.Race": 0.235887238175504
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodematch.Race": 0
+      },
+      "loglik": -315.40927899435,
+      "nobs": 1891,
+      "seconds": 0.0249999999999773
+    },
+    "mesa_blocks": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodematch('Race') + gwesp(0.5, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": "blocks('Grade', levels2=-c(1, 3, 6, 10, 15, 21))",
+      "offset_coef": {},
+      "stats": {
+        "edges": 203,
+        "nodematch.Race": 103,
+        "gwesp.fixed.0.5": 141.925805553864
+      },
+      "mple": {
+        "edges": -4.22646814717693,
+        "nodematch.Race": 0.27586861103554,
+        "gwesp.fixed.0.5": 1.25554698866985
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -4.22633101570108,
+        "nodematch.Race": 0.167284120395458,
+        "gwesp.fixed.0.5": 1.19343202881349
+      },
+      "se": {
+        "edges": 0.129745315232805,
+        "nodematch.Race": 0.129447617052605,
+        "gwesp.fixed.0.5": 0.0833532638213853
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodematch.Race": 0,
+        "gwesp.fixed.0.5": 0
+      },
+      "loglik": -598.689896411797,
+      "nobs": 4174,
+      "seconds": 8.48599999999999
+    },
+    "mesa_degrees": {
+      "network": "faux.mesa.high",
+      "formula": "nodematch('Grade') + gwesp(0.5, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mle"
+      ],
+      "constraints": "degrees",
+      "offset_coef": {},
+      "stats": {
+        "nodematch.Grade": 163,
+        "gwesp.fixed.0.5": 141.925805553864
+      },
+      "dyad_independent": false,
+      "mle": {
+        "nodematch.Grade": 2.19525877556458,
+        "gwesp.fixed.0.5": 1.37528257007243
+      },
+      "se": {
+        "nodematch.Grade": 0.157174485573973,
+        "gwesp.fixed.0.5": 0.128550376253763
+      },
+      "mcmc_pct": {
+        "nodematch.Grade": 0,
+        "gwesp.fixed.0.5": 0
+      },
+      "loglik": 252.501839209832,
+      "nobs": 20910,
+      "seconds": 5.53900000000002
+    },
+    "samplk_odegrees": {
+      "network": "samplk3",
+      "formula": "mutual + ttriple",
+      "checks": [
+        "stats",
+        "mle"
+      ],
+      "constraints": "odegrees",
+      "offset_coef": {},
+      "stats": {
+        "mutual": 15,
+        "ttriple": 49
+      },
+      "dyad_independent": false,
+      "mle": {
+        "mutual": 2.09174691015042,
+        "ttriple": 0.556313110395862
+      },
+      "se": {
+        "mutual": 0.487101981568487,
+        "ttriple": 0.104883385244728
+      },
+      "mcmc_pct": {
+        "mutual": 0,
+        "ttriple": 0
+      },
+      "loglik": 22.1304939016467,
+      "nobs": 306,
+      "seconds": 0.455999999999989
+    },
+    "samplk_degrees": {
+      "network": "samplk3",
+      "formula": "mutual + ttriple",
+      "checks": [
+        "stats",
+        "mle"
+      ],
+      "constraints": "degrees",
+      "offset_coef": {},
+      "stats": {
+        "mutual": 15,
+        "ttriple": 49
+      },
+      "dyad_independent": false,
+      "mle": {
+        "mutual": 2.16511703639764,
+        "ttriple": 0.607385881349567
+      },
+      "se": {
+        "mutual": 0.572401450486394,
+        "ttriple": 0.123320258691576
+      },
+      "mcmc_pct": {
+        "mutual": 0,
+        "ttriple": 0
+      },
+      "loglik": 23.572417419548,
+      "nobs": 306,
+      "seconds": 0.582999999999998
+    },
+    "linked_mix": {
+      "network": "linked_sim",
+      "formula": "nodemix('type', levels2=TRUE)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "stats": {
+        "mix.type.FALSE.FALSE": 304,
+        "mix.type.FALSE.TRUE": 207,
+        "mix.type.TRUE.TRUE": 89
+      },
+      "mple": {
+        "mix.type.FALSE.FALSE": -2.7267342119178,
+        "mix.type.FALSE.TRUE": -3.1421930050785,
+        "mix.type.TRUE.TRUE": -2.5466322295487
+      },
+      "dyad_independent": true,
+      "mle": {
+        "mix.type.FALSE.FALSE": -2.7267342119178,
+        "mix.type.FALSE.TRUE": -3.1421930050785,
+        "mix.type.TRUE.TRUE": -2.5466322295487
+      },
+      "se": {
+        "mix.type.FALSE.FALSE": 0.0592005145350157,
+        "mix.type.FALSE.TRUE": 0.0709884534619755,
+        "mix.type.TRUE.TRUE": 0.110073742161156
+      },
+      "mcmc_pct": {
+        "mix.type.FALSE.FALSE": 0,
+        "mix.type.FALSE.TRUE": 0,
+        "mix.type.TRUE.TRUE": 0
+      },
+      "loglik": -2323.55276293794,
+      "nobs": 11175,
+      "seconds": 0.0240000000000009
+    },
+    "linked_multilevel": {
+      "network": "linked_sim",
+      "formula": "nodemix('level', levels2=TRUE) + F(~gwesp(0.5, fixed=TRUE), ~nodematch('level'))",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "stats": {
+        "mix.level.individual.individual": 304,
+        "mix.level.individual.organization": 207,
+        "mix.level.organization.organization": 89,
+        "F(nodematch(\"level\"))~gwesp.fixed.0.5": 133.214349334352
+      },
+      "mple": {
+        "mix.level.individual.individual": -2.7864078310578,
+        "mix.level.individual.organization": -3.1421930050785,
+        "mix.level.organization.organization": -2.58691210159638,
+        "F(nodematch(\"level\"))~gwesp.fixed.0.5": 0.062112616915513
+      },
+      "dyad_independent": false,
+      "mle": {
+        "mix.level.individual.individual": -2.76247791615061,
+        "mix.level.individual.organization": -3.13682427407416,
+        "mix.level.organization.organization": -2.56948354447321,
+        "F(nodematch(\"level\"))~gwesp.fixed.0.5": 0.0382065930426138
+      },
+      "se": {
+        "mix.level.individual.individual": 0.0779803661531048,
+        "mix.level.individual.organization": 0.0737217790754316,
+        "mix.level.organization.organization": 0.115126193172888,
+        "F(nodematch(\"level\"))~gwesp.fixed.0.5": 0.0579590885907751
+      },
+      "mcmc_pct": {
+        "mix.level.individual.individual": 0,
+        "mix.level.individual.organization": 0,
+        "mix.level.organization.organization": 0,
+        "F(nodematch(\"level\"))~gwesp.fixed.0.5": 0
+      },
+      "loglik": -2323.33875872408,
+      "nobs": 11175,
+      "seconds": 2.547
+    },
+    "linked_blocks": {
+      "network": "linked_sim",
+      "formula": "nodemix('level', levels2=c(1, 3)) + F(~gwesp(0.5, fixed=TRUE), ~nodematch('level'))",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": "blocks('level', levels2=2)",
+      "offset_coef": {},
+      "stats": {
+        "mix.level.individual.individual": 304,
+        "mix.level.organization.organization": 89,
+        "F(nodematch(\"level\"))~gwesp.fixed.0.5": 133.214349334352
+      },
+      "mple": {
+        "mix.level.individual.individual": -2.7864078310578,
+        "mix.level.organization.organization": -2.58691210159638,
+        "F(nodematch(\"level\"))~gwesp.fixed.0.5": 0.0621126169155132
+      },
+      "dyad_independent": false,
+      "mle": {
+        "mix.level.individual.individual": -2.76411180546633,
+        "mix.level.organization.organization": -2.55975646013394,
+        "F(nodematch(\"level\"))~gwesp.fixed.0.5": 0.0394897615496464
+      },
+      "se": {
+        "mix.level.individual.individual": 0.0782216238161441,
+        "mix.level.organization.organization": 0.115540228235069,
+        "F(nodematch(\"level\"))~gwesp.fixed.0.5": 0.0613070172995978
+      },
+      "mcmc_pct": {
+        "mix.level.individual.individual": 0,
+        "mix.level.organization.organization": 0,
+        "F(nodematch(\"level\"))~gwesp.fixed.0.5": 0
+      },
+      "loglik": -1461.57097284041,
+      "nobs": 6175,
+      "seconds": 1.34299999999999
+    },
+    "samplk_missing": {
+      "network": "samplk3.nonresponse",
+      "formula": "edges + mutual",
+      "checks": [
+        "stats",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "stats": {
+        "edges": 50,
+        "mutual": 9
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -1.97667623599051,
+        "mutual": 1.82186689251036
+      },
+      "se": {
+        "edges": 0.231590743579886,
+        "mutual": 0.557152618343459
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "mutual": 0
+      },
+      "loglik": -124.621398261725,
+      "nobs": 272,
+      "seconds": 0.405000000000001
+    },
+    "mesa_missing_dyadind": {
+      "network": "faux.mesa.high.missing",
+      "formula": "edges + nodematch('Grade') + nodefactor('Sex')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "stats": {
+        "edges": 193,
+        "nodematch.Grade": 158,
+        "nodefactor.Sex.M": 162
+      },
+      "mple": {
+        "edges": -5.77660614979331,
+        "nodematch.Grade": 2.92081413444907,
+        "nodefactor.Sex.M": -0.355518408447091
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -5.77660614979331,
+        "nodematch.Grade": 2.92081413444907,
+        "nodefactor.Sex.M": -0.355518408447091
+      },
+      "se": {
+        "edges": 0.192278178194587,
+        "nodematch.Grade": 0.187761753981009,
+        "nodefactor.Sex.M": 0.105147086204896
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodematch.Grade": 0,
+        "nodefactor.Sex.M": 0
+      },
+      "loglik": -907.45973068687,
+      "nobs": 19864,
+      "seconds": 0.0449999999999875
+    },
+    "mesa_missing": {
+      "network": "faux.mesa.high.missing",
+      "formula": "edges + nodematch('Grade') + nodematch('Race') + gwesp(0.5, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "stats": {
+        "edges": 193,
+        "nodematch.Grade": 158,
+        "nodematch.Race": 98,
+        "gwesp.fixed.0.5": 126.525606047498
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -6.36754597299254,
+        "nodematch.Grade": 2.06287629159162,
+        "nodematch.Race": 0.248473917860749,
+        "gwesp.fixed.0.5": 1.21532328252008
+      },
+      "se": {
+        "edges": 0.165988492260213,
+        "nodematch.Grade": 0.18954980766621,
+        "nodematch.Race": 0.119158337892696,
+        "gwesp.fixed.0.5": 0.0856071702650911
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodematch.Grade": 0,
+        "nodematch.Race": 0,
+        "gwesp.fixed.0.5": 0
+      },
+      "loglik": -824.162129900173,
+      "nobs": 19864,
+      "seconds": 15.78
     }
   }
 }

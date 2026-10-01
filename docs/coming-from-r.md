@@ -28,12 +28,19 @@ tables compared line by line.
 | `control.ergm(MCMC.burnin = 65536)` | `ergmx.ergm(..., burnin=65536)` |
 | `control.ergm(parallel = 8)` | `ergmx.ergm(..., n_chains=8)` |
 | `ergm(..., eval.loglik = FALSE)` | `ergmx.ergm(..., eval_loglik=False)` |
+| `ergm(net ~ ..., constraints = ~bd(maxout = 5))` | `ergmx.ergm(g, ..., constraints="bd(maxout=5)")` |
+| `ergm(net ~ offset(edges) + ..., offset.coef = -3)` | `ergmx.ergm(g, "offset(edges) + ...", offset_coef=[-3])` |
+| `net[i, j] <- NA` | `g.add_edge(i, j, na=True)` (an edge marked missing) |
+| `simulate(net ~ ..., constraints = ~degrees)` | `ergmx.simulate(g, ..., constraints="degrees")` |
 | `data(faux.mesa.high)` | {func}`ergmx.datasets.load("faux.mesa.high") <ergmx.datasets.load>` |
 
 ## Formulas
 
 Formula strings are R's, so `"edges + gwesp(0.5, fixed=TRUE)"`,
-`"kstar(2:3)"` and `"nodematch('Grade', diff=TRUE)"` work as written. The
+`"kstar(2:3)"`, `"nodematch('Grade', diff=TRUE)"`,
+`"nodemix('Race', levels2=-c(1, 3))"` and
+`"F(~gwesp(0.5, fixed=TRUE), ~!nodematch('Grade'))"` work as written, and so
+do constraint strings such as `"~bd(maxout=4) + blocks('level', levels2=2)"`. The
 left-hand side of `net ~ ...` is ignored, since the network is the first
 argument. Strings can use single or double quotes. Only literal arguments are
 accepted: R expressions such as `log(n)` must be computed first.
@@ -59,7 +66,17 @@ accepted: R expressions such as `log(n)` must be computed first.
   and suggests what to try, after a density guard like ergm's or when the
   estimate stops moving.
 
+**Missing dyads are not imputed for the MPLE.**
+: ergm imputes them at random before its MPLE, so its MPLE varies between
+  runs; ergmx treats them as non-ties in the change statistics. Both are
+  only starting values: the MLEs agree.
+
+**The goodness of fit of networks with missing dyads uses imputations.**
+: ergmx compares the simulated networks with networks imputed from the model
+  given the observed dyads. ergm 4.12 computes such imputations but compares
+  with the network with missing dyads as non-ties.
+
 **Not yet available.**
 : Curved ERGMs (geometrically weighted terms with an estimated decay),
-  sample space constraints, missing ties, `offset()`, valued and bipartite
-  networks, and many of ergm's terms.
+  `bd()` bounds by attribute, valued and bipartite networks, and many of
+  ergm's terms and constraints.

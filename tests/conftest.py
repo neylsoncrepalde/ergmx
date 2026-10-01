@@ -21,6 +21,17 @@ def load(name: str) -> ig.Graph:
     return g
 
 
+def options(model: dict) -> dict:
+    """The constraints and offset coefficients of a reference model, as ergm() arguments."""
+    # jsonlite writes R's NULL as {}.
+    return {k: model[k] for k in ("constraints", "offset_coef") if model.get(k) not in (None, {}, [])}
+
+
+def estimated(model: dict) -> list[str]:
+    """The reference model's estimated (not offset) coefficients."""
+    return [name for name in model["mle"] if not name.startswith("offset(")]
+
+
 def models_with(check: str) -> list[str]:
     return sorted(name for name, m in REFERENCE.items() if check in m["checks"])
 

@@ -3,10 +3,11 @@
 mod network;
 mod rng;
 mod sampler;
+mod space;
 mod terms;
 
 use numpy::ndarray::{Array1, Array2, Array3};
-use numpy::{IntoPyArray, PyArray1, PyArray2, PyArray3, PyReadonlyArray2};
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyArray3, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::create_exception;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -14,12 +15,15 @@ use rayon::prelude::*;
 
 use network::Network;
 use rng::Rng;
+use space::{Bounds, Preserve};
 use terms::TermSpec;
 
 type EdgeArray<'py> = Bound<'py, PyArray2<u32>>;
 
 create_exception!(_core, DensityGuardError, PyRuntimeError, "A simulated network exceeded max_edges.");
 type MpleData<'py> = (Bound<'py, PyArray2<f64>>, Bound<'py, PyArray1<f64>>);
+/// Degree bounds per vertex: (min_out, max_out, min_in, max_in).
+type DegreeBounds = (Vec<u32>, Vec<u32>, Vec<u32>, Vec<u32>);
 
 fn to_edges(array: &PyReadonlyArray2<u32>) -> PyResult<Vec<(u32, u32)>> {
     let a = array.as_array();
@@ -32,6 +36,58 @@ fn to_edges(array: &PyReadonlyArray2<u32>) -> PyResult<Vec<(u32, u32)>> {
 fn to_array<'py>(py: Python<'py>, edges: &[(u32, u32)]) -> EdgeArray<'py> {
     let flat = edges.iter().flat_map(|&(i, j)| [i, j]).collect();
     Array2::from_shape_vec((edges.len(), 2), flat).unwrap().into_pyarray(py)
+}
+
+/// The sample space of a model: which dyads may change, bounds on degrees,
+/// and whether degrees are preserved.
+#[pyclass(name = "Space", module = "ergmx._core", frozen)]
+struct PySpace {
+    space: space::Space,
+}
+
+#[pymethods]
+impl PySpace {
+    /// `free` is an n x n row-major boolean mask of the dyads that may change
+    /// (upper triangle if undirected); `bounds` are (min_out, max_out, min_in,
+    /// max_in) per vertex; `preserve` is "", "degrees", "odegrees" or "idegrees".
+    #[new]
+    #[pyo3(signature = (n, directed, free = None, bounds = None, preserve = ""))]
+    fn new(
+        n: u32,
+        directed: bool,
+        free: Option<PyReadonlyArray1<bool>>,
+        bounds: Option<DegreeBounds>,
+        preserve: &str,
+    ) -> PyResult<Self> {
+        let preserve = match preserve {
+            "" => Preserve::Nothing,
+            "degrees" => Preserve::Degrees,
+            "odegrees" => Preserve::OutDegrees,
+            "idegrees" => Preserve::InDegrees,
+            other => return Err(PyValueError::new_err(format!("unknown degree constraint {other:?}"))),
+        };
+        if !directed && matches!(preserve, Preserve::OutDegrees | Preserve::InDegrees) {
+            return Err(PyValueError::new_err("odegrees and idegrees need a directed network"));
+        }
+        let bounds = match bounds {
+            None => None,
+            Some((min_out, max_out, min_in, max_in)) => {
+                if [&min_out, &max_out, &min_in, &max_in].iter().any(|b| b.len() != n as usize) {
+                    return Err(PyValueError::new_err("degree bounds need one value per vertex"));
+                }
+                Some(Bounds { min_out, max_out, min_in, max_in })
+            }
+        };
+        let mask = free.as_ref().map(|f| f.as_slice()).transpose()?;
+        let space = space::Space::new(n, directed, mask, bounds, preserve).map_err(PyValueError::new_err)?;
+        Ok(Self { space })
+    }
+
+    /// Number of dyads that may change.
+    #[getter]
+    fn n_free(&self) -> u64 {
+        self.space.n_free()
+    }
 }
 
 /// An ERGM for networks with `n` vertices: its terms, ready to compute
@@ -70,14 +126,19 @@ impl PyModel {
         Ok(self.model.summary(&self.network(&edges)?))
     }
 
-    /// Change statistics (dyads x statistics) and ties (0 or 1) of every dyad.
+    /// Change statistics (dyads x statistics) and ties (0 or 1) of every free
+    /// dyad (every dyad, without a space).
+    #[pyo3(signature = (edges, space = None))]
     fn mple_data<'py>(
         &self,
         py: Python<'py>,
         edges: PyReadonlyArray2<u32>,
+        space: Option<PyRef<'py, PySpace>>,
     ) -> PyResult<MpleData<'py>> {
         let net = self.network(&edges)?;
-        let (x, y) = py.detach(|| self.model.mple_data(&net));
+        let all = space::Space::unconstrained(self.n, self.directed);
+        let space = space.as_ref().map_or(&all, |s| &s.space);
+        let (x, y) = py.detach(|| self.model.mple_data(net, space));
         let x = Array2::from_shape_vec((y.len(), self.model.n_stats()), x).unwrap();
         Ok((x.into_pyarray(py), Array1::from_vec(y).into_pyarray(py)))
     }
@@ -89,7 +150,8 @@ impl PyModel {
     /// `triadic_weight` is the share of triadic proposals. If a network gets more
     /// than `max_edges` edges, the chains stop and DensityGuardError is raised.
     /// `chain_thetas`, one coefficient vector per chain, replaces `theta`.
-    #[pyo3(signature = (starts, theta, burnin, interval, samplesize, seed, keep_networks = false, triadic_weight = 0.0, max_edges = None, chain_thetas = None))]
+    /// `space` restricts the networks sampled; the starting networks must be in it.
+    #[pyo3(signature = (starts, theta, burnin, interval, samplesize, seed, keep_networks = false, triadic_weight = 0.0, max_edges = None, chain_thetas = None, space = None))]
     #[allow(clippy::too_many_arguments, clippy::type_complexity)]
     fn simulate<'py>(
         &self,
@@ -104,6 +166,7 @@ impl PyModel {
         triadic_weight: f64,
         max_edges: Option<usize>,
         chain_thetas: Option<Vec<Vec<f64>>>,
+        space: Option<PyRef<'py, PySpace>>,
     ) -> PyResult<(Bound<'py, PyArray3<f64>>, Vec<EdgeArray<'py>>, Vec<Vec<EdgeArray<'py>>>)> {
         let thetas = chain_thetas.unwrap_or_else(|| vec![theta; starts.len()]);
         if thetas.len() != starts.len() {
@@ -123,7 +186,9 @@ impl PyModel {
             return Err(PyValueError::new_err("triadic_weight must be in [0, 1)"));
         }
         let max_edges = max_edges.unwrap_or(usize::MAX);
-        let proposal = sampler::Proposal { triadic_weight, max_edges };
+        let all = space::Space::unconstrained(self.n, self.directed);
+        let space = space.as_ref().map_or(&all, |s| &s.space);
+        let proposal = sampler::Proposal { triadic_weight, max_edges, space };
         let nets = starts.iter().map(|s| self.network(s)).collect::<PyResult<Vec<_>>>()?;
         // Independent streams: nearby seeds must not share chains.
         let mut master = Rng::new(seed);
@@ -162,5 +227,6 @@ impl PyModel {
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyModel>()?;
+    m.add_class::<PySpace>()?;
     m.add("DensityGuardError", m.py().get_type::<DensityGuardError>())
 }

@@ -60,8 +60,18 @@ class ErgmFit:
 
     @property
     def stderr(self) -> dict[str, float]:
-        """Standard errors by name, including MCMC error."""
+        """Standard errors by name, including MCMC error (NaN for fixed coefficients)."""
         return dict(zip(self.names, np.sqrt(np.diag(self._estimate.cov)).tolist()))
+
+    @property
+    def offset(self) -> dict[str, bool]:
+        """Whether each coefficient is fixed by offset() rather than estimated."""
+        return dict(zip(self.names, (self._model.fixed & ~self._model.constant).tolist()))
+
+    @property
+    def constraints(self):
+        """The model's sample space constraints."""
+        return self._model.constraints
 
     @property
     def mple(self) -> dict[str, float]:
@@ -97,6 +107,19 @@ class ErgmFit:
         return self._estimate.loglik_se
 
     @property
+    def loglik_relative(self) -> bool:
+        """Whether the log-likelihood is relative to the null model (the uniform
+        distribution on the networks the constraints allow), as with
+        dyad-dependent constraints in ergm. Relative log-likelihoods compare
+        models with the same constraints."""
+        return self._estimate.loglik_relative
+
+    @property
+    def df(self) -> int:
+        """Number of estimated coefficients (offsets and constant statistics excluded)."""
+        return int(self._model.free.sum())
+
+    @property
     def formula(self):
         """The model's terms."""
         return self._model.formula
@@ -104,17 +127,15 @@ class ErgmFit:
     @property
     def aic(self) -> float | None:
         """Akaike's information criterion, -2 loglik + 2 p."""
-        return None if self.loglik is None else -2 * self.loglik + 2 * len(self.names)
+        return None if self.loglik is None else -2 * self.loglik + 2 * self.df
 
     @property
     def bic(self) -> float | None:
-        """Bayesian information criterion, -2 loglik + p log(number of dyads), as in ergm."""
+        """Bayesian information criterion, -2 loglik + p log(number of free
+        observed dyads), as in ergm."""
         if self.loglik is None:
             return None
-        n_dyads = self._model.network.n * (self._model.network.n - 1)
-        if not self._model.network.directed:
-            n_dyads //= 2
-        return -2 * self.loglik + math.log(n_dyads) * len(self.names)
+        return -2 * self.loglik + math.log(self._model.n_observations) * self.df
 
     @property
     def sample(self) -> np.ndarray | None:
@@ -136,8 +157,8 @@ class ErgmFit:
         from ._simulate import simulate
 
         return simulate(
-            self._model.network, self._model.formula, self.params, nsim, seed=seed,
-            output=output, **options,
+            self._model.network, self._model.formula, self.params, nsim,
+            constraints=self._model.constraints, seed=seed, output=output, **options,
         )
 
     def mcmc_diagnostics(self):
@@ -147,7 +168,12 @@ class ErgmFit:
 
         if self._estimate.sample is None:
             raise ValueError(f"this model was fitted by {self.method}, without MCMC")
-        return McmcDiagnostics(self.names, self._estimate.sample, self._model.observed(),
+        free = self._model.free
+        target = self._model.observed()
+        if self._estimate.sample_obs is not None:  # missing dyads: their conditional mean
+            target = self._estimate.sample_obs.reshape(-1, len(self.names)).mean(axis=0)
+        names = [n for n, f in zip(self.names, free) if f]
+        return McmcDiagnostics(names, self._estimate.sample[..., free], target[free],
                                self._estimate.interval)
 
     def gof(self, nsim: int = 100, **options):
@@ -177,12 +203,12 @@ class FitSummary:
 
     def __str__(self) -> str:
         fit = self.fit
-        est = fit._estimate
+        model, est = fit._model, fit._estimate
         se = np.sqrt(np.diag(est.cov))
         mc = np.zeros_like(se) if est.mc_cov is None else np.diag(est.mc_cov)
-        pct = np.where(se > 0, 100 * mc / se**2, 0.0)
-        z = fit.params / se
-        p = [_pvalue(v) for v in z]
+        with np.errstate(invalid="ignore", divide="ignore"):
+            pct = np.where(se > 0, 100 * mc / se**2, 0.0)
+            z = fit.params / se
         header = {
             "MLE": "Maximum Likelihood Results",
             "MCMLE": "Monte Carlo Maximum Likelihood Results",
@@ -197,17 +223,28 @@ class FitSummary:
             f"{'z value':>7}  {'Pr(>|z|)':>8}",
         ]
         for i, name in enumerate(fit.names):
-            pval = "<1e-04" if p[i] < 1e-4 else f"{p[i]:.5f}"
+            if model.fixed[i]:
+                note = "constant under the constraints" if model.constant[i] else "offset"
+                lines.append(f"{name:<{width}}  {fit.params[i]:9.4f}  {'':10}  {'':6}  {'':7}  "
+                             f"{'':8}  ({note})")
+                continue
+            p = _pvalue(z[i]) if np.isfinite(z[i]) else float("nan")
+            pval = "<1e-04" if p < 1e-4 else f"{p:.5f}"
             lines.append(
                 f"{name:<{width}}  {fit.params[i]:9.4f}  {se[i]:10.4f}  {pct[i]:6.0f}  "
-                f"{z[i]:7.3f}  {pval:>8} {_stars(p[i])}"
+                f"{z[i]:7.3f}  {pval:>8} {_stars(p)}"
             )
         lines += ["---", "Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1", ""]
         if fit.loglik is not None:
-            se = f" (MC SE {fit.loglik_se:.3f})" if fit.loglik_se else ""
-            lines.append(f"Log-likelihood: {fit.loglik:.4f}{se}   AIC: {fit.aic:.4f}   BIC: {fit.bic:.4f}")
+            se_text = f" (MC SE {fit.loglik_se:.3f})" if fit.loglik_se else ""
+            kind = "Log-likelihood, relative to the null model" if fit.loglik_relative else "Log-likelihood"
+            lines.append(f"{kind}: {fit.loglik:.4f}{se_text}   AIC: {fit.aic:.4f}   BIC: {fit.bic:.4f}")
         else:
             lines.append("Log-likelihood: not computed (eval_loglik=False).")
+        if model.constraints:
+            lines.append(f"Constraints: {model.constraints!r}.")
+        if model.has_missing:
+            lines.append(f"Missing dyads: {len(model.network.missing)}, assumed missing at random.")
         if fit.method == "MCMLE":
             status = "Converged" if fit.converged else "Did NOT converge"
             lines.append(f"{status} after {fit.iterations} iterations "

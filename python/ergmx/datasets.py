@@ -6,7 +6,7 @@
 (205, 203)
 
 They are the networks of ergm's documentation and tutorials, distributed
-with ergm under the GPL-3.
+with ergm under the GPL-3, and multinets' multilevel network ``linked_sim``.
 """
 
 from __future__ import annotations
@@ -43,6 +43,13 @@ _DESCRIPTIONS = {
         "in the US South, from the Add Health study design: each student nominated "
         "up to 5 male and 5 female friends. Vertex attributes: grade (7 to 12), "
         "race and sex (1 = male, 2 = female)."
+    ),
+    "linked_sim": (
+        "A simulated multilevel network from the multinets package: 100 individuals "
+        "(the lower level) and 50 organizations (the higher level), with ties among "
+        "individuals, among organizations, and affiliation ties between the two. "
+        "Undirected. Vertex attributes: type (True for organizations, as in multinets) "
+        "and level ('individual' or 'organization')."
     ),
     "faux.magnolia.high": (
         "A simulated friendship network of 1,461 students in a high school in the "

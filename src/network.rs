@@ -65,11 +65,6 @@ impl Network {
         self.edges.len()
     }
 
-    pub fn n_dyads(&self) -> u64 {
-        let n = self.n as u64;
-        if self.directed { n * (n - 1) } else { n * (n - 1) / 2 }
-    }
-
     pub fn edges(&self) -> &[(u32, u32)] {
         &self.edges
     }

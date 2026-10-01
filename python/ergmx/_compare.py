@@ -8,7 +8,8 @@ from scipy import stats
 
 def _same_network(a, b) -> bool:
     x, y = a._model.network, b._model.network
-    return x.n == y.n and x.directed == y.directed and np.array_equal(x.edges, y.edges)
+    return (x.n == y.n and x.directed == y.directed and np.array_equal(x.edges, y.edges)
+            and np.array_equal(x.missing, y.missing))
 
 
 class ModelComparison:
@@ -31,9 +32,9 @@ class ModelComparison:
         tests = [None]
         for previous, fit in zip(self.fits, self.fits[1:]):
             nested = set(previous.names) < set(fit.names) and _same_network(previous, fit)
-            if nested:
+            if nested and fit.df > previous.df:
                 chi2 = 2 * (fit.loglik - previous.loglik)
-                df = len(fit.names) - len(previous.names)
+                df = fit.df - previous.df
                 tests.append((chi2, df, float(stats.chi2.sf(chi2, df))))
             else:
                 tests.append(None)
@@ -47,7 +48,7 @@ class ModelComparison:
         for i, (fit, test) in enumerate(zip(self.fits, self.lr_tests()), 1):
             se = fit.loglik_se
             loglik = f"{fit.loglik:.3f}" + (f" ({se:.3f})" if se else "")
-            row = (f"{i:>3}  {len(fit.names):>3}  {loglik:>20}  {fit.aic:10.2f}  {fit.bic:10.2f}  "
+            row = (f"{i:>3}  {fit.df:>3}  {loglik:>20}  {fit.aic:10.2f}  {fit.bic:10.2f}  "
                    f"{fit.aic - best:7.2f}")
             if test is not None:
                 row += f"  {test[0]:8.2f}  {test[1]:>3}  {test[2]:9.4g}"
@@ -57,6 +58,9 @@ class ModelComparison:
         if any(f.loglik_se for f in self.fits):
             lines += ["", "Log-likelihoods of dyad-dependent models are Monte Carlo estimates "
                           "(standard errors in parentheses)."]
+        if self.fits[0].loglik_relative:
+            lines += [f"Log-likelihoods are relative to the null model of the constraints "
+                      f"({self.fits[0].constraints!r})."]
         return "\n".join(lines)
 
     __repr__ = __str__
@@ -73,4 +77,9 @@ def compare(*fits) -> ModelComparison:
     missing = [i for i, f in enumerate(fits, 1) if f.loglik is None]
     if missing:
         raise ValueError(f"models {missing} have no log-likelihood: fit them with eval_loglik=True")
+    if any(f.constraints != fits[0].constraints for f in fits):
+        raise ValueError("the models have different constraints, so their log-likelihoods are "
+                         "not comparable: " + ", ".join(repr(f.constraints) for f in fits))
+    if any(not _same_network(f, fits[0]) for f in fits):
+        raise ValueError("the models are fitted to different networks (or missing dyads)")
     return ModelComparison(fits)

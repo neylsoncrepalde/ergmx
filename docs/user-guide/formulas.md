@@ -36,6 +36,19 @@ ergmx.summary_stats(mesa, formula)
 
 Both forms can be mixed: `edges() + "triangle"`.
 
+## Operators
+
+Two operators wrap other terms, as in ergm. `offset(term)` fixes a term's
+coefficient instead of estimating it (see [](fitting.md#fixed-coefficients)),
+and `F(~terms, ~filter)` evaluates terms on the ties that pass a filter, such
+as the ties within a group:
+
+```{code-cell} ipython3
+ergmx.summary_stats(mesa, "F(~edges + triangle, ~nodematch('Grade')) + offset(edges)")
+```
+
+In Python, `F(edges() + triangle(), nodematch("Grade"))` and `offset(edges())`.
+
 ## Statistic names
 
 Names follow ergm, so tables can be compared with R's output line by line.

@@ -171,7 +171,7 @@ class GofResult:
         return fig
 
 
-def gof(x, formula=None, coef=None, *, nsim: int = 100, stats=None, seed=None,
+def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=None, seed=None,
         interval: int | None = None, burnin: int | None = None, n_chains: int | None = None,
         triadic_weight: float | None = None) -> GofResult:
     """Goodness of fit of an ERGM, like R's ``gof()``.
@@ -186,6 +186,9 @@ def gof(x, formula=None, coef=None, *, nsim: int = 100, stats=None, seed=None,
         A fitted model, or a network (then give ``formula`` and ``coef``).
     formula, coef
         The model and its coefficients, when ``x`` is a network.
+    constraints : str, optional
+        Sample space constraints, when ``x`` is a network; a fit's own are used
+        otherwise.
     nsim : int
         Number of simulated networks.
     stats : list of str, optional
@@ -195,6 +198,13 @@ def gof(x, formula=None, coef=None, *, nsim: int = 100, stats=None, seed=None,
     interval, burnin : int, optional
         MCMC proposals between and before the simulated networks. Default to
         the interval the fit ended with (1024 otherwise), and 16 times that.
+
+    Notes
+    -----
+    With missing dyads, the "observed" distributions are averages over
+    ``nsim`` networks drawn from the model conditional on the observed dyads,
+    rather than those of the network with missing dyads as non-ties, which
+    would make the model look like it overestimates every count of ties.
 
     Returns
     -------
@@ -210,7 +220,7 @@ def gof(x, formula=None, coef=None, *, nsim: int = 100, stats=None, seed=None,
     else:
         if formula is None or coef is None:
             raise TypeError("gof(network, formula, coef): give the formula and the coefficients")
-        model = bind(x, formula)
+        model = bind(x, formula, constraints)
         if isinstance(coef, dict):
             coef = [coef[name] for name in model.names]
         fitted_interval = None
@@ -228,21 +238,31 @@ def gof(x, formula=None, coef=None, *, nsim: int = 100, stats=None, seed=None,
     burnin = 16 * interval if burnin is None else burnin
     chains = max(1, min(n_chains or Control().n_chains, nsim))
     per_chain = -(-nsim // chains)
-    sample, _, networks = model.core.simulate(
-        [network.edges] * chains, [float(c) for c in coef], burnin, interval, per_chain,
-        int(np.random.default_rng(seed).integers(2**63)), keep_networks=True,
-        triadic_weight=model.triadic_weight(triadic_weight),
-    )
-    simulated_edges = [e for chain in networks for e in chain][:nsim]
-    model_stats = sample.reshape(-1, model.n_stats)[:nsim]
+    rng = np.random.default_rng(seed)
+
+    def draw(conditional):
+        sample, _, networks = model.simulate(
+            [network.edges] * chains, coef, burnin, interval, per_chain,
+            int(rng.integers(2**63)), conditional=conditional, keep_networks=True,
+            triadic_weight=model.triadic_weight(triadic_weight),
+        )
+        return [e for chain in networks for e in chain][:nsim], sample.reshape(-1, model.n_stats)[:nsim]
+
+    simulated_edges, model_stats = draw(conditional=False)
+    if model.has_missing:
+        imputed_edges, imputed_stats = draw(conditional=True)
+    else:
+        imputed_edges, imputed_stats = [network.edges], model.observed()[None, :]
+
+    def distributions(edge_lists, stat):
+        return np.array([_distribution(network.n, network.directed, e, stat) for e in edge_lists])
 
     tables = {}
     for stat in stats:
         if stat == "model":
-            tables[stat] = GofTable(stat, list(model.names), model.observed(), model_stats)
+            tables[stat] = GofTable(stat, list(model.names), imputed_stats.mean(axis=0), model_stats)
             continue
-        observed = _distribution(network.n, network.directed, network.edges, stat)
-        simulated = np.array([_distribution(network.n, network.directed, e, stat)
-                              for e in simulated_edges])
-        tables[stat] = GofTable(stat, _labels(network.n, stat), observed, simulated)
+        observed = distributions(imputed_edges, stat).mean(axis=0)
+        tables[stat] = GofTable(stat, _labels(network.n, stat), observed,
+                                distributions(simulated_edges, stat))
     return GofResult(tables, nsim)

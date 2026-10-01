@@ -76,5 +76,6 @@ ergmx.summary_stats(flomarriage, "edges + edgecov('business')")
 
 A network must not have multiple edges between the same vertices (use
 `igraph.Graph.simplify()`, or `nx.Graph` rather than `nx.MultiGraph`) or
-self-loops. Edge attributes such as weights are ignored: ERGMs model whether
-ties exist, not their values.
+self-loops. Edge attributes such as weights are ignored, as ERGMs model whether
+ties exist, not their values, except one: an edge with a true `na` attribute
+marks a dyad whose value is unknown (see [](missing-data.md)).

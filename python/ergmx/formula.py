@@ -7,8 +7,8 @@ import re
 
 from .terms import TERMS, Formula
 
-# R's logical constants, so formulas can be pasted from R.
-_R_CONSTANTS = {"TRUE": True, "FALSE": False, "T": True, "F": False}
+# R's constants, so formulas can be pasted from R.
+_R_CONSTANTS = {"TRUE": True, "FALSE": False, "T": True, "F": False, "NA": None, "Inf": float("inf")}
 
 
 class FormulaError(ValueError):
@@ -20,15 +20,36 @@ def parse_formula(formula: str) -> Formula:
 
     The syntax is R's: terms separated by ``+``, with arguments in
     parentheses. A left-hand side (``"net ~ edges + mutual"``) is ignored;
-    ``TRUE``/``FALSE``, ``c(2, 3)`` and ``2:3`` are accepted as in R. Nothing
-    is evaluated: arguments must be literals.
+    ``TRUE``/``FALSE``, ``NA``, ``c(2, 3)`` and ``2:3`` are accepted as in R,
+    and so are the operators ``offset(term)`` and ``F(~terms, ~filter)``.
+    Nothing is evaluated: arguments must be literals.
     """
-    rhs = _integer_ranges(formula.split("~", 1)[-1].strip())
+    rhs = _r_syntax(_strip_lhs(formula))
     try:
         tree = ast.parse(rhs, mode="eval").body
     except SyntaxError as e:
         raise FormulaError(f"can't parse the formula {formula!r}: {e.msg}") from None
     return Formula(_terms(tree, formula))
+
+
+def _strip_lhs(formula: str) -> str:
+    """The right-hand side of `formula`: what follows a top-level `~`, if any."""
+    text = formula.strip()
+    if text.startswith("~"):
+        return text[1:].strip()
+    depth, quote = 0, None
+    for k, ch in enumerate(text):
+        if quote:
+            quote = None if ch == quote else quote
+        elif ch in "'\"":
+            quote = ch
+        elif ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth -= 1
+        elif ch == "~" and depth == 0:
+            return text[k + 1:].strip()
+    return text
 
 
 def _terms(node: ast.expr, formula: str) -> list:
@@ -37,14 +58,54 @@ def _terms(node: ast.expr, formula: str) -> list:
     if isinstance(node, ast.Name):
         return [_make(node.id, [], {})]
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        name = node.func.id
+        if name == "offset":
+            if len(node.args) != 1 or node.keywords:
+                raise FormulaError(f"offset() takes one term, in {formula!r}")
+            inner = _terms(node.args[0], formula)
+            if len(inner) != 1:
+                raise FormulaError(f"offset() takes one term, in {formula!r}")
+            return [_make("offset", inner, {})]
+        if name == "F":
+            return [_filter_term(node, formula)]
         args = [_literal(a) for a in node.args]
         kwargs = {k.arg: _literal(k.value) for k in node.keywords}
-        return [_make(node.func.id, args, kwargs)]
+        return [_make(name, args, kwargs)]
     raise FormulaError(f"can't parse {ast.unparse(node)!r} in the formula {formula!r}")
 
 
-def _integer_ranges(text: str) -> str:
-    """Rewrite R's integer ranges such as 2:4 as lists, outside quoted strings."""
+def _one_sided(node: ast.expr, formula: str) -> ast.expr:
+    """The expression of an R one-sided formula, `~expr` (or a bare `expr`).
+
+    Python binds `~` tighter than `+`, so `~a + b` parses as `(~a) + b`: the
+    `~` is on the leftmost term."""
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Invert):
+        return node.operand
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        return ast.BinOp(left=_one_sided(node.left, formula), op=node.op, right=node.right)
+    return node
+
+
+def _filter_term(node: ast.Call, formula: str):
+    args = list(node.args) + [k.value for k in node.keywords if k.arg in ("formula", "filter")]
+    if len(args) != 2:
+        raise FormulaError(f"F() takes a formula and a filter, in {formula!r}")
+    terms = _terms(_one_sided(args[0], formula), formula)
+    filter_node, negate = _one_sided(args[1], formula), False
+    if isinstance(filter_node, ast.UnaryOp) and isinstance(filter_node.op, ast.USub):
+        filter_node, negate = filter_node.operand, True  # R's `!`, rewritten as `-`
+    filters = _terms(filter_node, formula)
+    if len(filters) != 1:
+        raise FormulaError(f"F(): the filter must be a single term, in {formula!r}")
+    try:
+        return TERMS["F"](Formula(terms), filters[0], negate)
+    except (TypeError, ValueError) as e:
+        raise FormulaError(str(e)) from None
+
+
+def _r_syntax(text: str) -> str:
+    """Rewrite R syntax that Python can't parse, outside quoted strings: integer
+    ranges such as 2:4 become lists, and the negation `!` becomes `-`."""
     parts = re.split(r"('[^']*'|\"[^\"]*\")", text)
     for i in range(0, len(parts), 2):
         parts[i] = re.sub(
@@ -52,18 +113,47 @@ def _integer_ranges(text: str) -> str:
             lambda m: str(list(range(int(m[1]), int(m[2]) + 1))),
             parts[i],
         )
+        parts[i] = re.sub(r"!(?!=)", "-", parts[i])
     return "".join(parts)
 
 
 def _literal(node: ast.expr):
     if isinstance(node, ast.Name) and node.id in _R_CONSTANTS:
         return _R_CONSTANTS[node.id]
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        value = _literal(node.operand)
+        number = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)  # noqa: E731
+        if number(value):
+            return -value
+        if isinstance(value, list) and all(map(number, value)):
+            return [-v for v in value]  # R's -c(1, 3) and -(1:3)
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "c":
         return [_literal(a) for a in node.args]  # R's c(...)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "matrix":
+        return _r_matrix(node)
     try:
         return ast.literal_eval(node)
     except ValueError:
         raise FormulaError(f"term arguments must be literals, not {ast.unparse(node)!r}") from None
+
+
+def _r_matrix(node: ast.Call) -> list:
+    """R's matrix(values, nrow, ncol, byrow=FALSE), as a list of rows."""
+    args = [_literal(a) for a in node.args]
+    kwargs = {k.arg: _literal(k.value) for k in node.keywords}
+    names = ["data", "nrow", "ncol", "byrow"]
+    values = dict(zip(names, args)) | kwargs
+    data = values.get("data")
+    data = data if isinstance(data, list) else [data]
+    nrow, ncol = values.get("nrow"), values.get("ncol")
+    if nrow is None and ncol is None:
+        nrow, ncol = len(data), 1
+    nrow = nrow or -(-len(data) // ncol)
+    ncol = ncol or -(-len(data) // nrow)
+    data = [data[k % len(data)] for k in range(nrow * ncol)]  # R recycles values
+    if values.get("byrow"):
+        return [data[r * ncol:(r + 1) * ncol] for r in range(nrow)]
+    return [[data[c * nrow + r] for c in range(ncol)] for r in range(nrow)]
 
 
 def _make(name: str, args: list, kwargs: dict):

@@ -23,7 +23,7 @@ def test_terms_combine_with_plus():
 @pytest.mark.parametrize(
     ("formula", "message"),
     [
-        ("edges + degree(1)", "unknown term 'degree'"),
+        ("edges + concurrent", "unknown term 'concurrent'"),
         ("edges + nodematch(attr)", "must be literals"),
         ("edges - triangle", "can't parse"),
         ("edges +", "can't parse the formula"),

@@ -15,18 +15,20 @@ def test_statistics_match_r(reference):
 
 
 @pytest.mark.parametrize("name", ["samplk_mutual", "mesa_gwesp", "flo_dyadind", "mesa_terms",
-                                  "dixon_terms"])
+                                  "dixon_terms", "mesa_terms2", "dixon_terms2"])
 def test_statistics_tracked_by_the_sampler_are_exact(name):
     """The sampler updates statistics with change statistics; recomputing them
     from scratch on the sampled networks must give the same values."""
     model = REFERENCE[name]
     g = load(model["network"])
     # Coefficients that keep the density near the observed one.
-    density = model["stats"]["edges"] / (g.vcount() * (g.vcount() - 1) / (1 if g.is_directed() else 2))
-    coef = [np.log(density / (1 - density)) if term == "edges" else 0.0 for term in model["stats"]]
-    tracked = ergmx.simulate(g, model["formula"], coef, 20, seed=3, interval=4096, output="stats")
-    networks = ergmx.simulate(g, model["formula"], coef, 20, seed=3, interval=4096)
-    recomputed = [list(ergmx.summary_stats(h, model["formula"]).values()) for h in networks]
+    density = g.ecount() / (g.vcount() * (g.vcount() - 1) / (1 if g.is_directed() else 2))
+    formula = model["formula"] if "edges" in model["stats"] else "edges + " + model["formula"]
+    names = list(ergmx.summary_stats(g, formula))
+    coef = [np.log(density / (1 - density)) if term == "edges" else 0.0 for term in names]
+    tracked = ergmx.simulate(g, formula, coef, 20, seed=3, interval=4096, output="stats")
+    networks = ergmx.simulate(g, formula, coef, 20, seed=3, interval=4096)
+    recomputed = [list(ergmx.summary_stats(h, formula).values()) for h in networks]
     np.testing.assert_allclose(tracked, recomputed, rtol=1e-9, atol=1e-9)
     assert len({h.ecount() for h in networks}) > 1  # the chain moved
 
@@ -47,7 +49,7 @@ def test_directed_networkx():
 @pytest.mark.parametrize(
     ("network", "formula", "error", "message"),
     [
-        ("samplk3", "edges + gwdsp(0.5, fixed=TRUE)", ValueError, "undirected networks"),
+        ("samplk3", "edges + degree(1)", ValueError, "undirected networks"),
         ("samplk3", "kstar(2)", ValueError, "undirected networks"),
         ("flomarriage", "edges + mutual", ValueError, "directed networks"),
         ("flomarriage", "ttriple + nodeicov('wealth')", ValueError, "directed networks"),

@@ -15,9 +15,10 @@ the same terms and statistics, and `summary()`, `gof()` and
 and runs chains in parallel threads, so fits take seconds.
 
 :::{note}
-`ergmx` is a proof of concept: 22 terms for directed and undirected networks,
-MPLE, contrastive divergence and Monte Carlo MLE, MCMC diagnostics,
-log-likelihoods, model comparison and goodness of fit, all
+`ergmx` is a proof of concept: 29 terms and the `offset()` and `F()`
+operators for directed and undirected networks, sample space constraints,
+missing ties, MPLE, contrastive divergence and Monte Carlo MLE, MCMC
+diagnostics, log-likelihoods, model comparison and goodness of fit, all
 [validated against R's ergm](validation.md).
 :::
 
@@ -60,15 +61,15 @@ those of 100 networks simulated from the model.
 :link: user-guide/index
 :link-type: doc
 
-Networks, formulas, fitting, diagnostics, goodness of fit, model comparison
-and simulation.
+Networks, formulas, fitting, constraints, missing ties, multilevel networks,
+diagnostics, goodness of fit, model comparison and simulation.
 :::
 
 :::{grid-item-card} {fas}`list` Term reference
 :link: terms
 :link-type: doc
 
-The 22 terms, their statistics and their names.
+The 29 terms and 2 operators, their statistics and their names.
 :::
 
 :::{grid-item-card} {fas}`code` API reference

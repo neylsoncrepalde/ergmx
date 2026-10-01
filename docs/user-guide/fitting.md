@@ -125,3 +125,23 @@ ergmx.ergm(mesa, formula, init=previous_fit.params)
 
 When a fit doesn't converge, or stops with a `DegeneracyError`, see
 [](diagnostics.md).
+
+## Fixed coefficients
+
+`offset(term)` fixes a term's coefficients instead of estimating them, at the
+values given as `offset_coef`, in formula order:
+
+```{code-cell} ipython3
+fixed = ergmx.ergm(flomarriage, "offset(edges) + nodecov('wealth')", offset_coef=[-2.6])
+fixed.summary()
+```
+
+Offsets don't count as parameters in AIC and BIC. A coefficient of `-inf`
+forbids the ties the term counts: see [](multilevel.md#fixed-coefficients).
+
+## Constraints and missing ties
+
+`constraints=` restricts the networks the model puts probability on, for
+example to bounded degrees in fixed-choice designs: see [](constraints.md).
+Dyads whose value is unknown are marked as edges with `na=True`; the fit is
+then conditional on the observed ones: see [](missing-data.md).

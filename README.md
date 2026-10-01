@@ -7,8 +7,9 @@ the spirit of R's [ergm](https://github.com/statnet/ergm) and statnet: R-style
 formulas, the same term names and statistics, and `summary()` and `gof()`
 that read like R's.
 
-> **Status: proof of concept.** 22 terms for directed and undirected
-> networks; MPLE, contrastive divergence and Monte Carlo MLE; MCMC
+> **Status: proof of concept.** 29 terms and the `offset()` and `F()`
+> operators for directed and undirected networks; sample space constraints;
+> missing ties; MPLE, contrastive divergence and Monte Carlo MLE; MCMC
 > diagnostics, log-likelihoods, model comparison and goodness of fit, all
 > validated against R's ergm. See [what's missing](#not-yet).
 
@@ -41,7 +42,7 @@ Converged after 6 iterations (4 chains, 1024 samples).
 ```
 
 R's ergm gives `-6.1884, -0.1293, 1.9761, 0.2699, 1.2178` and a log-likelihood
-of -867.56 on the same model, in 16.8 s; `ergmx` took 2.3 s. (A high-precision
+of -867.56 on the same model, in 16.8 s; `ergmx` took 2.7 s. (A high-precision
 estimate of the log-likelihood is -867.09: R's is off by 0.47, see
 [validation](#validation-against-r).)
 
@@ -67,7 +68,8 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
 ## Features
 
 - **Networks**: `igraph.Graph` or `networkx.Graph`/`DiGraph`, directed or
-  undirected. Vertex attributes are available to the terms.
+  undirected. Vertex attributes are available to the terms; edges with
+  `na=True` mark missing dyads.
 - **Formulas** in R syntax (`"edges + gwesp(0.5, fixed=TRUE)"`, even with
   `net ~` in front), or terms combined with `+`: `edges() + gwesp(0.5, fixed=True)`.
   Nothing is evaluated: arguments must be literals.
@@ -76,12 +78,22 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
   | | Undirected | Directed |
   |---|---|---|
   | Dyadic | `edges`, `edgecov` | `edges`, `edgecov`, `mutual` |
-  | Degree | `kstar(k)`, `gwdegree` | `istar(k)`, `ostar(k)`, `gwidegree`, `gwodegree` |
-  | Triads | `triangle`, `gwesp`, `gwdsp` | `triangle`, `ttriple`, `ctriple`, `gwesp` (OTP) |
-  | Attributes | `nodematch` (`diff=TRUE` too), `nodefactor`, `nodecov`, `absdiff` | the same, plus `nodeifactor`, `nodeofactor`, `nodeicov`, `nodeocov` |
+  | Degree | `kstar(k)`, `degree(d)`, `isolates`, `gwdegree` | `istar(k)`, `ostar(k)`, `idegree(d)`, `odegree(d)`, `isolates`, `gwidegree`, `gwodegree` |
+  | Triads | `triangle`, `gwesp`, `gwdsp`, `esp(d)`, `dsp(d)` | `triangle`, `ttriple`, `ctriple`, and `gwesp`, `gwdsp`, `esp(d)`, `dsp(d)` (OTP) |
+  | Attributes | `nodematch` (`diff=TRUE` too), `nodemix`, `nodefactor`, `nodecov`, `absdiff` | the same, plus `nodeifactor`, `nodeofactor`, `nodeicov`, `nodeocov` |
+  | Operators | `offset(term)` (with `-inf` to forbid ties), `F(~terms, ~filter)` | the same |
 
   The geometrically weighted terms take a fixed decay (`fixed=TRUE`).
   `edgecov('name')` reads an n x n matrix from a graph attribute.
+- **Constraints**, as in ergm: `bd` (bounded degrees, for fixed-choice
+  designs), `blocks` (fix the dyads of some mixing types), `degrees`,
+  `odegrees` and `idegrees`, with degree-preserving MCMC moves.
+- **Missing ties**: likelihood inference conditional on the observed dyads
+  (Handcock and Gile 2010), assuming they are missing at random, for the
+  estimates, standard errors, log-likelihood and goodness of fit.
+- **Multilevel networks** as one network with a level attribute: `nodemix`
+  for densities by kind of tie, `F()` for terms within levels, and `blocks` to
+  model some kinds of ties given others.
 - **Estimation**:
   - dyad-independent models: the exact MLE (logistic regression), with
     log-likelihood, AIC and BIC;
@@ -118,7 +130,7 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
 - `ergmx.summary_stats(network, formula)`: R's `summary(net ~ formula)`.
 - `ergmx.datasets`: the networks of R's ergm documentation (flomarriage,
   flobusiness, samplk1-3, faux.mesa.high, faux.dixon.high,
-  faux.magnolia.high).
+  faux.magnolia.high) and multinets' multilevel `linked_sim`.
 
 ## Documentation
 
@@ -139,20 +151,23 @@ results in `tests/data/r_reference.json`; the test suite compares.
 
 | Check | Result |
 |---|---|
-| Statistics of all 22 terms, 13 models | identical to R's `summary()` (1e-12) |
-| MPLE, 13 models | identical to R (1e-6) |
-| Dyad-independent MLE, standard errors, log-likelihood (3 models, incl. `edgecov` and the directed attribute terms) | identical to R (1e-6; SEs 1e-4, R's `glm` tolerance) |
+| Statistics of all 29 terms and both operators, 35 models | identical to R's `summary()` (1e-12), names included |
+| MPLE, 25 models | identical to R (1e-6) |
+| Dyad-independent MLE, standard errors, log-likelihood and BIC (8 models, with offsets, `blocks` and missing dyads) | identical to R (1e-6; SEs 1e-4, R's `glm` tolerance) |
 | Monte Carlo MLE, 7 models (4 undirected, 3 directed) x 3–10 seeds | within 0.12 standard errors of R; SEs within 0.89–1.12 of R's |
+| Monte Carlo MLE with constraints, missing dyads, offsets, `F()` and multilevel models, 12 models x 5 seeds | within 0.17 standard errors of R; SEs within 0.91–1.09 of R's |
 | Goodness of fit, directed and undirected | observed distributions and p-values identical to R's; simulated distributions agree within Monte Carlo error |
-| MCMC stationary distribution, 3 proposal mixtures | matches exact enumeration of all networks on 3 and 6 vertices (undirected) and 4 vertices (directed) |
+| MCMC stationary distribution, unconstrained and under every constraint | matches exact enumeration of every network each constraint allows on 3 to 6 vertices, directed and undirected |
 | Log-likelihood, directed and undirected | unbiased against exact enumeration (6 and 4 vertices), with calibrated standard errors |
 | Log-likelihood, 5 dyad-dependent models | within one standard error of high-precision estimates (128 bridges); R's 16-point midpoint rule is off by 0.1 to 2.1 |
 | Contrastive divergence | a fixed point of its defining equation; the MLE from a CD start matches R's |
 
 The networks are ergm's flomarriage, samplk3, faux.mesa.high and
-faux.dixon.high (248 students, directed friendship nominations). R's own
+faux.dixon.high (248 students, directed friendship nominations), the second
+and third also with missing dyads, and multinets' linked_sim. R's own
 standard errors vary by about 15% between seeds on the small networks, so the
-SE comparison is only as tight as R allows.
+SE comparison is only as tight as R allows. Full details:
+[docs/validation.md](docs/validation.md).
 
 ## Performance
 
@@ -163,9 +178,9 @@ too.
 
 | Model | Vertices | R ergm 4.12 | ergmx, 1 thread | ergmx, all threads | Max \|difference\| |
 |---|---|---|---|---|---|
-| faux.mesa.high, gwesp(0.5) | 205 | 16.8 s | 9.7 s (1.7x) | 2.3 s (7.2x) | 0.04 SE |
-| faux.magnolia.high, gwesp(0.25) | 1,461 | 17.3 s | 13.8 s (1.3x) | 4.9 s (3.5x) | 0.07 SE |
-| faux.dixon.high (directed), gwesp(0.1) | 248 | 142 s | 77 s (1.8x) | 17 s (8.6x) | 0.07 SE |
+| faux.mesa.high, gwesp(0.5) | 205 | 16.8 s | 10.0 s (1.7x) | 2.7 s (6.2x) | 0.04 SE |
+| faux.magnolia.high, gwesp(0.25) | 1,461 | 17.3 s | 14.9 s (1.2x) | 5.8 s (3.0x) | 0.07 SE |
+| faux.dixon.high (directed), gwesp(0.1) | 248 | 142 s | 80 s (1.8x) | 18 s (8.0x) | 0.07 SE |
 
 ergmx's log-likelihood samples about 17 times more than ergm's, which is what
 makes it accurate. Without the log-likelihood on either side (`eval_loglik=False`
@@ -186,13 +201,15 @@ python/ergmx/         Python API
   _diagnostics.py       MCMC diagnostics
   _gof.py               goodness of fit
   _compare.py           model comparison
-  datasets.py           ergm's networks, bundled in data/
+  constraints.py        sample space constraints
+  datasets.py           ergm's and multinets' networks, bundled in data/
   _fit.py               ErgmFit and its summary table
   _simulate.py          ergm(), simulate(), summary_stats()
 src/                  Rust core (PyO3), exposed as ergmx._core.Model
   network.rs            sorted neighbour lists + edge list for O(1) random ties
   terms.rs              the Term trait and the change statistics
-  sampler.rs            Metropolis-Hastings with TNT + triadic proposals
+  sampler.rs            Metropolis-Hastings: TNT, triadic and degree-preserving moves
+  space.rs              the sample space: free dyads, degree bounds
   lib.rs                bindings; chains run in parallel with rayon
 ```
 
@@ -205,8 +222,8 @@ describing it in `python/ergmx/terms.py`.
 - More terms: `degree(k)`, `isolates`, `nodemix`, `concurrent`, `gwnsp`,
   bipartite terms, `edgecov` of a network attribute given as a network, and
   directed shared partner types other than OTP.
-- Sample space constraints (`bd`, `blocks`, `degrees`) and missing ties.
-- Terms and operators for multilevel models (`nodemix`, `F()`, `offset()`).
+- `bd()` bounds by attribute, and more of ergm's constraints and terms.
+- Bipartite and valued networks.
 - Wheels built for every platform in CI.
 
 ## Development

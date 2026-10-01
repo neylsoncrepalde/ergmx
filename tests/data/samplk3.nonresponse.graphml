@@ -137,15 +137,6 @@
       <data key="v_group4">Outcasts</data>
       <data key="v_name">Simplicius</data>
     </node>
-    <edge source="n0" target="n2">
-      <data key="e_na">false</data>
-    </edge>
-    <edge source="n0" target="n11">
-      <data key="e_na">false</data>
-    </edge>
-    <edge source="n0" target="n13">
-      <data key="e_na">false</data>
-    </edge>
     <edge source="n1" target="n0">
       <data key="e_na">false</data>
     </edge>
@@ -192,15 +183,6 @@
       <data key="e_na">false</data>
     </edge>
     <edge source="n5" target="n8">
-      <data key="e_na">false</data>
-    </edge>
-    <edge source="n6" target="n1">
-      <data key="e_na">false</data>
-    </edge>
-    <edge source="n6" target="n11">
-      <data key="e_na">false</data>
-    </edge>
-    <edge source="n6" target="n15">
       <data key="e_na">false</data>
     </edge>
     <edge source="n7" target="n3">
@@ -304,6 +286,108 @@
     </edge>
     <edge source="n17" target="n16">
       <data key="e_na">false</data>
+    </edge>
+    <edge source="n0" target="n1">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n2">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n3">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n4">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n5">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n6">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n7">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n8">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n9">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n10">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n11">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n12">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n13">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n14">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n15">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n16">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n0" target="n17">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n0">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n1">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n2">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n3">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n4">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n5">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n7">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n8">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n9">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n10">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n11">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n12">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n13">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n14">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n15">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n16">
+      <data key="e_na">true</data>
+    </edge>
+    <edge source="n6" target="n17">
+      <data key="e_na">true</data>
     </edge>
   </graph>
 </graphml>

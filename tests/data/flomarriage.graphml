@@ -8,6 +8,7 @@
   <key id="v_totalties" for="node" attr.name="totalties" attr.type="double"/>
   <key id="v_wealth" for="node" attr.name="wealth" attr.type="double"/>
   <key id="v_name" for="node" attr.name="name" attr.type="string"/>
+  <key id="e_na" for="edge" attr.name="na" attr.type="boolean"/>
   <graph id="G" edgedefault="undirected">
     <node id="n0">
       <data key="v_priorates">53</data>
@@ -106,44 +107,64 @@
       <data key="v_name">Tornabuoni</data>
     </node>
     <edge source="n0" target="n8">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n1" target="n5">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n1" target="n6">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n1" target="n8">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n2" target="n4">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n2" target="n8">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n3" target="n6">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n3" target="n10">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n3" target="n14">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n4" target="n10">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n4" target="n14">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n6" target="n7">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n6" target="n15">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n8" target="n12">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n8" target="n13">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n8" target="n15">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n9" target="n13">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n10" target="n14">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n12" target="n14">
+      <data key="e_na">false</data>
     </edge>
     <edge source="n12" target="n15">
+      <data key="e_na">false</data>
     </edge>
   </graph>
 </graphml>

@@ -52,6 +52,10 @@ statistics.
    kstar
    istar
    ostar
+   degree
+   idegree
+   odegree
+   isolates
    gwdegree
    gwidegree
    gwodegree
@@ -60,7 +64,10 @@ statistics.
    ctriple
    gwesp
    gwdsp
+   esp
+   dsp
    nodematch
+   nodemix
    nodefactor
    nodeifactor
    nodeofactor
@@ -68,6 +75,32 @@ statistics.
    nodeicov
    nodeocov
    absdiff
+
+Operators
+---------
+
+.. autosummary::
+   :toctree: generated/
+
+   offset
+   F
+
+Constraints
+-----------
+
+Give constraints to :func:`ergm`, :func:`simulate` and :func:`gof` as strings
+in R syntax, ``"bd(maxout=4) + blocks('level', levels2=2)"``. See the
+:doc:`user guide <user-guide/constraints>`.
+
+.. autosummary::
+   :toctree: generated/
+
+   constraints.parse_constraints
+   constraints.Bd
+   constraints.Blocks
+   constraints.Degrees
+   constraints.ODegrees
+   constraints.IDegrees
 
 Formulas
 --------

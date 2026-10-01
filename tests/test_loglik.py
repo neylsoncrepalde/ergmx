@@ -3,7 +3,7 @@ import itertools
 import igraph as ig
 import numpy as np
 import pytest
-from conftest import REFERENCE, load, models_with
+from conftest import REFERENCE, load, models_with, options
 
 import ergmx
 from ergmx._estimation import Control
@@ -52,8 +52,9 @@ def test_loglikelihood_is_close_to_r(name):
     a few units on these models, so the comparison is loose; the exact tests
     above check the estimator."""
     model = REFERENCE[name]
-    fit = ergmx.ergm(load(model["network"]), model["formula"], seed=1)
+    fit = ergmx.ergm(load(model["network"]), model["formula"], seed=1, **options(model))
     assert fit.loglik_se > 0
+    assert fit.loglik_relative == fit.constraints.dyad_dependent
     assert abs(fit.loglik - model["loglik"]) < 2.0 + 3 * fit.loglik_se
 
 

@@ -100,25 +100,32 @@ class Estimate:
     interval: int | None = None  # MCMC interval of the last iteration
     pvalue: float | None = None  # final test that the model reproduces the observed statistics
     loglik_se: float | None = None  # Monte Carlo standard error of the log-likelihood
+    sample_obs: np.ndarray | None = None  # last sample conditional on the observed dyads
+    #: Whether the log-likelihood is relative to the null model (dyad-dependent constraints).
+    loglik_relative: bool = False
 
 
 # -- MPLE -------------------------------------------------------------------------
 
 
-def logistic_regression(x, y, weights, max_iter=100, tol=1e-10):
-    """Weighted logistic regression by Newton-Raphson.
+def logistic_regression(x, y, weights, offset=None, max_iter=100, tol=1e-10):
+    """Weighted logistic regression by Newton-Raphson, with an optional fixed
+    offset added to the linear predictor.
 
     Returns the coefficients, their covariance and the log-likelihood.
     """
+    offset = np.zeros(len(y)) if offset is None else offset
 
     def loglik(beta):
-        eta = x @ beta
+        eta = x @ beta + offset
         return float(np.sum(weights * (y * eta - np.logaddexp(0, eta))))
 
     beta = np.zeros(x.shape[1])
     current = loglik(beta)
     for _ in range(max_iter):
-        mu = expit(x @ beta)
+        if x.shape[1] == 0:
+            break
+        mu = expit(x @ beta + offset)
         grad = x.T @ (weights * (y - mu))
         hess = (x * (weights * mu * (1 - mu))[:, None]).T @ x
         step = np.linalg.lstsq(hess, grad, rcond=None)[0]
@@ -131,16 +138,43 @@ def logistic_regression(x, y, weights, max_iter=100, tol=1e-10):
             break
     else:
         warnings.warn("the MPLE logistic regression did not converge", stacklevel=3)
-    mu = expit(x @ beta)
+    mu = expit(x @ beta + offset)
     hess = (x * (weights * mu * (1 - mu))[:, None]).T @ x
     return beta, np.linalg.pinv(hess), current
 
 
-def mple(model: BoundModel) -> Estimate:
-    x, y = model.core.mple_data(model.network.edges)
+def fixed_part(x: np.ndarray, columns: np.ndarray, values: np.ndarray) -> np.ndarray:
+    """x[:, columns] @ values, where 0 * -inf counts as 0."""
+    if not len(values):
+        return np.zeros(len(x))
+    xs = x[:, columns]
+    with np.errstate(invalid="ignore"):
+        products = xs * values
+    return np.where(xs != 0, products, 0.0).sum(axis=1)
+
+
+def regression(x, y, model: BoundModel, columns=None):
+    """The logistic regression of the dyads on their change statistics, for
+    the free coefficients among `columns` (all by default), with the fixed
+    ones as an offset. Returns full coefficients, covariance and log-likelihood."""
+    columns = np.ones(model.n_stats, dtype=bool) if columns is None else columns
+    free = model.free & columns
+    fixed = model.fixed & columns
+    offset = fixed_part(x, np.flatnonzero(fixed), model.fixed_values[fixed])
     # Many dyads share the same change statistics: fit on the distinct rows.
-    rows, counts = np.unique(np.column_stack([x, y]), axis=0, return_counts=True)
-    theta, cov, loglik = logistic_regression(rows[:, :-1], rows[:, -1], counts.astype(float))
+    rows, counts = np.unique(np.column_stack([x[:, free], offset, y]), axis=0, return_counts=True)
+    beta, cov_free, loglik = logistic_regression(rows[:, :-2], rows[:, -1], counts.astype(float),
+                                                 rows[:, -2])
+    theta = np.where(fixed, model.fixed_values, 0.0)
+    theta[free] = beta
+    cov = np.full((model.n_stats, model.n_stats), np.nan)
+    cov[np.ix_(free, free)] = cov_free
+    return theta, cov, loglik
+
+
+def mple(model: BoundModel) -> Estimate:
+    x, y = model.mple_data()
+    theta, cov, loglik = regression(x, y, model)
     return Estimate(theta, cov, None, loglik, "MPLE", 0, True, None, loglik_se=0.0)
 
 
@@ -223,27 +257,53 @@ def split_rhat(sample: np.ndarray) -> np.ndarray:
         return np.where(within > 0, np.sqrt(pooled / within), np.nan)
 
 
-def hotelling_pvalue(sample, observed, tau) -> float:
+def hotelling_pvalue(sample, observed, tau, sample_obs=None, tau_obs=None) -> float:
     """p-value of Hotelling's T^2 test that the model's mean statistics are the
-    observed ones, with the effective sample size as the sample size."""
+    observed ones (or the mean of a conditional sample `sample_obs`), with the
+    effective sample size as the sample size."""
     p = sample.shape[-1]
     n_eff = sample.shape[0] * sample.shape[1] / tau.max()
+    cov = mean_covariance(sample, tau)
+    target = observed
+    if sample_obs is not None:
+        target = sample_obs.reshape(-1, p).mean(axis=0)
+        cov = cov + mean_covariance(sample_obs, tau_obs)
+        n_eff = min(n_eff, sample_obs.shape[0] * sample_obs.shape[1] / tau_obs.max())
     if n_eff <= p + 1:
         return 0.0
-    diff = sample.reshape(-1, p).mean(axis=0) - observed
-    t2 = float(diff @ np.linalg.pinv(mean_covariance(sample, tau)) @ diff)
+    diff = sample.reshape(-1, p).mean(axis=0) - target
+    t2 = float(diff @ np.linalg.pinv(cov) @ diff)
     return float(stats.f.sf(t2 * (n_eff - p) / (p * (n_eff - 1)), p, n_eff - p))
 
 
-def _step(sample, observed, margin):
-    """Mean, covariance and the log-normal Newton step of a sample."""
+def _information(sample, sample_obs=None):
+    """Mean and covariance of a sample, minus the covariance of the conditional
+    sample if there is one (the missing information principle, Louis 1982)."""
     flat = sample.reshape(-1, sample.shape[-1])
     mean, cov = flat.mean(axis=0), np.atleast_2d(np.cov(flat, rowvar=False))
-    gamma = hummel_steplength(flat, observed, margin)
+    if sample_obs is None:
+        return mean, cov
+    flat_obs = sample_obs.reshape(-1, sample_obs.shape[-1])
+    info = cov - np.atleast_2d(np.cov(flat_obs, rowvar=False))
+    if np.linalg.eigvalsh(info).min() <= 0:
+        # Too few samples to tell the two apart: Newton's step without the correction.
+        return mean, cov
+    return mean, info
+
+
+def _step(sample, target, margin, free, sample_obs=None):
+    """Covariance (information), step length and the log-normal Newton step
+    of the free coefficients."""
+    sample = sample[..., free]
+    sample_obs = None if sample_obs is None else sample_obs[..., free]
+    target = target[free]
+    flat = sample.reshape(-1, sample.shape[-1])
+    mean, info = _information(sample, sample_obs)
+    gamma = hummel_steplength(flat, target, margin)
     # Log-normal approximation: the log-likelihood ratio is quadratic in theta,
     # maximized at a Newton step towards the pseudo-observed target.
-    step = np.linalg.lstsq(cov, gamma * (observed - mean), rcond=None)[0]
-    return cov, gamma, step
+    step = np.linalg.lstsq(info, gamma * (target - mean), rcond=None)[0]
+    return info, gamma, step
 
 
 def _max_edges(model: BoundModel, control: Control) -> int:
@@ -262,29 +322,32 @@ def _density_guard_error(model: BoundModel, max_edges: int) -> DegeneracyError:
 
 
 def _simulate(model: BoundModel, starts, theta, burnin, interval, samples, rng, control,
-              check_variance=True):
-    """Sample statistics, stopping with a DegeneracyError if the density guard
-    trips or (with `check_variance`) a statistic does not vary."""
+              check_variance=True, conditional=False):
+    """Sample statistics (conditional on the observed dyads with `conditional`),
+    stopping with a DegeneracyError if the density guard trips or (with
+    `check_variance`) a free statistic does not vary."""
     max_edges = _max_edges(model, control)
     try:
-        sample, last, _ = model.core.simulate(
-            starts, theta.tolist(), burnin, interval, samples, int(rng.integers(2**63)),
-            triadic_weight=model.triadic_weight(control.triadic_weight), max_edges=max_edges,
+        sample, last, _ = model.simulate(
+            starts, theta, burnin, interval, samples, int(rng.integers(2**63)),
+            conditional=conditional, max_edges=max_edges,
+            triadic_weight=model.triadic_weight(control.triadic_weight),
         )
     except _core.DensityGuardError:
         raise _density_guard_error(model, max_edges) from None
     variances = sample.reshape(-1, model.n_stats).var(axis=0)
-    if check_variance and np.any(variances <= 0):
-        constant = [n for n, v in zip(model.names, variances) if v <= 0]
+    if check_variance and np.any((variances <= 0) & model.free):
+        constant = [n for n, v, f in zip(model.names, variances, model.free) if v <= 0 and f]
         raise DegeneracyError(
             f"the simulated statistics {constant} did not vary: the model may be degenerate "
-            "at these coefficients, or the MCMC too short"
+            "at these coefficients, the MCMC too short, or the statistics constant under "
+            "the constraints"
         )
     return sample, last
 
 
-def _stall_message(model: BoundModel, sample: np.ndarray, iterations: int) -> str:
-    observed = model.observed()
+def _stall_message(model: BoundModel, sample: np.ndarray, iterations: int, observed=None) -> str:
+    observed = model.observed() if observed is None else observed
     mean = sample.reshape(-1, model.n_stats).mean(axis=0)
     width = max(map(len, model.names))
     rows = "\n".join(f"  {n:<{width}}  {m:12.2f}  {o:12.2f}"
@@ -315,6 +378,7 @@ def contrastive_divergence(model: BoundModel, init: np.ndarray, control: Control
     observed statistics stay in range, and the estimate moves by log-normal
     steps until the samples are centered on the observed statistics."""
     observed = model.observed()
+    free = model.free
     theta = np.asarray(init, dtype=float).copy()
     starts = [model.network.edges] * control.cd_samplesize
     converged = False
@@ -323,10 +387,10 @@ def contrastive_divergence(model: BoundModel, init: np.ndarray, control: Control
         sample, _ = _simulate(model, starts, theta, control.cd_steps - 1, 1, 1, rng, control,
                               check_variance=False)
         sample = sample.reshape(1, -1, model.n_stats)  # independent samples
-        _, gamma, step = _step(sample, observed, control.steplength_margin)
-        pvalue = hotelling_pvalue(sample, observed, np.ones(model.n_stats))
+        _, gamma, step = _step(sample, observed, control.steplength_margin, free)
+        pvalue = hotelling_pvalue(sample[..., free], observed[free], np.ones(free.sum()))
         log.info("CD iteration %d: step length %.2f, p-value %.3f", iteration, gamma, pvalue)
-        theta = theta + step
+        theta[free] += step
         if gamma == 1.0 and pvalue > control.cd_conv_min_pval:
             converged = True
             break
@@ -336,29 +400,49 @@ def contrastive_divergence(model: BoundModel, init: np.ndarray, control: Control
 
 def mcmle(model: BoundModel, init: np.ndarray, control: Control, rng: np.random.Generator) -> Estimate:
     """Monte Carlo MLE, stopping when the step length is 1 in two consecutive
-    iterations (Hummel et al. 2012), then refining with a larger sample."""
+    iterations (Hummel et al. 2012), then refining with a larger sample.
+
+    With missing dyads, each iteration also samples networks conditional on
+    the observed dyads, whose mean statistics are the target (Handcock and
+    Gile 2010)."""
     observed = model.observed()
+    free = model.free
     theta = np.asarray(init, dtype=float).copy()
     starts = [model.network.edges] * control.n_chains
+    starts_obs = [model.network.edges] * control.n_chains
     interval, burnin = control.interval, control.burnin
 
     def simulate(samples):
-        nonlocal starts
+        nonlocal starts, starts_obs
         sample, starts = _simulate(model, starts, theta, burnin, interval, samples, rng, control)
-        return sample
+        if not model.has_missing:
+            return sample, None
+        sample_obs, starts_obs = _simulate(model, starts_obs, theta, burnin, interval, samples,
+                                           rng, control, check_variance=False, conditional=True)
+        return sample, sample_obs
+
+    def effective_size(sample, sample_obs):
+        tau = autocorrelation_time(sample[..., free])
+        ess = sample.shape[0] * sample.shape[1] / tau.max()
+        if sample_obs is None:
+            return tau, None, ess
+        tau_obs = autocorrelation_time(sample_obs[..., free])
+        return tau, tau_obs, min(ess, sample_obs.shape[0] * sample_obs.shape[1] / tau_obs.max())
+
+    def target(sample_obs):
+        return observed if sample_obs is None else sample_obs.reshape(-1, model.n_stats).mean(axis=0)
 
     converged, full_steps, stalled = False, 0, 0
     for iteration in range(1, control.max_iter + 1):
-        sample = simulate(control.per_chain())
-        tau = autocorrelation_time(sample)
-        _, gamma, step = _step(sample, observed, control.steplength_margin)
-        ess = sample.shape[0] * sample.shape[1] / tau.max()
+        sample, sample_obs = simulate(control.per_chain())
+        _, _, ess = effective_size(sample, sample_obs)
+        _, gamma, step = _step(sample, target(sample_obs), control.steplength_margin, free, sample_obs)
         log.info("iteration %d: interval %d, effective size %.0f, step length %.2f",
                  iteration, interval, ess, gamma)
         stalled = stalled + 1 if gamma < 0.1 else 0
         if control.stall_iterations and stalled >= control.stall_iterations:
-            raise DegeneracyError(_stall_message(model, sample, stalled))
-        theta = theta + step
+            raise DegeneracyError(_stall_message(model, sample, stalled, target(sample_obs)))
+        theta[free] += step
         # The convex hull test means little with few effective samples.
         enough = not control.effective_size or ess >= control.effective_size
         full_steps = full_steps + 1 if gamma == 1.0 and enough else 0
@@ -375,12 +459,21 @@ def mcmle(model: BoundModel, init: np.ndarray, control: Control, rng: np.random.
             stacklevel=3,
         )
 
-    sample = simulate(control.per_chain() * control.last_boost)
-    tau = autocorrelation_time(sample)
-    pvalue = hotelling_pvalue(sample, observed, tau)
-    cov, gamma, step = _step(sample, observed, control.steplength_margin)
+    sample, sample_obs = simulate(control.per_chain() * control.last_boost)
+    tau, tau_obs, _ = effective_size(sample, sample_obs)
+    goal = target(sample_obs)
+    pvalue = hotelling_pvalue(sample[..., free], goal[free], tau,
+                              None if sample_obs is None else sample_obs[..., free], tau_obs)
+    info, gamma, step = _step(sample, goal, control.steplength_margin, free, sample_obs)
     log.info("final iteration: interval %d, step length %.2f, p-value %.3f", interval, gamma, pvalue)
-    info = np.linalg.pinv(cov)  # inverse Fisher information
-    mc_cov = info @ mean_covariance(sample, tau) @ info
-    return Estimate(theta + step, info + mc_cov, mc_cov, None, "MCMLE", iteration + 1, converged,
-                    sample, interval, pvalue)
+    inverse = np.linalg.pinv(info)  # inverse Fisher information of the free coefficients
+    error = mean_covariance(sample[..., free], tau)
+    if sample_obs is not None:
+        error = error + mean_covariance(sample_obs[..., free], tau_obs)
+    mc_free = inverse @ error @ inverse
+    cov, mc_cov = (np.full((model.n_stats, model.n_stats), np.nan) for _ in range(2))
+    cov[np.ix_(free, free)] = inverse + mc_free
+    mc_cov[np.ix_(free, free)] = mc_free
+    theta[free] += step
+    return Estimate(theta, cov, mc_cov, None, "MCMLE", iteration + 1, converged, sample, interval,
+                    pvalue, sample_obs=sample_obs)

@@ -5,7 +5,7 @@
 >>> fit.summary()  # doctest: +SKIP
 """
 
-from . import datasets
+from . import constraints, datasets
 from ._compare import ModelComparison, compare
 from ._diagnostics import McmcDiagnostics
 from ._estimation import Control, DegeneracyError
@@ -14,17 +14,23 @@ from ._gof import GofResult, GofTable, gof
 from ._simulate import ergm, simulate, summary_stats
 from .formula import FormulaError, parse_formula
 from .terms import (
+    F,
     Formula,
     Term,
     absdiff,
     ctriple,
+    degree,
+    dsp,
     edgecov,
     edges,
+    esp,
     gwdegree,
     gwdsp,
     gwesp,
     gwidegree,
     gwodegree,
+    idegree,
+    isolates,
     istar,
     kstar,
     mutual,
@@ -33,8 +39,11 @@ from .terms import (
     nodeicov,
     nodeifactor,
     nodematch,
+    nodemix,
     nodeocov,
     nodeofactor,
+    odegree,
+    offset,
     ostar,
     triangle,
     ttriple,
@@ -45,6 +54,7 @@ __version__ = "0.1.0.dev0"
 __all__ = [
     "Control",
     "DegeneracyError",
+    "F",
     "ErgmFit",
     "FitSummary",
     "Formula",
@@ -56,17 +66,23 @@ __all__ = [
     "Term",
     "absdiff",
     "compare",
+    "constraints",
     "ctriple",
     "datasets",
+    "degree",
+    "dsp",
     "edgecov",
     "edges",
     "ergm",
+    "esp",
     "gof",
     "gwdegree",
     "gwdsp",
     "gwesp",
     "gwidegree",
     "gwodegree",
+    "idegree",
+    "isolates",
     "istar",
     "kstar",
     "mutual",
@@ -75,8 +91,11 @@ __all__ = [
     "nodeicov",
     "nodeifactor",
     "nodematch",
+    "nodemix",
     "nodeocov",
     "nodeofactor",
+    "odegree",
+    "offset",
     "ostar",
     "parse_formula",
     "simulate",
