@@ -257,7 +257,6 @@ describing it in `python/ergmx/terms.py`.
 - Valued networks (ergm.count) and egocentric data (ergm.ego).
 - tergm's EGMME estimator and duration terms; ergm.multi's `gofN()`, and
   N()'s `subset`, `offset` and `label` arguments.
-- A release on PyPI (the wheels are built in CI).
 
 ## Installation
 
@@ -268,8 +267,8 @@ uv add "ergmx[igraph,plot]"        # in a uv project; or: uv pip install / pip i
 ```
 
 Releases come as wheels with the Rust core already compiled, for Linux,
-macOS and Windows, so no Rust compiler is needed. ergmx is not on PyPI yet:
-until then, install it from GitHub, which builds it from source:
+macOS and Windows, so no Rust compiler is needed. To install it from GitHub, 
+which builds it from source:
 
 ```bash
 uv add "ergmx[igraph,plot] @ git+https://github.com/neylsoncrepalde/ergmx"

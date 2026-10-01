@@ -56,11 +56,6 @@ To run a script without creating an environment:
 uv run --with "ergmx[igraph]" python my_analysis.py
 ```
 
-:::{note}
-`ergmx` has no release on PyPI yet. Until it does, install it
-[from GitHub](#from-github).
-:::
-
 ### Optional dependencies
 
 `ergmx` itself only needs NumPy and SciPy. Networks come from a graph library,
