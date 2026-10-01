@@ -22,7 +22,12 @@ def _stars(p: float) -> str:
 
 
 class ErgmFit:
-    """A fitted ERGM. Use :meth:`summary` for the table of coefficients."""
+    """A fitted ERGM, as returned by :func:`ergmx.ergm`.
+
+    Print :meth:`summary` for the table of coefficients, like R's
+    ``summary(fit)``; check the fit with :meth:`mcmc_diagnostics` and
+    :meth:`gof`; compare it with others with :func:`ergmx.compare`.
+    """
 
     def __init__(self, model: BoundModel, estimate: Estimate, mple: Estimate, control: Control, seed):
         self._model = model
@@ -72,10 +77,12 @@ class ErgmFit:
 
     @property
     def iterations(self) -> int:
+        """Iterations of the Monte Carlo MLE (or of contrastive divergence)."""
         return self._estimate.iterations
 
     @property
     def converged(self) -> bool:
+        """Whether the estimation met its convergence criterion."""
         return self._estimate.converged
 
     @property
@@ -96,10 +103,12 @@ class ErgmFit:
 
     @property
     def aic(self) -> float | None:
+        """Akaike's information criterion, -2 loglik + 2 p."""
         return None if self.loglik is None else -2 * self.loglik + 2 * len(self.names)
 
     @property
     def bic(self) -> float | None:
+        """Bayesian information criterion, -2 loglik + p log(number of dyads), as in ergm."""
         if self.loglik is None:
             return None
         n_dyads = self._model.network.n * (self._model.network.n - 1)
@@ -148,6 +157,8 @@ class ErgmFit:
         return gof(self, nsim=nsim, **options)
 
     def summary(self) -> FitSummary:
+        """The table of coefficients, standard errors and tests, with the
+        log-likelihood, AIC and BIC. Print it (it prints itself in notebooks)."""
         return FitSummary(self)
 
     def __repr__(self) -> str:

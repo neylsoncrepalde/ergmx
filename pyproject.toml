@@ -29,6 +29,16 @@ igraph = ["igraph>=0.11.5"]
 networkx = ["networkx>=3.0"]
 plot = ["matplotlib>=3.6"]
 test = ["pytest>=7", "igraph>=0.11.5", "networkx>=3.0", "matplotlib>=3.6"]
+docs = [
+    "sphinx>=8.1",
+    "pydata-sphinx-theme>=0.16",
+    "myst-nb>=1.2",
+    "sphinx-design>=0.6",
+    "sphinx-copybutton>=0.5.2",
+    "igraph>=0.11.5",
+    "networkx>=3.0",
+    "matplotlib>=3.6",
+]
 
 [tool.maturin]
 python-source = "python"

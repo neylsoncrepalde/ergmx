@@ -13,10 +13,10 @@ that read like R's.
 > validated against R's ergm. See [what's missing](#not-yet).
 
 ```python
-import igraph as ig
 import ergmx
+from ergmx import datasets
 
-g = ig.Graph.Read_GraphML("tests/data/faux.mesa.high.graphml")
+g = datasets.load("faux.mesa.high")   # an igraph.Graph; ergm's networks are bundled
 fit = ergmx.ergm(
     g, "edges + nodefactor('Sex') + nodematch('Grade') + nodematch('Race') + gwesp(0.5, fixed=TRUE)",
     seed=1,
@@ -116,6 +116,21 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
 - `ergmx.simulate(network, formula, coef, nsim)` returns graphs of the same
   kind as the input, or their statistics; `fit.simulate()` uses the estimates.
 - `ergmx.summary_stats(network, formula)`: R's `summary(net ~ formula)`.
+- `ergmx.datasets`: the networks of R's ergm documentation (flomarriage,
+  flobusiness, samplk1-3, faux.mesa.high, faux.dixon.high,
+  faux.magnolia.high).
+
+## Documentation
+
+A user guide, a term reference, the API reference and a guide for R users,
+built with Sphinx in `docs/`; every example runs when it is built:
+
+```bash
+.venv/bin/maturin develop --release --extras docs
+.venv/bin/sphinx-build -W --keep-going -d docs/_build/doctrees docs docs/_build/html
+```
+
+`.github/workflows/docs.yml` publishes it to GitHub Pages.
 
 ## Validation against R
 
@@ -171,6 +186,7 @@ python/ergmx/         Python API
   _diagnostics.py       MCMC diagnostics
   _gof.py               goodness of fit
   _compare.py           model comparison
+  datasets.py           ergm's networks, bundled in data/
   _fit.py               ErgmFit and its summary table
   _simulate.py          ergm(), simulate(), summary_stats()
 src/                  Rust core (PyO3), exposed as ergmx._core.Model
@@ -191,7 +207,7 @@ describing it in `python/ergmx/terms.py`.
   directed shared partner types other than OTP.
 - Sample space constraints (`bd`, `blocks`, `degrees`) and missing ties.
 - Terms and operators for multilevel models (`nodemix`, `F()`, `offset()`).
-- Documentation, and wheels built for every platform in CI.
+- Wheels built for every platform in CI.
 
 ## Development
 

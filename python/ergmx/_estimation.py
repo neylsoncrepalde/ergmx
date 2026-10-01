@@ -57,24 +57,30 @@ class Control:
     steplength_margin: float = 0.05
     #: The final iteration samples this many times more networks.
     last_boost: int = 4
-    #: Stop if a simulated network has more edges than this many times the
-    #: observed ones (and more than `density_guard_min`), as ergm does.
+    #: Stop if a simulated network has more than this many times the observed
+    #: edges (and more than ``density_guard_min``), as ergm does.
     density_guard: float = float(np.exp(3))
+    #: Edges a simulated network may always have, whatever the density guard.
     density_guard_min: int = 10000
     #: Stop after this many consecutive iterations with a step length below 0.1;
     #: None never stops early.
     stall_iterations: int | None = 10
-    #: Contrastive divergence: MCMC proposals per sample, samples per iteration,
-    #: maximum iterations, and the convergence p-value, as in ergm.
+    #: Contrastive divergence: MCMC proposals from the observed network per sample.
     cd_steps: int = 8
+    #: Contrastive divergence: samples per iteration.
     cd_samplesize: int = 1024
+    #: Contrastive divergence: maximum number of iterations.
     cd_max_iter: int = 60
+    #: Contrastive divergence stops when Hotelling's test of the samples
+    #: against the observed statistics has a larger p-value, as in ergm.
     cd_conv_min_pval: float = 0.5
-    #: Log-likelihood by path sampling: intervals along the path (points at
-    #: both ends of each), chains per point, and samples per chain (at the
-    #: MLE's MCMC interval).
+    #: Log-likelihood by path sampling: intervals along the path, with
+    #: samples at both ends of each.
     bridges: int = 32
+    #: Log-likelihood by path sampling: chains per point of the path.
     bridge_chains: int = 1
+    #: Log-likelihood by path sampling: samples per chain, spaced by the
+    #: interval the Monte Carlo MLE ended with.
     bridge_samplesize: int = 256
 
     def per_chain(self) -> int:

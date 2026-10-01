@@ -5,3 +5,5 @@ __pycache__/
 *.pyd
 .pytest_cache/
 dist/
+docs/_build/
+docs/generated/

@@ -5,6 +5,7 @@
 >>> fit.summary()  # doctest: +SKIP
 """
 
+from . import datasets
 from ._compare import ModelComparison, compare
 from ._diagnostics import McmcDiagnostics
 from ._estimation import Control, DegeneracyError
@@ -56,6 +57,7 @@ __all__ = [
     "absdiff",
     "compare",
     "ctriple",
+    "datasets",
     "edgecov",
     "edges",
     "ergm",
