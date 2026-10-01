@@ -5,7 +5,9 @@
 >>> fit.summary()  # doctest: +SKIP
 """
 
-from ._estimation import Control
+from ._compare import ModelComparison, compare
+from ._diagnostics import McmcDiagnostics
+from ._estimation import Control, DegeneracyError
 from ._fit import ErgmFit, FitSummary
 from ._gof import GofResult, GofTable, gof
 from ._simulate import ergm, simulate, summary_stats
@@ -41,14 +43,18 @@ __version__ = "0.1.0.dev0"
 
 __all__ = [
     "Control",
+    "DegeneracyError",
     "ErgmFit",
     "FitSummary",
     "Formula",
     "FormulaError",
     "GofResult",
     "GofTable",
+    "McmcDiagnostics",
+    "ModelComparison",
     "Term",
     "absdiff",
+    "compare",
     "ctriple",
     "edgecov",
     "edges",

@@ -34,7 +34,7 @@ def test_dyad_independent_models_get_the_exact_mle(name):
 @pytest.mark.parametrize("name", DEPENDENT)
 def test_monte_carlo_mle_matches_r(name):
     model = REFERENCE[name]
-    fit = ergmx.ergm(load(model["network"]), model["formula"], seed=2026)
+    fit = ergmx.ergm(load(model["network"]), model["formula"], seed=2026, eval_loglik=False)
     assert fit.method == "MCMLE" and fit.converged
     for term, r_estimate in model["mle"].items():
         r_se = model["se"][term]
@@ -71,3 +71,48 @@ def test_bad_arguments():
         ergmx.ergm(g, "edges + mutual", init=[0.0])
     with pytest.raises(TypeError):
         ergmx.ergm(g, "edges + mutual", not_a_setting=1)
+
+
+def test_contrastive_divergence_estimate_is_its_fixed_point():
+    """Samples of 8 MCMC proposals from the observed network, at the CD
+    estimate, average to the observed statistics: the definition of CD."""
+    from ergmx._estimation import hotelling_pvalue
+    from ergmx._model import bind
+
+    g = load("samplk3")
+    fit = ergmx.ergm(g, "edges + mutual", estimate="CD", seed=1)
+    assert fit.method == "CD" and fit.converged
+    assert all(np.isnan(v) for v in fit.stderr.values())
+    model = bind(g, "edges + mutual")
+    sample, _, _ = model.core.simulate([model.network.edges] * 20_000, list(fit.params), 7, 1, 1, 5)
+    sample = sample.reshape(1, -1, 2)
+    assert hotelling_pvalue(sample, model.observed(), np.ones(2)) > 0.001
+    assert "no standard errors" in str(fit.summary())
+
+
+@pytest.mark.parametrize("name", ["samplk_mutual", "mesa_gwesp"])
+def test_mle_from_contrastive_divergence_start_matches_r(name):
+    model = REFERENCE[name]
+    fit = ergmx.ergm(load(model["network"]), model["formula"], init="CD", seed=3)
+    assert fit.method == "MCMLE" and fit.converged
+    for term, r_estimate in model["mle"].items():
+        assert abs(fit.coef[term] - r_estimate) < 0.25 * model["se"][term], term
+
+
+def test_density_guard_stops_degenerate_simulations():
+    g = load("samplk3")
+    with pytest.raises(ergmx.DegeneracyError, match="more than 60 edges"):
+        ergmx.ergm(g, "edges + mutual", init=[3.0, 0.0], seed=1, density_guard=1.0,
+                   density_guard_min=60)
+
+
+def test_stalled_estimation_explains_why():
+    g = load("samplk3")
+    with pytest.raises(ergmx.DegeneracyError, match="not making progress") as error:
+        ergmx.ergm(g, "edges + mutual", init=[4.0, 0.0], seed=1, stall_iterations=2)
+    assert "simulated" in str(error.value) and "observed" in str(error.value)
+
+
+def test_bad_init():
+    with pytest.raises(ValueError, match="init must be"):
+        ergmx.ergm(load("samplk3"), "edges + mutual", init="SA")

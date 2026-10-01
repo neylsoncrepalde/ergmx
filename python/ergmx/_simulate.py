@@ -9,6 +9,7 @@ import numpy as np
 from . import _estimation
 from ._estimation import Control
 from ._fit import ErgmFit
+from ._loglik import bridge_loglik
 from ._model import bind
 from ._network import to_graph
 
@@ -26,7 +27,7 @@ def summary_stats(network, formula) -> dict[str, float]:
     return dict(zip(model.names, model.observed().tolist()))
 
 
-def ergm(network, formula, *, estimate: str = "MLE", init=None, seed=None,
+def ergm(network, formula, *, estimate: str = "MLE", init=None, seed=None, eval_loglik: bool = True,
          control: Control | None = None, **control_args) -> ErgmFit:
     """Fit an exponential-family random graph model.
 
@@ -37,14 +38,21 @@ def ergm(network, formula, *, estimate: str = "MLE", init=None, seed=None,
     formula : str or terms
         The model, in R syntax: ``"edges + nodematch('Grade') + gwesp(0.5, fixed=TRUE)"``,
         or terms combined with ``+``.
-    estimate : {"MLE", "MPLE"}
+    estimate : {"MLE", "MPLE", "CD"}
         ``"MLE"`` (default) gives the exact MLE of dyad-independent models
         and the Monte Carlo MLE of the others. ``"MPLE"`` stops at the
-        maximum pseudo-likelihood estimate.
-    init : array-like, optional
-        Starting coefficients for the Monte Carlo MLE. Defaults to the MPLE.
+        maximum pseudo-likelihood estimate, and ``"CD"`` at the contrastive
+        divergence estimate (as in ergm; no standard errors).
+    init : {"MPLE", "CD"} or array-like, optional
+        Starting coefficients for the Monte Carlo MLE: the MPLE (default),
+        the contrastive divergence estimate (started from the MPLE), or given
+        values.
     seed : int, optional
         Seed for reproducible results.
+    eval_loglik : bool
+        Estimate the log-likelihood of dyad-dependent models, for AIC and BIC,
+        by path sampling (as ergm does by default). Dyad-independent models
+        always get their exact log-likelihood.
     control : Control, optional
         MCMC and estimation settings. Keyword arguments (``samplesize=...``,
         ``interval=...``, ``n_chains=...``) override single settings.
@@ -53,21 +61,33 @@ def ergm(network, formula, *, estimate: str = "MLE", init=None, seed=None,
     -------
     ErgmFit
     """
-    if estimate not in ("MLE", "MPLE"):
-        raise ValueError(f"estimate must be 'MLE' or 'MPLE', not {estimate!r}")
+    if estimate not in ("MLE", "MPLE", "CD"):
+        raise ValueError(f"estimate must be 'MLE', 'MPLE' or 'CD', not {estimate!r}")
     control = dataclasses.replace(control or Control(), **control_args)
     model = bind(network, formula)
     pseudo = _estimation.mple(model)
+    rng = np.random.default_rng(seed)
     if model.dyad_independent:
-        result = dataclasses.replace(pseudo, method="MLE")  # the MPLE is the MLE
-    elif estimate == "MPLE":
-        result = pseudo
+        return ErgmFit(model, dataclasses.replace(pseudo, method="MLE"), pseudo, control, seed)
+    if estimate == "MPLE":
+        return ErgmFit(model, pseudo, pseudo, control, seed)
+    if estimate == "CD" or (isinstance(init, str) and init == "CD"):
+        cd = _estimation.contrastive_divergence(model, pseudo.theta, control, rng)
+        if estimate == "CD":
+            return ErgmFit(model, cd, pseudo, control, seed)
+        start = cd.theta
+    elif init is None or (isinstance(init, str) and init == "MPLE"):
+        start = pseudo.theta
+    elif isinstance(init, str):
+        raise ValueError(f"init must be 'MPLE', 'CD' or coefficients, not {init!r}")
     else:
-        start = pseudo.theta if init is None else np.asarray(init, dtype=float)
+        start = np.asarray(init, dtype=float)
         if start.shape != (model.n_stats,):
             raise ValueError(f"init must have {model.n_stats} values, one per coefficient")
-        rng = np.random.default_rng(seed)
-        result = _estimation.mcmle(model, start, control, rng)
+    result = _estimation.mcmle(model, start, control, rng)
+    if eval_loglik:
+        loglik, se = bridge_loglik(model, result.theta, control, result.interval, rng)
+        result = dataclasses.replace(result, loglik=loglik, loglik_se=se)
     return ErgmFit(model, result, pseudo, control, seed)
 
 

@@ -7,7 +7,8 @@ mod terms;
 
 use numpy::ndarray::{Array1, Array2, Array3};
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyArray3, PyReadonlyArray2};
-use pyo3::exceptions::PyValueError;
+use pyo3::create_exception;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use rayon::prelude::*;
 
@@ -16,6 +17,8 @@ use rng::Rng;
 use terms::TermSpec;
 
 type EdgeArray<'py> = Bound<'py, PyArray2<u32>>;
+
+create_exception!(_core, DensityGuardError, PyRuntimeError, "A simulated network exceeded max_edges.");
 type MpleData<'py> = (Bound<'py, PyArray2<f64>>, Bound<'py, PyArray1<f64>>);
 
 fn to_edges(array: &PyReadonlyArray2<u32>) -> PyResult<Vec<(u32, u32)>> {
@@ -83,8 +86,10 @@ impl PyModel {
     ///
     /// Returns the sampled statistics (chains x samplesize x statistics), the
     /// last network of each chain and, if `keep_networks`, every sampled network.
-    /// `triadic_weight` is the share of triadic proposals.
-    #[pyo3(signature = (starts, theta, burnin, interval, samplesize, seed, keep_networks = false, triadic_weight = 0.0))]
+    /// `triadic_weight` is the share of triadic proposals. If a network gets more
+    /// than `max_edges` edges, the chains stop and DensityGuardError is raised.
+    /// `chain_thetas`, one coefficient vector per chain, replaces `theta`.
+    #[pyo3(signature = (starts, theta, burnin, interval, samplesize, seed, keep_networks = false, triadic_weight = 0.0, max_edges = None, chain_thetas = None))]
     #[allow(clippy::too_many_arguments, clippy::type_complexity)]
     fn simulate<'py>(
         &self,
@@ -97,12 +102,18 @@ impl PyModel {
         seed: u64,
         keep_networks: bool,
         triadic_weight: f64,
+        max_edges: Option<usize>,
+        chain_thetas: Option<Vec<Vec<f64>>>,
     ) -> PyResult<(Bound<'py, PyArray3<f64>>, Vec<EdgeArray<'py>>, Vec<Vec<EdgeArray<'py>>>)> {
-        if theta.len() != self.model.n_stats() {
+        let thetas = chain_thetas.unwrap_or_else(|| vec![theta; starts.len()]);
+        if thetas.len() != starts.len() {
+            return Err(PyValueError::new_err("need one coefficient vector per chain"));
+        }
+        if let Some(bad) = thetas.iter().find(|t| t.len() != self.model.n_stats()) {
             return Err(PyValueError::new_err(format!(
                 "expected {} coefficients, got {}",
                 self.model.n_stats(),
-                theta.len()
+                bad.len()
             )));
         }
         if interval == 0 || starts.is_empty() {
@@ -111,7 +122,8 @@ impl PyModel {
         if !(0.0..1.0).contains(&triadic_weight) {
             return Err(PyValueError::new_err("triadic_weight must be in [0, 1)"));
         }
-        let proposal = sampler::Proposal { triadic_weight };
+        let max_edges = max_edges.unwrap_or(usize::MAX);
+        let proposal = sampler::Proposal { triadic_weight, max_edges };
         let nets = starts.iter().map(|s| self.network(s)).collect::<PyResult<Vec<_>>>()?;
         // Independent streams: nearby seeds must not share chains.
         let mut master = Rng::new(seed);
@@ -119,9 +131,10 @@ impl PyModel {
         let chains: Vec<sampler::Chain> = py.detach(|| {
             nets.into_par_iter()
                 .zip(seeds)
-                .map(|(net, chain_seed)| {
+                .zip(&thetas)
+                .map(|((net, chain_seed), theta)| {
                     let mut rng = Rng::new(chain_seed);
-                    let (model, theta, proposal) = (&self.model, &theta, &proposal);
+                    let (model, proposal) = (&self.model, &proposal);
                     sampler::run_chain(
                         model, proposal, net, theta, burnin, interval, samplesize, &mut rng, keep_networks,
                     )
@@ -129,6 +142,11 @@ impl PyModel {
                 .collect()
         });
 
+        if chains.iter().any(|c| c.exceeded) {
+            return Err(DensityGuardError::new_err(format!(
+                "a simulated network has more than {max_edges} edges"
+            )));
+        }
         let shape = (chains.len(), samplesize, self.model.n_stats());
         let stats = chains.iter().flat_map(|c| c.stats.iter().copied()).collect();
         let stats = Array3::from_shape_vec(shape, stats).unwrap().into_pyarray(py);
@@ -143,5 +161,6 @@ impl PyModel {
 
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<PyModel>()
+    m.add_class::<PyModel>()?;
+    m.add("DensityGuardError", m.py().get_type::<DensityGuardError>())
 }

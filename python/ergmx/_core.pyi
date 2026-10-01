@@ -1,6 +1,9 @@
 import numpy as np
 import numpy.typing as npt
 
+class DensityGuardError(RuntimeError):
+    """A simulated network exceeded ``max_edges``."""
+
 class Model:
     """An ERGM for networks with ``n`` vertices, implemented in Rust."""
 
@@ -23,6 +26,8 @@ class Model:
         seed: int,
         keep_networks: bool = False,
         triadic_weight: float = 0.0,
+        max_edges: int | None = None,
+        chain_thetas: list[list[float]] | None = None,
     ) -> tuple[
         npt.NDArray[np.float64],
         list[npt.NDArray[np.uint32]],

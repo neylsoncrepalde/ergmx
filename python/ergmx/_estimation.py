@@ -1,4 +1,5 @@
-"""Estimation: MPLE, and Monte Carlo MLE with Hummel et al. (2012) stepping."""
+"""Estimation: MPLE, contrastive divergence, and Monte Carlo MLE with Hummel
+et al. (2012) stepping."""
 
 from __future__ import annotations
 
@@ -11,9 +12,15 @@ import numpy as np
 from scipy import optimize, stats
 from scipy.special import expit
 
+from . import _core
 from ._model import BoundModel
 
 log = logging.getLogger("ergmx")
+
+
+class DegeneracyError(RuntimeError):
+    """The model could not be fitted: the simulated networks are very unlike the
+    observed one, a sign that the model is degenerate or the starting values poor."""
 
 
 def _default_chains() -> int:
@@ -50,6 +57,25 @@ class Control:
     steplength_margin: float = 0.05
     #: The final iteration samples this many times more networks.
     last_boost: int = 4
+    #: Stop if a simulated network has more edges than this many times the
+    #: observed ones (and more than `density_guard_min`), as ergm does.
+    density_guard: float = float(np.exp(3))
+    density_guard_min: int = 10000
+    #: Stop after this many consecutive iterations with a step length below 0.1;
+    #: None never stops early.
+    stall_iterations: int | None = 10
+    #: Contrastive divergence: MCMC proposals per sample, samples per iteration,
+    #: maximum iterations, and the convergence p-value, as in ergm.
+    cd_steps: int = 8
+    cd_samplesize: int = 1024
+    cd_max_iter: int = 60
+    cd_conv_min_pval: float = 0.5
+    #: Log-likelihood by path sampling: intervals along the path (points at
+    #: both ends of each), chains per point, and samples per chain (at the
+    #: MLE's MCMC interval).
+    bridges: int = 32
+    bridge_chains: int = 1
+    bridge_samplesize: int = 256
 
     def per_chain(self) -> int:
         return max(1, self.samplesize // self.n_chains)
@@ -67,6 +93,7 @@ class Estimate:
     sample: np.ndarray | None  # last sample of statistics (chains x samples x stats)
     interval: int | None = None  # MCMC interval of the last iteration
     pvalue: float | None = None  # final test that the model reproduces the observed statistics
+    loglik_se: float | None = None  # Monte Carlo standard error of the log-likelihood
 
 
 # -- MPLE -------------------------------------------------------------------------
@@ -108,7 +135,7 @@ def mple(model: BoundModel) -> Estimate:
     # Many dyads share the same change statistics: fit on the distinct rows.
     rows, counts = np.unique(np.column_stack([x, y]), axis=0, return_counts=True)
     theta, cov, loglik = logistic_regression(rows[:, :-1], rows[:, -1], counts.astype(float))
-    return Estimate(theta, cov, None, loglik, "MPLE", 0, True, None)
+    return Estimate(theta, cov, None, loglik, "MPLE", 0, True, None, loglik_se=0.0)
 
 
 # -- Monte Carlo MLE --------------------------------------------------------------
@@ -175,6 +202,21 @@ def mean_covariance(sample: np.ndarray, tau: np.ndarray) -> np.ndarray:
     return np.atleast_2d(np.cov(flat, rowvar=False)) * np.outer(scale, scale) / flat.shape[0]
 
 
+def split_rhat(sample: np.ndarray) -> np.ndarray:
+    """Split R-hat of each statistic (Gelman et al. 2013): about 1 when the chains
+    agree; above 1.01 to 1.1 suggests they have not mixed."""
+    chains, n, p = sample.shape
+    half = n // 2
+    if half < 2:
+        return np.full(p, np.nan)
+    parts = np.concatenate([sample[:, :half], sample[:, half:2 * half]])
+    within = parts.var(axis=1, ddof=1).mean(axis=0)
+    between = half * parts.mean(axis=1).var(axis=0, ddof=1)
+    pooled = (half - 1) / half * within + between / half
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return np.where(within > 0, np.sqrt(pooled / within), np.nan)
+
+
 def hotelling_pvalue(sample, observed, tau) -> float:
     """p-value of Hotelling's T^2 test that the model's mean statistics are the
     observed ones, with the effective sample size as the sample size."""
@@ -198,6 +240,94 @@ def _step(sample, observed, margin):
     return cov, gamma, step
 
 
+def _max_edges(model: BoundModel, control: Control) -> int:
+    observed_edges = len(model.network.edges)
+    return int(max(control.density_guard_min, control.density_guard * observed_edges))
+
+
+def _density_guard_error(model: BoundModel, max_edges: int) -> DegeneracyError:
+    observed = len(model.network.edges)
+    return DegeneracyError(
+        f"a simulated network had more than {max_edges} edges, over "
+        f"{max_edges / max(observed, 1):.0f} times the {observed} observed: a strong sign that "
+        "the model is degenerate, or that the starting coefficients are poor. If you are "
+        "confident neither is the case, raise Control.density_guard."
+    )
+
+
+def _simulate(model: BoundModel, starts, theta, burnin, interval, samples, rng, control,
+              check_variance=True):
+    """Sample statistics, stopping with a DegeneracyError if the density guard
+    trips or (with `check_variance`) a statistic does not vary."""
+    max_edges = _max_edges(model, control)
+    try:
+        sample, last, _ = model.core.simulate(
+            starts, theta.tolist(), burnin, interval, samples, int(rng.integers(2**63)),
+            triadic_weight=model.triadic_weight(control.triadic_weight), max_edges=max_edges,
+        )
+    except _core.DensityGuardError:
+        raise _density_guard_error(model, max_edges) from None
+    variances = sample.reshape(-1, model.n_stats).var(axis=0)
+    if check_variance and np.any(variances <= 0):
+        constant = [n for n, v in zip(model.names, variances) if v <= 0]
+        raise DegeneracyError(
+            f"the simulated statistics {constant} did not vary: the model may be degenerate "
+            "at these coefficients, or the MCMC too short"
+        )
+    return sample, last
+
+
+def _stall_message(model: BoundModel, sample: np.ndarray, iterations: int) -> str:
+    observed = model.observed()
+    mean = sample.reshape(-1, model.n_stats).mean(axis=0)
+    width = max(map(len, model.names))
+    rows = "\n".join(f"  {n:<{width}}  {m:12.2f}  {o:12.2f}"
+                      for n, m, o in zip(model.names, mean, observed))
+    lines = [
+        f"the Monte Carlo MLE is not making progress: for {iterations} iterations the "
+        "observed statistics were far outside the range of the simulated networks (step "
+        "lengths below 0.1). The model may be degenerate, or the starting coefficients poor.",
+        "",
+        "At the current coefficients:",
+        f"  {'':<{width}}  {'simulated':>12}  {'observed':>12}",
+        rows,
+    ]
+    rhat = split_rhat(sample)
+    if np.nanmax(rhat) > 1.2:
+        lines += ["", f"The chains disagree (R-hat up to {np.nanmax(rhat):.1f}): the simulated "
+                      "networks jump between very different regimes, a typical sign of degeneracy."]
+    lines += ["", "Things to try: other terms (for example gwesp with a smaller decay instead of "
+                  "triangle), adding gwdegree or attribute terms, init='CD', or a longer MCMC "
+                  "(interval=...). Control(stall_iterations=None) keeps iterating."]
+    return "\n".join(lines)
+
+
+def contrastive_divergence(model: BoundModel, init: np.ndarray, control: Control,
+                           rng: np.random.Generator) -> Estimate:
+    """Contrastive divergence (Hinton 2002; Krivitsky 2017), as ergm's CD: each
+    sample is `cd_steps` MCMC proposals away from the observed network, so the
+    observed statistics stay in range, and the estimate moves by log-normal
+    steps until the samples are centered on the observed statistics."""
+    observed = model.observed()
+    theta = np.asarray(init, dtype=float).copy()
+    starts = [model.network.edges] * control.cd_samplesize
+    converged = False
+    for iteration in range(1, control.cd_max_iter + 1):
+        # A few proposals may leave a rare statistic unchanged: no variance check.
+        sample, _ = _simulate(model, starts, theta, control.cd_steps - 1, 1, 1, rng, control,
+                              check_variance=False)
+        sample = sample.reshape(1, -1, model.n_stats)  # independent samples
+        _, gamma, step = _step(sample, observed, control.steplength_margin)
+        pvalue = hotelling_pvalue(sample, observed, np.ones(model.n_stats))
+        log.info("CD iteration %d: step length %.2f, p-value %.3f", iteration, gamma, pvalue)
+        theta = theta + step
+        if gamma == 1.0 and pvalue > control.cd_conv_min_pval:
+            converged = True
+            break
+    nan = np.full((model.n_stats, model.n_stats), np.nan)
+    return Estimate(theta, nan, None, None, "CD", iteration, converged, None)
+
+
 def mcmle(model: BoundModel, init: np.ndarray, control: Control, rng: np.random.Generator) -> Estimate:
     """Monte Carlo MLE, stopping when the step length is 1 in two consecutive
     iterations (Hummel et al. 2012), then refining with a larger sample."""
@@ -205,24 +335,13 @@ def mcmle(model: BoundModel, init: np.ndarray, control: Control, rng: np.random.
     theta = np.asarray(init, dtype=float).copy()
     starts = [model.network.edges] * control.n_chains
     interval, burnin = control.interval, control.burnin
-    triadic = model.triadic_weight(control.triadic_weight)
 
     def simulate(samples):
         nonlocal starts
-        sample, starts, _ = model.core.simulate(
-            starts, theta.tolist(), burnin, interval, samples, int(rng.integers(2**63)),
-            triadic_weight=triadic,
-        )
-        variances = sample.reshape(-1, model.n_stats).var(axis=0)
-        if np.any(variances <= 0):
-            constant = [n for n, v in zip(model.names, variances) if v <= 0]
-            raise RuntimeError(
-                f"the simulated statistics {constant} did not vary: the model may be "
-                "degenerate at these coefficients, or the MCMC too short"
-            )
+        sample, starts = _simulate(model, starts, theta, burnin, interval, samples, rng, control)
         return sample
 
-    converged, full_steps = False, 0
+    converged, full_steps, stalled = False, 0, 0
     for iteration in range(1, control.max_iter + 1):
         sample = simulate(control.per_chain())
         tau = autocorrelation_time(sample)
@@ -230,6 +349,9 @@ def mcmle(model: BoundModel, init: np.ndarray, control: Control, rng: np.random.
         ess = sample.shape[0] * sample.shape[1] / tau.max()
         log.info("iteration %d: interval %d, effective size %.0f, step length %.2f",
                  iteration, interval, ess, gamma)
+        stalled = stalled + 1 if gamma < 0.1 else 0
+        if control.stall_iterations and stalled >= control.stall_iterations:
+            raise DegeneracyError(_stall_message(model, sample, stalled))
         theta = theta + step
         # The convex hull test means little with few effective samples.
         enough = not control.effective_size or ess >= control.effective_size

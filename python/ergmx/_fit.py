@@ -67,7 +67,7 @@ class ErgmFit:
 
     @property
     def method(self) -> str:
-        """``"MLE"`` (exact, for dyad-independent models), ``"MCMLE"`` or ``"MPLE"``."""
+        """``"MLE"`` (exact, for dyad-independent models), ``"MCMLE"``, ``"MPLE"`` or ``"CD"``."""
         return self._estimate.method
 
     @property
@@ -80,8 +80,19 @@ class ErgmFit:
 
     @property
     def loglik(self) -> float | None:
-        """Log-likelihood. Only computed for dyad-independent models for now."""
+        """Log-likelihood: exact for dyad-independent models, estimated by path
+        sampling for the others (None if fitted with ``eval_loglik=False``)."""
         return self._estimate.loglik
+
+    @property
+    def loglik_se(self) -> float | None:
+        """Monte Carlo standard error of the log-likelihood (0 if exact)."""
+        return self._estimate.loglik_se
+
+    @property
+    def formula(self):
+        """The model's terms."""
+        return self._model.formula
 
     @property
     def aic(self) -> float | None:
@@ -120,6 +131,16 @@ class ErgmFit:
             output=output, **options,
         )
 
+    def mcmc_diagnostics(self):
+        """Diagnostics of the MCMC sample of the last iteration, like R's
+        ``mcmc.diagnostics()``. Print the result, or call its ``plot()``."""
+        from ._diagnostics import McmcDiagnostics
+
+        if self._estimate.sample is None:
+            raise ValueError(f"this model was fitted by {self.method}, without MCMC")
+        return McmcDiagnostics(self.names, self._estimate.sample, self._model.observed(),
+                               self._estimate.interval)
+
     def gof(self, nsim: int = 100, **options):
         """Goodness of fit of the model. See :func:`ergmx.gof`."""
         from ._gof import gof
@@ -130,7 +151,8 @@ class ErgmFit:
         return FitSummary(self)
 
     def __repr__(self) -> str:
-        title = {"MLE": "Maximum Likelihood", "MCMLE": "Monte Carlo MLE", "MPLE": "MPLE"}
+        title = {"MLE": "Maximum Likelihood", "MCMLE": "Monte Carlo MLE", "MPLE": "MPLE",
+                 "CD": "Contrastive Divergence"}
         width = max(map(len, self.names))
         rows = "\n".join(f"  {n:<{width}}  {v: .4f}" for n, v in self.coef.items())
         return f"ErgmFit ({title[self.method]} coefficients):\n{rows}"
@@ -154,6 +176,7 @@ class FitSummary:
             "MLE": "Maximum Likelihood Results",
             "MCMLE": "Monte Carlo Maximum Likelihood Results",
             "MPLE": "Maximum Pseudolikelihood Results",
+            "CD": "Contrastive Divergence Results",
         }[fit.method]
         width = max(map(len, fit.names))
         lines = [
@@ -170,15 +193,19 @@ class FitSummary:
             )
         lines += ["---", "Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1", ""]
         if fit.loglik is not None:
-            lines.append(f"Log-likelihood: {fit.loglik:.4f}   AIC: {fit.aic:.4f}   BIC: {fit.bic:.4f}")
+            se = f" (MC SE {fit.loglik_se:.3f})" if fit.loglik_se else ""
+            lines.append(f"Log-likelihood: {fit.loglik:.4f}{se}   AIC: {fit.aic:.4f}   BIC: {fit.bic:.4f}")
         else:
-            lines.append("Log-likelihood: not computed for dyad-dependent models yet.")
+            lines.append("Log-likelihood: not computed (eval_loglik=False).")
         if fit.method == "MCMLE":
             status = "Converged" if fit.converged else "Did NOT converge"
             lines.append(f"{status} after {fit.iterations} iterations "
                          f"({fit.control.n_chains} chains, {fit.control.samplesize} samples).")
         elif fit.method == "MPLE":
             lines.append("Standard errors of the MPLE of a dyad-dependent model are unreliable.")
+        elif fit.method == "CD":
+            lines.append("Contrastive divergence estimates have no standard errors; they are "
+                         "starting values for the MLE.")
         return "\n".join(lines)
 
     __repr__ = __str__

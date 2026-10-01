@@ -27,6 +27,8 @@ pub struct Chain {
     pub networks: Vec<Vec<(u32, u32)>>,
     /// The network at the end of the chain.
     pub last: Network,
+    /// Whether the chain stopped early because a network exceeded `max_edges`.
+    pub exceeded: bool,
 }
 
 /// Probability that a TNT move proposes one given dyad.
@@ -72,6 +74,8 @@ fn triadic_draw(net: &Network, rng: &mut Rng) -> Option<(u32, u32)> {
 pub struct Proposal {
     /// Share of triadic moves; 0 gives plain TNT.
     pub triadic_weight: f64,
+    /// Stop the chain if a network has more edges (a sign of degeneracy).
+    pub max_edges: usize,
 }
 
 impl Proposal {
@@ -134,6 +138,9 @@ pub fn run_chain(
             if log_accept >= 0.0 || rng.unif() < log_accept.exp() {
                 net.toggle(i, j);
                 stats.iter_mut().zip(&delta).for_each(|(s, d)| *s += d);
+                if net.n_edges() > proposal.max_edges {
+                    return Chain { stats: sample, networks, last: net, exceeded: true };
+                }
             }
         }
         if step > burnin && (step - burnin).is_multiple_of(interval) {
@@ -143,5 +150,5 @@ pub fn run_chain(
             }
         }
     }
-    Chain { stats: sample, networks, last: net }
+    Chain { stats: sample, networks, last: net, exceeded: false }
 }

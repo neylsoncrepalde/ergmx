@@ -8,8 +8,9 @@ formulas, the same term names and statistics, and `summary()` and `gof()`
 that read like R's.
 
 > **Status: proof of concept.** 22 terms for directed and undirected
-> networks, MPLE and Monte Carlo MLE, goodness of fit, validated against R's
-> ergm. See [what's missing](#not-yet).
+> networks; MPLE, contrastive divergence and Monte Carlo MLE; MCMC
+> diagnostics, log-likelihoods, model comparison and goodness of fit, all
+> validated against R's ergm. See [what's missing](#not-yet).
 
 ```python
 import igraph as ig
@@ -27,20 +28,22 @@ fit.summary()
 Monte Carlo Maximum Likelihood Results:
 
                    Estimate  Std. Error  MCMC %  z value  Pr(>|z|)
-edges               -6.1870      0.1719       0  -36.000    <1e-04 ***
-nodefactor.Sex.M    -0.1261      0.0743       0   -1.696   0.08989 .
-nodematch.Grade      1.9762      0.1747       0   11.314    <1e-04 ***
-nodematch.Race       0.2650      0.1149       0    2.307   0.02105 *
-gwesp.fixed.0.5      1.2146      0.0841       0   14.447    <1e-04 ***
+edges               -6.1846      0.1734       0  -35.669    <1e-04 ***
+nodefactor.Sex.M    -0.1256      0.0747       0   -1.681   0.09274 .
+nodematch.Grade      1.9710      0.1758       0   11.210    <1e-04 ***
+nodematch.Race       0.2657      0.1188       0    2.235   0.02539 *
+gwesp.fixed.0.5      1.2166      0.0853       0   14.271    <1e-04 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-Log-likelihood: not computed for dyad-dependent models yet.
+Log-likelihood: -867.1531 (MC SE 0.194)   AIC: 1744.3062   BIC: 1784.0461
 Converged after 6 iterations (4 chains, 1024 samples).
 ```
 
-R's ergm gives `-6.1884, -0.1293, 1.9761, 0.2699, 1.2178` on the same model.
-It took 15.8 s; `ergmx` took 1 s.
+R's ergm gives `-6.1884, -0.1293, 1.9761, 0.2699, 1.2178` and a log-likelihood
+of -867.56 on the same model, in 16.8 s; `ergmx` took 2.3 s. (A high-precision
+estimate of the log-likelihood is -867.09: R's is off by 0.47, see
+[validation](#validation-against-r).)
 
 Then check the fit, as with R's `gof()`:
 
@@ -51,6 +54,15 @@ result.plot()
 ```
 
 ![](docs/figures/gof-mesa.png)
+
+Check the MCMC and compare models, as with R's `mcmc.diagnostics()` and
+`anova()`:
+
+```python
+fit.mcmc_diagnostics()        # effective sizes, R-hat across chains, Geweke; .plot() for traces
+simpler = ergmx.ergm(g, "edges + nodefactor('Sex') + nodematch('Grade') + nodematch('Race')")
+ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
+```
 
 ## Features
 
@@ -73,11 +85,25 @@ result.plot()
 - **Estimation**:
   - dyad-independent models: the exact MLE (logistic regression), with
     log-likelihood, AIC and BIC;
-  - other models: Monte Carlo MLE starting from the MPLE, with Hummel et al.
-    (2012) step lengths, the log-normal approximation, an adaptive MCMC interval
-    that targets an effective sample size, and standard errors that include the
+  - other models: Monte Carlo MLE starting from the MPLE (or from the
+    contrastive divergence estimate, `init="CD"`), with Hummel et al. (2012)
+    step lengths, the log-normal approximation, an adaptive MCMC interval that
+    targets an effective sample size, and standard errors that include the
     MCMC error;
-  - `estimate="MPLE"` for the pseudo-likelihood estimate only.
+  - `estimate="MPLE"` or `estimate="CD"` for those estimates only;
+  - degenerate models stop with a `DegeneracyError` that says why: a density
+    guard (as in ergm) and a check that the estimate is still moving, with the
+    simulated and observed statistics side by side.
+- **Log-likelihood** of dyad-dependent models, with its Monte Carlo standard
+  error, by path sampling from the dyad-independent submodel as ergm does,
+  but integrated with the Euler-Maclaurin corrected trapezoidal rule: its
+  error falls as 1/bridges^4 instead of 1/bridges^2 for ergm's midpoint rule.
+  `ergmx.compare(fit1, fit2, ...)` tabulates log-likelihoods, AIC, BIC and
+  likelihood-ratio tests of nested models.
+- **MCMC diagnostics**: `fit.mcmc_diagnostics()` reports mean deviations from
+  the observed statistics, naive and time-series standard errors, effective
+  sizes, split R-hat across the parallel chains and Geweke z-scores, with
+  trace and density plots.
 - **MCMC** in Rust: tie/no-tie (TNT) proposals mixed with triadic proposals,
   which close or open triangles, for models with triangle or shared partner
   terms, directed or not (like ergm's `MH_SPDyad` default). Chains run in
@@ -104,6 +130,9 @@ results in `tests/data/r_reference.json`; the test suite compares.
 | Monte Carlo MLE, 7 models (4 undirected, 3 directed) x 3–10 seeds | within 0.12 standard errors of R; SEs within 0.89–1.12 of R's |
 | Goodness of fit, directed and undirected | observed distributions and p-values identical to R's; simulated distributions agree within Monte Carlo error |
 | MCMC stationary distribution, 3 proposal mixtures | matches exact enumeration of all networks on 3 and 6 vertices (undirected) and 4 vertices (directed) |
+| Log-likelihood, directed and undirected | unbiased against exact enumeration (6 and 4 vertices), with calibrated standard errors |
+| Log-likelihood, 5 dyad-dependent models | within one standard error of high-precision estimates (128 bridges); R's 16-point midpoint rule is off by 0.1 to 2.1 |
+| Contrastive divergence | a fixed point of its defining equation; the MLE from a CD start matches R's |
 
 The networks are ergm's flomarriage, samplk3, faux.mesa.high and
 faux.dixon.high (248 students, directed friendship nominations). R's own
@@ -113,14 +142,20 @@ SE comparison is only as tight as R allows.
 ## Performance
 
 `benchmarks/benchmark.R` and `benchmarks/benchmark.py`: median of 3 seeds on an
-Apple M4 Pro, R's ergm with its default settings and without the log-likelihood
-(which ergmx doesn't compute yet).
+Apple M4 Pro, both with their defaults, which include the log-likelihood. R's
+ergm runs on one thread; the single-threaded ergmx run is limited to one thread
+too.
 
-| Model | Vertices | R ergm 4.12 | ergmx, 1 chain | ergmx, 4 chains | Max \|difference\| |
+| Model | Vertices | R ergm 4.12 | ergmx, 1 thread | ergmx, all threads | Max \|difference\| |
 |---|---|---|---|---|---|
-| faux.mesa.high, gwesp(0.5) | 205 | 15.8 s | 5.8 s (2.7x) | 1.7 s (9.5x) | 0.04 SE |
-| faux.magnolia.high, gwesp(0.25) | 1,461 | 13.7 s | 7.2 s (1.9x) | 2.9 s (4.7x) | 0.07 SE |
-| faux.dixon.high (directed), gwesp(0.1) | 248 | 132 s | 37 s (3.6x) | 10 s (13x) | 0.07 SE |
+| faux.mesa.high, gwesp(0.5) | 205 | 16.8 s | 9.7 s (1.7x) | 2.3 s (7.2x) | 0.04 SE |
+| faux.magnolia.high, gwesp(0.25) | 1,461 | 17.3 s | 13.8 s (1.3x) | 4.9 s (3.5x) | 0.07 SE |
+| faux.dixon.high (directed), gwesp(0.1) | 248 | 142 s | 77 s (1.8x) | 17 s (8.6x) | 0.07 SE |
+
+ergmx's log-likelihood samples about 17 times more than ergm's, which is what
+makes it accurate. Without the log-likelihood on either side (`eval_loglik=False`
+and `eval.loglik = FALSE`), a single thread was 1.9 to 3.6 times faster than R
+on these models.
 
 The proposal matters as much as the language: with plain TNT proposals, R
 takes 128 s on faux.magnolia.high.
@@ -131,7 +166,11 @@ takes 128 s on faux.magnolia.high.
 python/ergmx/         Python API
   formula.py            R-style formula parsing (Python's ast, no eval)
   terms.py              term definitions: names, parameters, directedness
-  _estimation.py        MPLE, Monte Carlo MLE, MCMC diagnostics
+  _estimation.py        MPLE, contrastive divergence, Monte Carlo MLE, degeneracy checks
+  _loglik.py            log-likelihood by path sampling
+  _diagnostics.py       MCMC diagnostics
+  _gof.py               goodness of fit
+  _compare.py           model comparison
   _fit.py               ErgmFit and its summary table
   _simulate.py          ergm(), simulate(), summary_stats()
 src/                  Rust core (PyO3), exposed as ergmx._core.Model
@@ -150,11 +189,8 @@ describing it in `python/ergmx/terms.py`.
 - More terms: `degree(k)`, `isolates`, `nodemix`, `concurrent`, `gwnsp`,
   bipartite terms, `edgecov` of a network attribute given as a network, and
   directed shared partner types other than OTP.
-- Log-likelihood of dyad-dependent models (bridge sampling), for AIC/BIC.
-- Better starting values than the MPLE for strongly dependent models
-  (contrastive divergence), sample space constraints (`bd`, `blocks`,
-  `degrees`) and missing ties.
-- MCMC diagnostic plots.
+- Sample space constraints (`bd`, `blocks`, `degrees`) and missing ties.
+- Terms and operators for multilevel models (`nodemix`, `F()`, `offset()`).
 - Documentation, and wheels built for every platform in CI.
 
 ## Development

@@ -1,5 +1,5 @@
-# R side of the benchmark: fits each model with ergm's defaults, without the
-# log-likelihood (which ergmx doesn't compute yet), for several seeds.
+# R side of the benchmark: fits each model with ergm's defaults, including the
+# log-likelihood, for several seeds.
 # Writes benchmarks/data/r_benchmark.json. Run from the repository root.
 
 suppressMessages({
@@ -45,7 +45,7 @@ for (name in names(models)) {
   f <- as.formula(paste("net ~", m$formula))
   environment(f) <- environment()
   runs <- lapply(seeds, function(s) {
-    t <- system.time(fit <- ergm(f, eval.loglik = FALSE, control = control.ergm(seed = s)))
+    t <- system.time(fit <- ergm(f, control = control.ergm(seed = s)))
     list(seconds = t[["elapsed"]], coef = as.list(coef(fit)),
          se = as.list(summary(fit)$coefficients[, "Std. Error"]))
   })

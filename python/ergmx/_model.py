@@ -33,6 +33,15 @@ class BoundModel:
             return float(requested)
         return 0.5 if any(t.triadic for t in self.formula) else 0.0
 
+    def term_columns(self) -> list:
+        """Each term with the positions of its statistics."""
+        columns, start = [], 0
+        for term in self.formula:
+            count = len(term.names(self.network))
+            columns.append((term, list(range(start, start + count))))
+            start += count
+        return columns
+
     def observed(self) -> np.ndarray:
         return np.array(self.core.summary(self.network.edges))
 
