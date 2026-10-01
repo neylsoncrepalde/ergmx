@@ -16,12 +16,15 @@ _TITLES = {
     "degree": "degree",
     "idegree": "in-degree",
     "odegree": "out-degree",
+    "b1degree": "first-mode degree",
+    "b2degree": "second-mode degree",
     "espartners": "edgewise shared partners",
+    "dspartners": "dyadwise shared partners",
     "distance": "minimum geodesic distance",
     "model": "model statistics",
 }
-_UNITS = {"degree": "nodes", "idegree": "nodes", "odegree": "nodes", "espartners": "edges",
-          "distance": "dyads"}
+_UNITS = {"degree": "nodes", "idegree": "nodes", "odegree": "nodes", "b1degree": "nodes",
+          "b2degree": "nodes", "espartners": "edges", "dspartners": "dyads", "distance": "dyads"}
 
 
 def _adjacency(n: int, directed: bool, edges: np.ndarray) -> sparse.csr_matrix:
@@ -30,8 +33,16 @@ def _adjacency(n: int, directed: bool, edges: np.ndarray) -> sparse.csr_matrix:
     return a if directed else a + a.T
 
 
-def _distribution(n: int, directed: bool, edges: np.ndarray, stat: str) -> np.ndarray:
+def _distribution(n: int, directed: bool, edges: np.ndarray, stat: str, mode=None) -> np.ndarray:
     a = _adjacency(n, directed, edges)
+    if stat in ("b1degree", "b2degree"):
+        degrees = np.asarray(a.sum(axis=1)).ravel()[mode == (1 if stat == "b1degree" else 2)]
+        return np.bincount(degrees, minlength=n)
+    if stat == "dspartners":
+        # Shared partners of every pair: two-paths i -> k -> j (OTP, ordered pairs, if directed).
+        two_paths = (a @ a).toarray()
+        pairs = two_paths[~np.eye(n, dtype=bool)] if directed else two_paths[np.triu_indices(n, 1)]
+        return np.bincount(pairs.astype(np.int64), minlength=n - 1)
     if stat in ("degree", "odegree"):
         return np.bincount(np.asarray(a.sum(axis=1)).ravel(), minlength=n)
     if stat == "idegree":
@@ -50,9 +61,9 @@ def _distribution(n: int, directed: bool, edges: np.ndarray, stat: str) -> np.nd
 
 
 def _labels(n: int, stat: str) -> list[str]:
-    if stat in ("degree", "idegree", "odegree"):
+    if stat in ("degree", "idegree", "odegree", "b1degree", "b2degree"):
         return [str(k) for k in range(n)]
-    if stat == "espartners":
+    if stat in ("espartners", "dspartners"):
         return [str(k) for k in range(n - 1)]
     return [str(k) for k in range(1, n)] + ["Inf"]
 
@@ -193,8 +204,11 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
         Number of simulated networks.
     stats : list of str, optional
         Among ``"degree"`` (undirected), ``"idegree"``, ``"odegree"``
-        (directed), ``"espartners"``, ``"distance"`` and ``"model"``. The
-        default is all of them that apply, as in ergm.
+        (directed), ``"b1degree"``, ``"b2degree"`` (bipartite),
+        ``"espartners"``, ``"dspartners"``, ``"distance"`` and ``"model"``.
+        The default is ergm's: degrees, edgewise shared partners, distances
+        and the model statistics; for bipartite networks, the degrees of each
+        mode, dyadwise shared partners, distances and the model statistics.
     interval, burnin : int, optional
         MCMC proposals between and before the simulated networks. Default to
         the interval the fit ended with (1024 otherwise), and 16 times that.
@@ -225,6 +239,8 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
             coef = [coef[name] for name in model.names]
         fitted_interval = None
     network = model.network
+    if stats is None and network.bipartite:
+        stats = ["b1degree", "b2degree", "dspartners", "distance", "model"]  # as ergm
     if stats is None:
         degrees = ["idegree", "odegree"] if network.directed else ["degree"]
         stats = degrees + ["espartners", "distance", "model"]
@@ -233,6 +249,8 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
             raise ValueError(f"unknown goodness-of-fit statistic {stat!r}; use {list(_TITLES)}")
         if network.directed and stat == "degree" or not network.directed and stat in ("idegree", "odegree"):
             raise ValueError(f"{stat!r} does not apply to {'' if network.directed else 'un'}directed networks")
+        if stat in ("b1degree", "b2degree") and not network.bipartite:
+            raise ValueError(f"{stat!r} needs a bipartite network")
 
     interval = interval or fitted_interval or Control.interval
     burnin = 16 * interval if burnin is None else burnin
@@ -255,12 +273,14 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
         imputed_edges, imputed_stats = [network.edges], model.observed()[None, :]
 
     def distributions(edge_lists, stat):
-        return np.array([_distribution(network.n, network.directed, e, stat) for e in edge_lists])
+        return np.array([_distribution(network.n, network.directed, e, stat, network.mode)
+                         for e in edge_lists])
 
     tables = {}
     for stat in stats:
         if stat == "model":
-            tables[stat] = GofTable(stat, list(model.names), imputed_stats.mean(axis=0), model_stats)
+            tables[stat] = GofTable(stat, list(model.stat_names), imputed_stats.mean(axis=0),
+                                    model_stats)
             continue
         observed = distributions(imputed_edges, stat).mean(axis=0)
         tables[stat] = GofTable(stat, _labels(network.n, stat), observed,

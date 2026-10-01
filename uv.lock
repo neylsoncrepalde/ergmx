@@ -622,7 +622,7 @@ docs = [
 requires-dist = [
     { name = "igraph", marker = "extra == 'igraph'", specifier = ">=0.11.5" },
     { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.9" },
-    { name = "networkx", marker = "extra == 'networkx'", specifier = ">=3.0" },
+    { name = "networkx", marker = "extra == 'networkx'", specifier = ">=3.2" },
     { name = "numpy", specifier = ">=1.24" },
     { name = "scipy", specifier = ">=1.10" },
 ]
@@ -633,14 +633,14 @@ dev = [
     { name = "igraph", specifier = ">=0.11.5" },
     { name = "matplotlib", specifier = ">=3.9" },
     { name = "maturin", specifier = ">=1.9,<2" },
-    { name = "networkx", specifier = ">=3.0" },
+    { name = "networkx", specifier = ">=3.2" },
     { name = "pytest", specifier = ">=8" },
 ]
 docs = [
     { name = "igraph", specifier = ">=0.11.5" },
     { name = "matplotlib", specifier = ">=3.9" },
     { name = "myst-nb", specifier = ">=1.2" },
-    { name = "networkx", specifier = ">=3.0" },
+    { name = "networkx", specifier = ">=3.2" },
     { name = "pydata-sphinx-theme", specifier = ">=0.16" },
     { name = "sphinx", specifier = ">=8.2" },
     { name = "sphinx-copybutton", specifier = ">=0.5.2" },

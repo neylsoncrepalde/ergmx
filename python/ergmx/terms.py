@@ -8,6 +8,8 @@ Terms can be combined with ``+`` or written as a formula string::
 
 from __future__ import annotations
 
+import inspect
+
 import numpy as np
 
 from ._network import Network
@@ -28,9 +30,25 @@ class Term:
     degree_dependence: frozenset | None = None
     #: Whether the coefficient is fixed by offset() rather than estimated.
     is_offset = False
+    #: Whether the term is curved: its statistics' coefficients are a nonlinear
+    #: function of fewer parameters (gwesp with an estimated decay).
+    curved = False
 
     def names(self, network: Network) -> list[str]:
+        """Names of the term's statistics."""
         return [self.label]
+
+    def param_names(self, network: Network) -> list[str]:
+        """Names of the term's parameters: its statistics', unless curved."""
+        return self.names(network)
+
+    def eta(self, params: np.ndarray, network: Network) -> np.ndarray:
+        """Coefficients of the statistics from the parameters (the same, unless curved)."""
+        return np.asarray(params, dtype=float)
+
+    def jacobian(self, params: np.ndarray, network: Network) -> np.ndarray:
+        """Derivatives of eta with respect to the parameters (statistics x parameters)."""
+        return np.eye(len(params))
 
     def spec(self, network: Network) -> tuple[str, list[float], list[int]]:
         """The term as the Rust core expects it: (name, real params, integer params)."""
@@ -91,6 +109,26 @@ class Formula:
         return " + ".join(map(repr, self.terms))
 
 
+def _chunks(*parts) -> list[int]:
+    """Integer parameters for the Rust core: each part as its length, then its values."""
+    out: list[int] = []
+    for part in parts:
+        values = [int(v) for v in part]
+        out += [len(values), *values]
+    return out
+
+
+#: Codes of the types of shared partner of directed networks, as in ergm.
+SP_TYPES = {"OTP": 1, "ITP": 2, "RTP": 3, "OSP": 4, "ISP": 5}
+
+
+def _sp_type(type: str) -> str:
+    kind = str(type).upper()
+    if kind not in SP_TYPES:
+        raise ValueError(f"type must be one of {', '.join(SP_TYPES)}, not {type!r}")
+    return kind
+
+
 _DEGREES = frozenset({"in", "out"})
 _IN, _OUT = frozenset({"in"}), frozenset({"out"})
 # Terms R deparses without parentheses when they have no arguments (~edges).
@@ -124,12 +162,9 @@ def as_formula(x) -> Formula:
     raise TypeError(f"expected a formula string or terms, got {type(x).__name__}")
 
 
-def _require_fixed(name: str, fixed: bool) -> None:
-    if not fixed:
-        raise NotImplementedError(
-            f"{name} with an estimated decay (a curved ERGM) is not supported yet; "
-            f"use {name}(decay, fixed=True)"
-        )
+def _curved_or_fixed(term, fixed: bool, cutoff: int):
+    """The fixed-decay term, or its curved version if the decay is estimated."""
+    return term if fixed else Curved(term, cutoff)
 
 
 # -- Dyadic and reciprocity terms --------------------------------------------------
@@ -159,8 +194,12 @@ class _Stars(Term):
     def names(self, network):
         return [f"{self.rust_name}{k}" for k in self.ks]
 
+    def mask(self, network) -> list[int]:
+        """Vertices counted: all (empty), or those of one bipartite mode."""
+        return []
+
     def spec(self, network):
-        return (self.rust_name, [], self.ks)
+        return (self.rust_name, [], _chunks(self.ks, self.mask(network)))
 
     def __repr__(self) -> str:
         return f"{self.rust_name}({self.ks[0] if len(self.ks) == 1 else self.ks})"
@@ -190,6 +229,9 @@ class _DegreeCount(_Stars):
             raise ValueError(f"{self.rust_name}: d must be one or more integers >= 0, not {k!r}")
         self.ks = ks
 
+    def spec(self, network):
+        return (self.rust_name, [], _chunks(self.ks, [0], self.mask(network)))
+
 
 class Degree(_DegreeCount):
     directed = False
@@ -211,6 +253,20 @@ class Isolates(Term):
     degree_dependence = _DEGREES
 
 
+class Concurrent(Term):
+    """Number of vertices with degree 2 or more."""
+
+    dyad_independent = False
+    directed = False
+    degree_dependence = _DEGREES
+
+    def mask(self, network) -> list[int]:
+        return []
+
+    def spec(self, network):
+        return ("concurrent", [], _chunks(self.mask(network)))
+
+
 class _Decay(Term):
     """A geometrically weighted term with a fixed decay."""
 
@@ -225,29 +281,56 @@ class _Decay(Term):
     def label(self) -> str:
         return f"{self.stat_name}.fixed.{self.decay:g}"
 
+    def mask(self, network) -> list[int]:
+        return []
+
     def spec(self, network):
-        return (self.rust_name, [self.decay], [])
+        return (self.rust_name, [self.decay], _chunks(self.mask(network)))
 
     def __repr__(self) -> str:
         return f"{self.rust_name}({self.decay:g}, fixed=True)"
 
 
-class GwDegree(_Decay):
+class _GwDegreeBase(_Decay):
+    """What a geometrically weighted degree term needs to be curved."""
+
+    #: The Rust degree histogram and ergm's name of the curved term.
+    histogram_rust = "degree"
+    curved_label = "gwdegree"
+
+    def largest_count(self, network) -> int:
+        return network.n - 1
+
+    def histogram_name(self, network) -> str:
+        return self.curved_label
+
+    def curved_name(self, network) -> str:
+        return self.curved_label
+
+    def histogram_spec(self, network, ks, overflow):
+        return (self.histogram_rust, [], _chunks(ks, [int(overflow)], self.mask(network)))
+
+
+class GwDegree(_GwDegreeBase):
     directed = False
     stat_name = "gwdeg"
     degree_dependence = _DEGREES
 
 
-class GwIDegree(_Decay):
+class GwIDegree(_GwDegreeBase):
     directed = True
     stat_name = "gwideg"
     degree_dependence = _IN
+    histogram_rust = "idegree"
+    curved_label = "gwidegree"
 
 
-class GwODegree(_Decay):
+class GwODegree(_GwDegreeBase):
     directed = True
     stat_name = "gwodeg"
     degree_dependence = _OUT
+    histogram_rust = "odegree"
+    curved_label = "gwodegree"
 
 
 # -- Triad terms ---------------------------------------------------------------------------
@@ -272,41 +355,73 @@ class CTriple(Term):
     directed = True
 
 
-class Gwesp(_Decay):
-    """gwesp; directed networks use ergm's default outgoing two-paths (OTP)."""
+class _GwSharedPartners(_Decay):
+    """gwesp, gwdsp and gwnsp; directed networks use the shared partners of
+    `type`, ergm's outgoing two-paths (OTP) by default."""
 
     triadic = True
 
-    def names(self, network):
-        kind = ".OTP" if network.directed else ""
-        return [f"gwesp{kind}.fixed.{self.decay:g}"]
-
-
-class Gwdsp(_Decay):
-    """gwdsp; directed networks use outgoing two-paths (OTP) over ordered pairs."""
-
-    triadic = True
+    def __init__(self, decay: float, type: str = "OTP"):
+        super().__init__(decay)
+        self.type = _sp_type(type)
 
     def names(self, network):
-        kind = ".OTP" if network.directed else ""
-        return [f"gwdsp{kind}.fixed.{self.decay:g}"]
+        kind = f".{self.type}" if network.directed else ""
+        return [f"{self.rust_name}{kind}.fixed.{self.decay:g}"]
+
+    def spec(self, network):
+        return (self.rust_name, [self.decay], _chunks([SP_TYPES[self.type]], self.mask(network)))
+
+    # Curved versions: the histogram of esp, dsp or nsp.
+    def largest_count(self, network) -> int:
+        return network.n - 2
+
+    def histogram_name(self, network) -> str:
+        base = self.rust_name[2:]  # esp, dsp, nsp
+        return f"{base}.{self.type}" if network.directed else base
+
+    def curved_name(self, network) -> str:
+        return f"{self.rust_name}.{self.type}" if network.directed else self.rust_name
+
+    def histogram_spec(self, network, ks, overflow):
+        return (self.rust_name[2:], [], _chunks([SP_TYPES[self.type]], ks, [int(overflow)],
+                                                self.mask(network)))
+
+    def __repr__(self) -> str:
+        kind = f", type={self.type!r}" if self.type != "OTP" else ""
+        return f"{self.rust_name}({self.decay:g}, fixed=True{kind})"
+
+
+class Gwesp(_GwSharedPartners):
+    pass
+
+
+class Gwdsp(_GwSharedPartners):
+    pass
+
+
+class Gwnsp(_GwSharedPartners):
+    pass
 
 
 class _SharedPartners(_Stars):
-    """Number of ties (esp) or pairs (dsp) with each given number of shared
-    partners; OTP shared partners if directed."""
+    """Number of ties (esp), pairs (dsp) or pairs without a tie (nsp) with
+    each given number of shared partners, of `type` if directed."""
 
     triadic = True
 
-    def __init__(self, k):
+    def __init__(self, k, type: str = "OTP"):
         ks = [k] if isinstance(k, int) else list(k)
         if not ks or not all(isinstance(v, int) and v >= 0 for v in ks):
             raise ValueError(f"{self.rust_name}: d must be one or more integers >= 0, not {k!r}")
-        self.ks = ks
+        self.ks, self.type = ks, _sp_type(type)
 
     def names(self, network):
-        kind = ".OTP" if network.directed else ""
+        kind = f".{self.type}" if network.directed else ""
         return [f"{self.rust_name}{kind}{k}" for k in self.ks]
+
+    def spec(self, network):
+        return (self.rust_name, [], _chunks([SP_TYPES[self.type]], self.ks, [0], self.mask(network)))
 
 
 class Esp(_SharedPartners):
@@ -315,6 +430,57 @@ class Esp(_SharedPartners):
 
 class Dsp(_SharedPartners):
     pass
+
+
+class Nsp(_SharedPartners):
+    pass
+
+
+class Cycle(_Stars):
+    """Number of cycles of each length k (k >= 3; k >= 2 if directed)."""
+
+    triadic = True
+
+    def __init__(self, k, semi: bool = False):
+        if semi:
+            raise NotImplementedError("cycle(k, semi=TRUE) is not supported yet")
+        ks = [k] if isinstance(k, int) else list(k)
+        if not ks or not all(isinstance(v, int) and v >= 2 for v in ks):
+            raise ValueError(f"cycle: k must be one or more integers >= 2, not {k!r}")
+        self.ks = ks
+
+    def check(self, network):
+        if not network.directed and min(self.ks) < 3:
+            raise ValueError("cycle: k must be 3 or more in undirected networks")
+
+    def spec(self, network):
+        return ("cycle", [], self.ks)
+
+
+class Transitive(Term):
+    """Transitive triples, as ergm's transitive computes them (see transitive())."""
+
+    dyad_independent = False
+    triadic = True
+    directed = True
+
+
+class TwoPath(Term):
+    dyad_independent = False
+
+    @property
+    def degree_dependence(self):
+        return None  # a function of the degrees only if undirected, where it is kstar(2)
+
+    def spec(self, network):
+        if network.directed:
+            return ("twopath", [], [])
+        return ("kstar", [], _chunks([2], []))
+
+
+class Asymmetric(Term):
+    dyad_independent = False
+    directed = True
 
 
 # -- Vertex and dyad attribute terms -------------------------------------------------------
@@ -502,6 +668,56 @@ class AbsDiff(_AttributeTerm):
         return ("absdiff", [float(v) for v in network.attribute(self.attr)], [])
 
 
+class _VertexEffects(Term):
+    """One statistic per vertex but the first: its out-degree (sender),
+    in-degree (receiver) or degree (sociality), as in ergm."""
+
+    #: The Rust term counting the ends of ties by level.
+    rust_term = ""
+
+    def names(self, network):
+        return [f"{self.rust_name}{v + 1}" for v in range(1, network.n)]
+
+    def spec(self, network):
+        return (self.rust_term, [], [v - 1 for v in range(network.n)])  # vertex 1 is the base
+
+
+class Sender(_VertexEffects):
+    directed = True
+    degree_dependence = _OUT
+    rust_term = "nodeofactor"
+
+
+class Receiver(_VertexEffects):
+    directed = True
+    degree_dependence = _IN
+    rust_term = "nodeifactor"
+
+
+class Sociality(_VertexEffects):
+    directed = False
+    degree_dependence = _DEGREES
+    rust_term = "nodefactor"
+
+
+class AbsDiffCat(_AttributeTerm):
+    """For each distinct nonzero absolute difference of a numeric attribute,
+    the number of ties with that difference."""
+
+    rust_name = "absdiffcat"
+
+    def _differences(self, network) -> list[float]:
+        x = np.array([float(v) for v in network.attribute(self.attr)])
+        return sorted({float(d) for d in np.abs(x[:, None] - x[None, :]).ravel() if d != 0})
+
+    def names(self, network):
+        return [f"absdiff.{self.attr}.{_level_name(d)}" for d in self._differences(network)]
+
+    def spec(self, network):
+        x = [float(v) for v in network.attribute(self.attr)]
+        return ("absdiffcat", x + self._differences(network), [])
+
+
 class EdgeCov(Term):
     """A dyadic covariate: a graph attribute holding an n x n matrix, or the matrix."""
 
@@ -517,6 +733,13 @@ class EdgeCov(Term):
         if hasattr(x, "get_adjacency"):  # an igraph graph, as ergm accepts a network
             x = x.get_adjacency().data
         x = np.asarray(x, dtype=float)
+        if network.bipartite and x.shape != (network.n, network.n):
+            # ergm's bipartite edgecov: first-mode vertices by second-mode vertices.
+            first, second = np.flatnonzero(network.mode == 1), np.flatnonzero(network.mode == 2)
+            if x.shape == (len(first), len(second)):
+                full = np.zeros((network.n, network.n))
+                full[np.ix_(first, second)] = x
+                x = full + full.T
         if x.shape != (network.n, network.n):
             raise ValueError(f"edgecov: expected a {network.n} x {network.n} matrix, got shape {x.shape}")
         return x
@@ -526,6 +749,250 @@ class EdgeCov(Term):
 
     def __repr__(self) -> str:
         return f"edgecov({self.x!r})" if isinstance(self.x, str) else "edgecov(<matrix>)"
+
+
+# -- Bipartite terms ---------------------------------------------------------------------------
+
+
+class _Mode:
+    """A term about one mode of a bipartite network: 1 (ergm's b1) or 2."""
+
+    mode_number = 1
+
+    @property
+    def b(self) -> str:
+        return f"b{self.mode_number}"
+
+    def check(self, network):
+        if not network.bipartite:
+            raise ValueError(f"{self!r} needs a bipartite network: pass bipartite=<attribute> "
+                             "with each vertex's mode")
+        super().check(network)
+
+    def mask(self, network) -> list[int]:
+        return (network.mode == self.mode_number).astype(int).tolist()
+
+    def __repr__(self) -> str:
+        call = getattr(self, "_call", None)
+        if call is None:
+            return f"{type(self).__name__.lower()}(...)"
+        name, args, kwargs = call
+        parts = [repr(a) for a in args] + [f"{k}={v!r}" for k, v in kwargs.items()]
+        return f"{name}({', '.join(parts)})"
+
+
+class _BStar(_Mode, KStar):
+    rust_name = "kstar"
+
+    def names(self, network):
+        return [f"{self.b}star{k}" for k in self.ks]
+
+
+class _BDegree(_Mode, Degree):
+    rust_name = "degree"
+
+    def names(self, network):
+        return [f"{self.b}degree{k}" for k in self.ks]
+
+
+class _GwBDegree(_Mode, GwDegree):
+    rust_name = "gwdegree"
+
+    def names(self, network):
+        return [f"gw{self.b}deg.fixed.{self.decay:g}"]
+
+    def largest_count(self, network) -> int:
+        return int(np.sum(network.mode != self.mode_number))
+
+    def histogram_name(self, network) -> str:
+        return f"gw{self.b}degree"
+
+    curved_name = histogram_name
+
+
+class _BConcurrent(_Mode, Concurrent):
+    def names(self, network):
+        return [f"{self.b}concurrent"]
+
+
+class _BDsp(_Mode, Dsp):
+    rust_name = "dsp"
+
+    def names(self, network):
+        return [f"{self.b}dsp{k}" for k in self.ks]
+
+    def spec(self, network):
+        return ("dsp", [], _chunks([0], self.ks, [0], self.mask(network)))
+
+
+class _GwBDsp(_Mode, Gwdsp):
+    rust_name = "gwdsp"
+
+    def names(self, network):
+        return [f"gw{self.b}dsp.fixed.{self.decay:g}"]
+
+    def spec(self, network):
+        return ("gwdsp", [self.decay], _chunks([0], self.mask(network)))
+
+    def largest_count(self, network) -> int:
+        return int(np.sum(network.mode != self.mode_number))
+
+    def histogram_name(self, network) -> str:
+        return f"{self.b}dsp"
+
+    def curved_name(self, network) -> str:
+        return f"gw{self.b}dsp"
+
+    def histogram_spec(self, network, ks, overflow):
+        return ("dsp", [], _chunks([0], ks, [int(overflow)], self.mask(network)))
+
+
+class _BFactor(_Mode, NodeFactor):
+    """nodefactor counting only the endpoints in one mode."""
+
+    def _levels(self, network):
+        values = network.attribute(self.attr)
+        mine = [v for v, m in zip(values, network.mode) if m == self.mode_number]
+        levels = sorted(set(mine))[1:]
+        position = {v: k for k, v in enumerate(levels)}
+        codes = [position.get(v, -1) if m == self.mode_number else -1
+                 for v, m in zip(values, network.mode)]
+        return levels, codes
+
+    def names(self, network):
+        return [f"{self.b}factor.{self.attr}.{_level_name(v)}" for v in self._levels(network)[0]]
+
+    def spec(self, network):
+        return ("nodefactor", [], self._levels(network)[1])
+
+
+class _BCov(_Mode, NodeCov):
+    """nodecov counting only the endpoints in one mode."""
+
+    @property
+    def label(self) -> str:
+        return f"{self.b}cov.{self.attr}"
+
+    def spec(self, network):
+        x = [float(v) if m == self.mode_number else 0.0
+             for v, m in zip(network.attribute(self.attr), network.mode)]
+        return ("nodecov", x, [])
+
+
+class _BNodeMatch(_Mode, _AttributeTerm):
+    """Number of 2-stars centred on the other mode whose two ends, in this
+    mode, have the same value of `attr` (ergm's default alpha = beta = 1)."""
+
+    dyad_independent = False
+
+    @property
+    def label(self) -> str:
+        return f"{self.b}nodematch.{self.attr}"
+
+    def spec(self, network):
+        values = network.attribute(self.attr)
+        levels, _ = _codes([v for v, m in zip(values, network.mode) if m == self.mode_number])
+        position = {v: k for k, v in enumerate(levels)}
+        return ("bipartitematch", [], [position[v] if m == self.mode_number else -1
+                                       for v, m in zip(values, network.mode)])
+
+
+def _in_mode(base, number: int, name: str):
+    """The class of `base` for bipartite mode `number`, named as ergm's term."""
+    return type(f"{name}", (base,), {"mode_number": number, "__doc__": base.__doc__})
+
+
+B1Star, B2Star = _in_mode(_BStar, 1, "B1Star"), _in_mode(_BStar, 2, "B2Star")
+B1Degree, B2Degree = _in_mode(_BDegree, 1, "B1Degree"), _in_mode(_BDegree, 2, "B2Degree")
+GwB1Degree, GwB2Degree = _in_mode(_GwBDegree, 1, "GwB1Degree"), _in_mode(_GwBDegree, 2, "GwB2Degree")
+B1Concurrent = _in_mode(_BConcurrent, 1, "B1Concurrent")
+B2Concurrent = _in_mode(_BConcurrent, 2, "B2Concurrent")
+B1Dsp, B2Dsp = _in_mode(_BDsp, 1, "B1Dsp"), _in_mode(_BDsp, 2, "B2Dsp")
+GwB1Dsp, GwB2Dsp = _in_mode(_GwBDsp, 1, "GwB1Dsp"), _in_mode(_GwBDsp, 2, "GwB2Dsp")
+B1Factor, B2Factor = _in_mode(_BFactor, 1, "B1Factor"), _in_mode(_BFactor, 2, "B2Factor")
+B1Cov, B2Cov = _in_mode(_BCov, 1, "B1Cov"), _in_mode(_BCov, 2, "B2Cov")
+B1NodeMatch, B2NodeMatch = _in_mode(_BNodeMatch, 1, "B1NodeMatch"), _in_mode(_BNodeMatch, 2, "B2NodeMatch")
+
+
+# -- Curved terms -------------------------------------------------------------------------------
+
+
+class Curved(Term):
+    """A geometrically weighted term whose decay is estimated, as ergm's
+    ``fixed=FALSE``: a curved exponential family term.
+
+    Its statistics are the counts of the histogram the term weights: ties
+    with exactly 1, 2, ... K edgewise shared partners for gwesp, vertices with
+    degree 1, 2, ... K for gwdegree, with K the cutoff (30 by default, as in
+    ergm, or the largest possible count if smaller). With parameters theta and
+    decay alpha, the coefficient of count k is
+
+        eta_k = theta * exp(alpha) * (1 - (1 - exp(-alpha))^k),
+
+    so that eta . counts is theta times the term with a fixed decay alpha. If
+    the cutoff is below the largest possible count, a last statistic counts
+    everything above it, with coefficient theta * exp(alpha), the limit of
+    eta_k; ergm instead stops with an error when the cutoff is exceeded.
+    """
+
+    curved = True
+    dyad_independent = False
+
+    def __init__(self, term: Term, cutoff: int = 30):
+        if int(cutoff) < 1:
+            raise ValueError(f"cutoff must be 1 or more, not {cutoff!r}")
+        self.term, self.cutoff = term, int(cutoff)
+
+    triadic = property(lambda self: self.term.triadic)
+    directed = property(lambda self: self.term.directed)
+    degree_dependence = property(lambda self: self.term.degree_dependence)
+
+    def check(self, network):
+        self.term.check(network)
+
+    def _bins(self, network) -> tuple[int, bool]:
+        """The number of histogram counts and whether there is an overflow."""
+        largest = self.term.largest_count(network)
+        return min(self.cutoff, largest), self.cutoff < largest
+
+    def names(self, network):
+        k, overflow = self._bins(network)
+        prefix = self.term.histogram_name(network)
+        return [f"{prefix}#{i}" for i in range(1, k + 1)] + ([f"{prefix}#>{k}"] if overflow else [])
+
+    def param_names(self, network):
+        name = self.term.curved_name(network)
+        return [name, f"{name}.decay"]
+
+    def spec(self, network):
+        k, overflow = self._bins(network)
+        return self.term.histogram_spec(network, list(range(1, k + 1)), overflow)
+
+    def initial(self) -> float:
+        """The starting value of the decay: the decay argument."""
+        return self.term.decay
+
+    def _weights(self, alpha: float, network):
+        k, overflow = self._bins(network)
+        counts = np.arange(1, k + 1)
+        r = 1.0 - np.exp(-alpha)
+        w = np.exp(alpha) * (1.0 - r**counts)
+        dw = np.exp(alpha) * (1.0 - r**counts) - counts * r ** (counts - 1)  # d w / d alpha
+        if overflow:
+            w, dw = np.append(w, np.exp(alpha)), np.append(dw, np.exp(alpha))
+        return w, dw
+
+    def eta(self, params, network):
+        theta, alpha = params
+        return theta * self._weights(alpha, network)[0]
+
+    def jacobian(self, params, network):
+        theta, alpha = params
+        w, dw = self._weights(alpha, network)
+        return np.column_stack([w, theta * dw])
+
+    def __repr__(self) -> str:
+        return repr(self.term).replace("fixed=True", "fixed=False")
 
 
 # -- Operators ------------------------------------------------------------------------------------
@@ -546,8 +1013,19 @@ class Offset(Term):
     directed = property(lambda self: self.term.directed)
     degree_dependence = property(lambda self: self.term.degree_dependence)
 
+    curved = property(lambda self: self.term.curved)
+
     def names(self, network):
         return [f"offset({name})" for name in self.term.names(network)]
+
+    def param_names(self, network):
+        return [f"offset({name})" for name in self.term.param_names(network)]
+
+    def eta(self, params, network):
+        return self.term.eta(params, network)
+
+    def jacobian(self, params, network):
+        return self.term.jacobian(params, network)
 
     def spec(self, network):
         return self.term.spec(network)
@@ -585,9 +1063,34 @@ class Filtered(Term):
     def _filter_label(self) -> str:
         return ("!" if self.negate else "") + self.filter.r_call()
 
+    curved = property(lambda self: any(t.curved for t in self.formula))
+
     def names(self, network):
         label = self._filter_label()
         return [f"F({label})~{name}" for term in self.formula for name in term.names(network)]
+
+    def param_names(self, network):
+        label = self._filter_label()
+        return [f"F({label})~{name}" for term in self.formula for name in term.param_names(network)]
+
+    def _blocks(self, network):
+        p = q = 0
+        for term in self.formula:
+            dp, dq = len(term.names(network)), len(term.param_names(network))
+            yield term, slice(p, p + dp), slice(q, q + dq)
+            p, q = p + dp, q + dq
+
+    def eta(self, params, network):
+        params = np.asarray(params, dtype=float)
+        return np.concatenate([t.eta(params[q], network) for t, _, q in self._blocks(network)])
+
+    def jacobian(self, params, network):
+        params = np.asarray(params, dtype=float)
+        blocks = list(self._blocks(network))
+        out = np.zeros((blocks[-1][1].stop, blocks[-1][2].stop))
+        for t, ps, qs in blocks:
+            out[ps, qs] = t.jacobian(params[qs], network)
+        return out
 
     def check(self, network):
         for term in [*self.formula, self.filter]:
@@ -657,25 +1160,71 @@ def isolates() -> Term:
     return Isolates()
 
 
-def gwdegree(decay: float, fixed: bool = False) -> Term:
+def concurrent() -> Term:
+    """Number of vertices with degree 2 or more (undirected networks)."""
+    return Concurrent()
+
+
+def sender() -> Term:
+    """Each vertex's out-degree, one statistic per vertex but the first (directed networks)."""
+    return Sender()
+
+
+def receiver() -> Term:
+    """Each vertex's in-degree, one statistic per vertex but the first (directed networks)."""
+    return Receiver()
+
+
+def sociality() -> Term:
+    """Each vertex's degree, one statistic per vertex but the first (undirected networks)."""
+    return Sociality()
+
+
+def gwdegree(decay: float = 0.5, fixed: bool = False, cutoff: int = 30) -> Term:
     """Geometrically weighted degree distribution (undirected networks).
 
-    Only a fixed decay is supported (``fixed=True``).
+    With ``fixed=False`` (the default, as in ergm) the decay is estimated, from
+    ``decay``, and the term is curved (see :class:`~ergmx.terms.Curved`); ``fixed=True``
+    fixes it. The other geometrically weighted terms work the same way.
     """
-    _require_fixed("gwdegree", fixed)
-    return GwDegree(decay)
+    return _curved_or_fixed(GwDegree(decay), fixed, cutoff)
 
 
-def gwidegree(decay: float, fixed: bool = False) -> Term:
+def gwidegree(decay: float = 0.5, fixed: bool = False, cutoff: int = 30) -> Term:
     """Geometrically weighted in-degree distribution (directed networks)."""
-    _require_fixed("gwidegree", fixed)
-    return GwIDegree(decay)
+    return _curved_or_fixed(GwIDegree(decay), fixed, cutoff)
 
 
-def gwodegree(decay: float, fixed: bool = False) -> Term:
+def gwodegree(decay: float = 0.5, fixed: bool = False, cutoff: int = 30) -> Term:
     """Geometrically weighted out-degree distribution (directed networks)."""
-    _require_fixed("gwodegree", fixed)
-    return GwODegree(decay)
+    return _curved_or_fixed(GwODegree(decay), fixed, cutoff)
+
+
+def cycle(k, semi: bool = False) -> Term:
+    """Number of cycles of length k, for one or more k: 3 or more in undirected
+    networks, 2 or more in directed ones (cycle(2) is mutual)."""
+    return Cycle(k, semi)
+
+
+def twopath() -> Term:
+    """Number of 2-paths: i -> j -> k with i != k if directed, kstar(2) if undirected."""
+    return TwoPath()
+
+
+def asymmetric() -> Term:
+    """Number of pairs with a tie in one direction only (directed networks)."""
+    return Asymmetric()
+
+
+def transitive() -> Term:
+    """Transitive triples, as R's ergm (4.12) computes this term.
+
+    ergm documents transitive as the number of transitive *triads* (types
+    030T, 120D, 120U and 300), but computes the number of transitive triples
+    i -> j -> k, i -> k, the same as ttriple. ergmx follows the computation, so
+    that models give ergm's estimates.
+    """
+    return Transitive()
 
 
 def triangle() -> Term:
@@ -693,35 +1242,60 @@ def ctriple() -> Term:
     return CTriple()
 
 
-def gwesp(decay: float, fixed: bool = False) -> Term:
+_TYPE_DOC = """In directed networks, ``type`` sets what a shared partner k of the
+    pair (i, j) is, as in ergm: ``"OTP"`` (default) i -> k -> j, ``"ITP"``
+    j -> k -> i, ``"RTP"`` i <-> k <-> j, ``"OSP"`` i -> k <- j, ``"ISP"``
+    i <- k -> j."""
+
+
+def gwesp(decay: float = 0.5, fixed: bool = False, cutoff: int = 30, type: str = "OTP") -> Term:
     """Geometrically weighted edgewise shared partners.
 
-    In directed networks, shared partners are outgoing two-paths (ergm's
-    default ``type = "OTP"``): k is a shared partner of i -> j if i -> k -> j.
-    Only a fixed decay is supported (``fixed=True``). As in ergm,
-    ``fixed=False`` would estimate the decay (a curved ERGM).
+    With ``fixed=True`` the decay is fixed; with ``fixed=False`` (the
+    default, as in ergm) it is estimated, and the term is curved (see
+    :class:`~ergmx.terms.Curved`), starting from ``decay``. {type_doc}
     """
-    _require_fixed("gwesp", fixed)
-    return Gwesp(decay)
+    return _curved_or_fixed(Gwesp(decay, type), fixed, cutoff)
 
 
-def gwdsp(decay: float, fixed: bool = False) -> Term:
+def gwdsp(decay: float = 0.5, fixed: bool = False, cutoff: int = 30, type: str = "OTP") -> Term:
     """Geometrically weighted dyadwise shared partners: as gwesp, over all pairs
-    of vertices, tied or not (outgoing two-paths and ordered pairs if directed)."""
-    _require_fixed("gwdsp", fixed)
-    return Gwdsp(decay)
+    of vertices, tied or not (ordered pairs if directed). {type_doc}
+    """
+    return _curved_or_fixed(Gwdsp(decay, type), fixed, cutoff)
 
 
-def esp(d) -> Term:
-    """Number of ties with exactly d edgewise shared partners, for one or more d
-    (outgoing two-paths if directed)."""
-    return Esp(d)
+def gwnsp(decay: float = 0.5, fixed: bool = False, cutoff: int = 30, type: str = "OTP") -> Term:
+    """Geometrically weighted non-edgewise shared partners: as gwesp, over the
+    pairs of vertices without a tie; gwdsp minus gwesp. {type_doc}
+    """
+    return _curved_or_fixed(Gwnsp(decay, type), fixed, cutoff)
 
 
-def dsp(d) -> Term:
+def esp(d, type: str = "OTP") -> Term:
+    """Number of ties with exactly d edgewise shared partners, for one or more d.
+    {type_doc}
+    """
+    return Esp(d, type)
+
+
+def dsp(d, type: str = "OTP") -> Term:
     """Number of pairs of vertices with exactly d shared partners, for one or more
-    d (outgoing two-paths and ordered pairs if directed)."""
-    return Dsp(d)
+    d (ordered pairs if directed). {type_doc}
+    """
+    return Dsp(d, type)
+
+
+def nsp(d, type: str = "OTP") -> Term:
+    """Number of pairs of vertices without a tie with exactly d shared partners,
+    for one or more d. {type_doc}
+    """
+    return Nsp(d, type)
+
+
+for _f in (gwesp, gwdsp, gwnsp, esp, dsp, nsp):
+    # Python 3.13 dedents docstrings when compiling: dedent both before joining.
+    _f.__doc__ = inspect.cleandoc(_f.__doc__).replace("{type_doc}", inspect.cleandoc(_TYPE_DOC))
 
 
 def nodematch(attr: str, diff: bool = False) -> Term:
@@ -772,9 +1346,128 @@ def nodeocov(attr: str) -> Term:
     return NodeOCov(attr)
 
 
+def absdiffcat(attr: str) -> Term:
+    """For each distinct nonzero absolute difference of the numeric ``attr``,
+    the number of ties with that difference."""
+    return AbsDiffCat(attr)
+
+
 def absdiff(attr: str) -> Term:
     """Sum over ties of the absolute difference in the numeric ``attr``."""
     return AbsDiff(attr)
+
+
+_B_DOC = "Bipartite networks only; b1 terms are about the first mode, b2 terms the second."
+
+
+def b1star(k) -> Term:
+    """Number of k-stars centred on first-mode vertices, for one or more k."""
+    return B1Star(k)
+
+
+def b2star(k) -> Term:
+    """Number of k-stars centred on second-mode vertices, for one or more k."""
+    return B2Star(k)
+
+
+def b1degree(d) -> Term:
+    """Number of first-mode vertices with degree exactly d, for one or more d."""
+    return B1Degree(d)
+
+
+def b2degree(d) -> Term:
+    """Number of second-mode vertices with degree exactly d, for one or more d."""
+    return B2Degree(d)
+
+
+def gwb1degree(decay: float = 0.5, fixed: bool = False, cutoff: int = 30) -> Term:
+    """Geometrically weighted degree distribution of the first mode."""
+    return _curved_or_fixed(GwB1Degree(decay), fixed, cutoff)
+
+
+def gwb2degree(decay: float = 0.5, fixed: bool = False, cutoff: int = 30) -> Term:
+    """Geometrically weighted degree distribution of the second mode."""
+    return _curved_or_fixed(GwB2Degree(decay), fixed, cutoff)
+
+
+def b1concurrent() -> Term:
+    """Number of first-mode vertices with degree 2 or more."""
+    return B1Concurrent()
+
+
+def b2concurrent() -> Term:
+    """Number of second-mode vertices with degree 2 or more."""
+    return B2Concurrent()
+
+
+def b1factor(attr: str) -> Term:
+    """For each level of ``attr`` among first-mode vertices but the first, their ties."""
+    return B1Factor(attr)
+
+
+def b2factor(attr: str) -> Term:
+    """For each level of ``attr`` among second-mode vertices but the first, their ties."""
+    return B2Factor(attr)
+
+
+def b1cov(attr: str) -> Term:
+    """Sum over ties of the first-mode endpoint's value of the numeric ``attr``."""
+    return B1Cov(attr)
+
+
+def b2cov(attr: str) -> Term:
+    """Sum over ties of the second-mode endpoint's value of the numeric ``attr``."""
+    return B2Cov(attr)
+
+
+def _nodematch_defaults(name, diff, alpha, beta, byb2attr, levels):
+    if diff or alpha != 1 or beta != 1 or byb2attr is not None or levels is not None:
+        raise NotImplementedError(f"{name}: arguments other than attr are not supported yet")
+
+
+def b1nodematch(attr: str, diff: bool = False, alpha: float = 1, beta: float = 1, byb2attr=None,
+                levels=None) -> Term:
+    """Number of 2-stars centred on second-mode vertices whose two first-mode ends
+    have the same value of ``attr``."""
+    _nodematch_defaults("b1nodematch", diff, alpha, beta, byb2attr, levels)
+    return B1NodeMatch(attr)
+
+
+def b2nodematch(attr: str, diff: bool = False, alpha: float = 1, beta: float = 1, byb1attr=None,
+                levels=None) -> Term:
+    """Number of 2-stars centred on first-mode vertices whose two second-mode ends
+    have the same value of ``attr``."""
+    _nodematch_defaults("b2nodematch", diff, alpha, beta, byb1attr, levels)
+    return B2NodeMatch(attr)
+
+
+def b1dsp(d) -> Term:
+    """Number of pairs of first-mode vertices with exactly d shared partners, for one or more d."""
+    return B1Dsp(d)
+
+
+def b2dsp(d) -> Term:
+    """Number of pairs of second-mode vertices with exactly d shared partners, for one or more d."""
+    return B2Dsp(d)
+
+
+def gwb1dsp(decay: float = 0.5, fixed: bool = False, cutoff: int = 30) -> Term:
+    """Geometrically weighted shared partner distribution of pairs of first-mode vertices."""
+    return _curved_or_fixed(GwB1Dsp(decay), fixed, cutoff)
+
+
+def gwb2dsp(decay: float = 0.5, fixed: bool = False, cutoff: int = 30) -> Term:
+    """Geometrically weighted shared partner distribution of pairs of second-mode vertices."""
+    return _curved_or_fixed(GwB2Dsp(decay), fixed, cutoff)
+
+
+_BIPARTITE = (
+    b1star, b2star, b1degree, b2degree, gwb1degree, gwb2degree, b1concurrent, b2concurrent,
+    b1factor, b2factor, b1cov, b2cov, b1nodematch, b2nodematch, b1dsp, b2dsp, gwb1dsp, gwb2dsp,
+)
+for _f in _BIPARTITE:
+    _f.__doc__ = inspect.cleandoc(_f.__doc__) + "\n\n" + _B_DOC
+del _f
 
 
 def offset(term) -> Term:
@@ -823,9 +1516,11 @@ def _recording(factory):
 
 
 _PLAIN = (
-    edges, mutual, kstar, istar, ostar, degree, idegree, odegree, isolates, gwdegree, gwidegree,
-    gwodegree, triangle, ttriple, ctriple, gwesp, gwdsp, esp, dsp, nodematch, nodemix, nodefactor,
-    nodeifactor, nodeofactor, nodecov, nodeicov, nodeocov, absdiff, edgecov,
+    edges, mutual, asymmetric, kstar, istar, ostar, twopath, degree, idegree, odegree, isolates,
+    concurrent, gwdegree, gwidegree, gwodegree, sender, receiver, sociality, triangle, ttriple,
+    ctriple, transitive, cycle, gwesp, gwdsp, gwnsp, esp, dsp, nsp, nodematch, nodemix, nodefactor,
+    nodeifactor, nodeofactor, nodecov, nodeicov, nodeocov, absdiff, absdiffcat, edgecov,
+    *_BIPARTITE,
 )
 for _f in _PLAIN:
     globals()[_f.__name__] = _recording(_f)

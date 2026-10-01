@@ -14,7 +14,7 @@ from ._model import bind
 from ._network import to_graph
 
 
-def summary_stats(network, formula) -> dict[str, float]:
+def summary_stats(network, formula, *, bipartite=None) -> dict[str, float]:
     """Statistics of a network, like R's ``summary(net ~ formula)``.
 
     Missing dyads (edges with ``na=True``) count as non-ties, as in ergm.
@@ -24,14 +24,17 @@ def summary_stats(network, formula) -> dict[str, float]:
     network : igraph.Graph or networkx.Graph
     formula : str or terms
         For example ``"edges + triangle"`` or ``edges() + triangle()``.
+    bipartite : str or bool, optional
+        For a bipartite network, the vertex attribute with each vertex's mode,
+        as in :func:`ergm`.
     """
-    model = bind(network, formula)
-    return dict(zip(model.names, model.observed().tolist()))
+    model = bind(network, formula, bipartite=bipartite)
+    return dict(zip(model.stat_names, model.observed().tolist()))
 
 
-def ergm(network, formula, *, constraints=None, offset_coef=None, estimate: str = "MLE", init=None,
-         seed=None, eval_loglik: bool = True, control: Control | None = None,
-         **control_args) -> ErgmFit:
+def ergm(network, formula, *, constraints=None, offset_coef=None, bipartite=None,
+         estimate: str = "MLE", init=None, seed=None, eval_loglik: bool = True,
+         control: Control | None = None, **control_args) -> ErgmFit:
     """Fit an exponential-family random graph model.
 
     Parameters
@@ -51,6 +54,11 @@ def ergm(network, formula, *, constraints=None, offset_coef=None, estimate: str 
     offset_coef : array-like, optional
         The fixed coefficients of the ``offset()`` terms, in formula order;
         ``-inf`` forbids the ties they count.
+    bipartite : str or bool, optional
+        For a bipartite (two-mode) network, the vertex attribute giving each
+        vertex's mode: false or 0 for the first mode (ergm's "b1"), true or 1
+        for the second. ``True`` uses igraph's ``type`` or networkx's
+        ``bipartite`` attribute. Only ties between the modes are modeled.
     estimate : {"MLE", "MPLE", "CD"}
         ``"MLE"`` (default) gives the exact MLE of dyad-independent models
         and the Monte Carlo MLE of the others. ``"MPLE"`` stops at the
@@ -78,7 +86,7 @@ def ergm(network, formula, *, constraints=None, offset_coef=None, estimate: str 
     if estimate not in ("MLE", "MPLE", "CD"):
         raise ValueError(f"estimate must be 'MLE', 'MPLE' or 'CD', not {estimate!r}")
     control = dataclasses.replace(control or Control(), **control_args)
-    model = bind(network, formula, constraints, offset_coef, fitting=True)
+    model = bind(network, formula, constraints, offset_coef, fitting=True, bipartite=bipartite)
     pseudo = _estimation.mple(model)
     rng = np.random.default_rng(seed)
     if model.exact:
@@ -101,8 +109,8 @@ def ergm(network, formula, *, constraints=None, offset_coef=None, estimate: str 
         raise ValueError(f"init must be 'MPLE', 'CD' or coefficients, not {init!r}")
     else:
         start = np.asarray(init, dtype=float)
-        if start.shape != (model.n_stats,):
-            raise ValueError(f"init must have {model.n_stats} values, one per coefficient")
+        if start.shape != (model.n_params,):
+            raise ValueError(f"init must have {model.n_params} values, one per coefficient")
         start = np.where(model.fixed, model.fixed_values, start)
     result = _estimation.mcmle(model, start, control, rng)
     if eval_loglik:
@@ -111,9 +119,9 @@ def ergm(network, formula, *, constraints=None, offset_coef=None, estimate: str 
     return ErgmFit(model, result, pseudo, control, seed)
 
 
-def simulate(network, formula, coef, nsim: int = 1, *, constraints=None, seed=None,
-             output: str = "network", burnin: int | None = None, interval: int | None = None,
-             triadic_weight: float | None = None):
+def simulate(network, formula, coef, nsim: int = 1, *, constraints=None, bipartite=None,
+             seed=None, output: str = "network", burnin: int | None = None,
+             interval: int | None = None, triadic_weight: float | None = None):
     """Simulate networks from an ERGM, starting from ``network``.
 
     Parameters
@@ -123,12 +131,15 @@ def simulate(network, formula, coef, nsim: int = 1, *, constraints=None, seed=No
         Missing dyads (``na`` edges) start as non-ties and are simulated too.
     formula : str or terms
     coef : array-like or dict
-        Coefficients, in the order of the formula's statistics or by name,
-        including those of offset terms.
+        Coefficients, in the order of the formula's parameters or by name,
+        including those of offset terms (and the decays of curved terms).
     nsim : int
         Number of networks.
     constraints : str, optional
         Sample space constraints, as in :func:`ergm`.
+    bipartite : str or bool, optional
+        For a bipartite network, the vertex attribute with each vertex's mode,
+        as in :func:`ergm`.
     output : {"network", "stats"}
         Return graphs of the same kind as ``network``, or an ``nsim x
         statistics`` array of their statistics.
@@ -141,7 +152,7 @@ def simulate(network, formula, coef, nsim: int = 1, *, constraints=None, seed=No
     """
     if output not in ("network", "stats"):
         raise ValueError(f"output must be 'network' or 'stats', not {output!r}")
-    model = bind(network, formula, constraints)
+    model = bind(network, formula, constraints, bipartite=bipartite)
     if isinstance(coef, dict):
         coef = [coef[name] for name in model.names]
     defaults = Control()

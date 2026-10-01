@@ -48,7 +48,11 @@ statistics.
 
    edges
    mutual
+   asymmetric
    edgecov
+   sender
+   receiver
+   sociality
    kstar
    istar
    ostar
@@ -56,16 +60,22 @@ statistics.
    idegree
    odegree
    isolates
+   concurrent
+   twopath
    gwdegree
    gwidegree
    gwodegree
    triangle
    ttriple
    ctriple
+   transitive
+   cycle
    gwesp
    gwdsp
+   gwnsp
    esp
    dsp
+   nsp
    nodematch
    nodemix
    nodefactor
@@ -75,6 +85,35 @@ statistics.
    nodeicov
    nodeocov
    absdiff
+   absdiffcat
+
+Bipartite terms
+---------------
+
+For bipartite networks (``bipartite=`` in :func:`ergm`): ``b1`` terms are
+about the first mode, ``b2`` terms the second.
+
+.. autosummary::
+   :toctree: generated/
+
+   b1star
+   b2star
+   b1degree
+   b2degree
+   gwb1degree
+   gwb2degree
+   b1concurrent
+   b2concurrent
+   b1factor
+   b2factor
+   b1cov
+   b2cov
+   b1nodematch
+   b2nodematch
+   b1dsp
+   b2dsp
+   gwb1dsp
+   gwb2dsp
 
 Operators
 ---------
@@ -84,6 +123,7 @@ Operators
 
    offset
    F
+   terms.Curved
 
 Constraints
 -----------

@@ -19,6 +19,17 @@ only those is fitted exactly, by logistic regression.
 `mutual()`, directed
 : Number of reciprocated pairs, $\sum_{i<j} y_{ij} y_{ji}$. Name: `mutual`.
 
+`asymmetric()`, directed
+: Number of pairs with a tie in one direction only. Name: `asymmetric`.
+
+`sender()`, `receiver()` {octicon}`dot-fill`, directed
+: Each vertex's out-degree (in-degree), one statistic per vertex but the first.
+  Names: `sender2`, `sender3`... by vertex position.
+
+`sociality()` {octicon}`dot-fill`, undirected
+: Each vertex's degree, one statistic per vertex but the first. Names:
+  `sociality2`...
+
 `edgecov(x)` {octicon}`dot-fill`
 : Sum of a dyadic covariate over ties, $\sum_D y_{ij} x_{ij}$. `x` is the name
   of a graph attribute holding an $n \times n$ matrix (in a formula string:
@@ -48,6 +59,13 @@ only those is fitted exactly, by logistic regression.
 : Number of vertices without ties (in either direction, if directed). Name:
   `isolates`.
 
+`concurrent()`, undirected
+: Number of vertices with degree 2 or more. Name: `concurrent`.
+
+`twopath()`
+: Number of 2-paths: $i \to j \to k$ with $i \neq k$ if directed;
+  `kstar(2)` if undirected. Name: `twopath`.
+
 `gwdegree(decay, fixed=TRUE)`, undirected
 : Geometrically weighted degree distribution,
   $e^{\alpha} \sum_i \left[1 - (1 - e^{-\alpha})^{d_i}\right]$ with
@@ -71,6 +89,17 @@ only those is fitted exactly, by logistic regression.
 `ctriple()`, directed
 : Number of cyclic triples: $i \to j \to k \to i$. Name: `ctriple`.
 
+`transitive()`, directed
+: As computed by R's ergm 4.12: the number of transitive triples, the same
+  as `ttriple`. ergm documents it as the number of transitive *triads*
+  (types 030T, 120D, 120U and 300), which is a different statistic; ergmx
+  follows the computation, so that models give ergm's estimates. Name:
+  `transitive`.
+
+`cycle(k)`
+: Number of cycles of length $k$, for one or more $k$: 3 or more if
+  undirected, 2 or more if directed (`cycle(2)` is `mutual`). Names: `cycle3`...
+
 `gwesp(decay, fixed=TRUE)`
 : Geometrically weighted edgewise shared partners,
   $e^{\alpha} \sum_D y_{ij} \left[1 - (1 - e^{-\alpha})^{s_{ij}}\right]$, with
@@ -82,8 +111,12 @@ only those is fitted exactly, by logistic regression.
 
 `gwdsp(decay, fixed=TRUE)`
 : Geometrically weighted dyadwise shared partners: as gwesp, but over all
-  pairs of vertices, tied or not (ordered pairs and OTP shared partners if
-  directed). Names: `gwdsp.fixed.<decay>`, `gwdsp.OTP.fixed.<decay>`.
+  pairs of vertices, tied or not (ordered pairs if directed). Names:
+  `gwdsp.fixed.<decay>`, `gwdsp.OTP.fixed.<decay>`.
+
+`gwnsp(decay, fixed=TRUE)`
+: Geometrically weighted non-edgewise shared partners: as gwesp, over the
+  pairs without a tie; `gwdsp` minus `gwesp`. Names: `gwnsp.fixed.<decay>`...
 
 `esp(d)`
 : Number of ties with exactly $d$ edgewise shared partners, for one or more
@@ -92,7 +125,27 @@ only those is fitted exactly, by logistic regression.
 
 `dsp(d)`
 : Number of pairs of vertices, tied or not, with exactly $d$ shared partners
-  (ordered pairs and OTP if directed). Names: `dsp0`..., or `dsp.OTP0`...
+  (ordered pairs if directed). Names: `dsp0`..., or `dsp.OTP0`...
+
+`nsp(d)`
+: Number of pairs without a tie with exactly $d$ shared partners. Names:
+  `nsp0`..., or `nsp.OTP0`...
+
+In directed networks, every shared partner term takes a `type`, as in ergm:
+a shared partner $k$ of the pair $(i, j)$ is
+
+| `type` | $k$ is a shared partner if |
+|---|---|
+| `"OTP"` (default), outgoing two-path | $i \to k \to j$ |
+| `"ITP"`, incoming two-path | $j \to k \to i$ |
+| `"RTP"`, reciprocated two-path | $i \leftrightarrow k \leftrightarrow j$ |
+| `"OSP"`, outgoing shared partner | $i \to k$ and $j \to k$ |
+| `"ISP"`, incoming shared partner | $k \to i$ and $k \to j$ |
+
+and the type is part of the names: `gwesp.ITP.fixed.0.5`, `esp.OSP1`. ergm's
+edgewise statistics of type RTP (`esp`, `gwesp`, `nsp`) depend on the order
+of the vertices (relabeling the same network changes them) and don't match
+this definition; ergmx's match it.
 
 The geometrically weighted terms need `fixed=TRUE`: estimating the decay
 (a curved ERGM) is not supported yet.
@@ -136,6 +189,73 @@ The geometrically weighted terms need `fixed=TRUE`: estimating the decay
 : Sum over ties of the absolute difference in a numeric attribute,
   $\sum_D y_{ij} |x_i - x_j|$. Name: `absdiff.<attr>`.
 
+`absdiffcat(attr)` {octicon}`dot-fill`
+: For each distinct nonzero absolute difference $\delta$ of a numeric
+  attribute, the number of ties with $|x_i - x_j| = \delta$. Names:
+  `absdiff.<attr>.<difference>`.
+
+## Bipartite terms
+
+For [bipartite networks](user-guide/bipartite.md). `b1` terms are about the
+first mode, `b2` terms the second; each has a `b2` (or `b1`) twin.
+
+`b1star(k)`
+: Number of $k$-stars centred on first-mode vertices. Names: `b1star2`...
+
+`b1degree(d)`
+: Number of first-mode vertices with degree exactly $d$. Names: `b1degree0`...
+
+`gwb1degree(decay, fixed=TRUE)`
+: Geometrically weighted degree distribution of the first mode. Name:
+  `gwb1deg.fixed.<decay>`.
+
+`b1concurrent()`
+: Number of first-mode vertices with degree 2 or more. Name: `b1concurrent`.
+
+`b1factor(attr)` {octicon}`dot-fill`
+: For each level of `attr` among first-mode vertices but the first, the
+  number of their ties. Names: `b1factor.<attr>.<level>`.
+
+`b1cov(attr)` {octicon}`dot-fill`
+: Sum over ties of the first-mode endpoint's value of a numeric attribute.
+  Name: `b1cov.<attr>`.
+
+`b1nodematch(attr)`
+: Number of 2-stars centred on second-mode vertices whose two first-mode
+  ends have the same value of `attr` (ergm's default `alpha = beta = 1`).
+  Name: `b1nodematch.<attr>`.
+
+`b1dsp(d)`, `gwb1dsp(decay, fixed=TRUE)`
+: Pairs of first-mode vertices with exactly $d$ shared partners, and their
+  geometrically weighted distribution. Names: `b1dsp0`...,
+  `gwb1dsp.fixed.<decay>`.
+
+`edges`, `edgecov` (with a first-mode by second-mode matrix, as in ergm),
+`cycle(4)`, `isolates`, `degree`, `nodematch` and the other terms that don't
+require a unipartite network also apply.
+
+## Curved terms
+
+With `fixed=FALSE`, ergm's default, the decay of `gwesp`, `gwdsp`, `gwnsp`,
+`gwdegree`, `gwidegree`, `gwodegree`, `gwb1degree`, `gwb2degree`, `gwb1dsp`
+and `gwb2dsp` is estimated along with the other parameters, starting from
+the `decay` argument (0.5 by default). The model is then a *curved*
+exponential family: two parameters, $\theta$ and the decay $\alpha$,
+weight the histogram the term summarizes, such as the counts $e_k$ of ties
+with $k$ edgewise shared partners for gwesp:
+
+$$
+\theta e^{\alpha} \sum_{k \geq 1} \left[1 - (1 - e^{-\alpha})^k\right] e_k.
+$$
+
+The statistics are the counts up to `cutoff` (30 by default, as in ergm, or
+the largest possible count if smaller): `esp#1`, `esp#2`... If the cutoff is
+below the largest possible count, a last statistic counts everything above it
+(`esp#>30`), weighted by the limit $\theta e^{\alpha}$; ergm instead stops
+with an error when a network exceeds the cutoff. The parameters are named as
+in ergm: `gwesp` and `gwesp.decay`, `gwesp.OTP` and `gwesp.OTP.decay` if
+directed, `gwdegree` and `gwdegree.decay`...
+
 ## Operators
 
 `offset(term)`
@@ -156,11 +276,11 @@ The geometrically weighted terms need `fixed=TRUE`: estimating the decay
 
 ## Proposals
 
-Models with `triangle`, `ttriple`, `ctriple`, `gwesp`, `gwdsp`, `esp` or
-`dsp` (also inside `F()`) mix half tie/no-tie (TNT) MCMC proposals with
+Models with `triangle`, `ttriple`, `ctriple`, `transitive`, `cycle`, or a
+shared partner term (also inside `F()`) mix half tie/no-tie (TNT) MCMC proposals with
 *triadic* proposals, which pick a vertex, one of its neighbors and one of
 that neighbor's neighbors, and toggle the tie that would close or open the
 triangle. Like ergm's default for these models, this explores clustered
 networks much faster. `triadic_weight` in {class}`ergmx.Control` changes the
 share. Degree-preserving [constraints](user-guide/constraints.md) use their
-own moves.
+own moves, and bipartite networks only tie/no-tie proposals between the modes.

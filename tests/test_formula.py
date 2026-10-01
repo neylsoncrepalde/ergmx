@@ -23,7 +23,7 @@ def test_terms_combine_with_plus():
 @pytest.mark.parametrize(
     ("formula", "message"),
     [
-        ("edges + concurrent", "unknown term 'concurrent'"),
+        ("edges + localtriangle", "unknown term 'localtriangle'"),
         ("edges + nodematch(attr)", "must be literals"),
         ("edges - triangle", "can't parse"),
         ("edges +", "can't parse the formula"),
@@ -36,11 +36,16 @@ def test_bad_formulas(formula, message):
 
 
 def test_unsupported_options_are_errors_not_silent():
-    with pytest.raises(NotImplementedError, match="fixed=True"):
-        gwesp(0.5)
-    for curved in ("gwdegree(0.5)", "gwidegree(0.5)", "gwodegree(0.5)", "gwdsp(0.5)"):
-        with pytest.raises(NotImplementedError, match="fixed=True"):
-            parse_formula(curved)
+    for unsupported in ("degree(1, by='Sex')", "cycle(4, semi=TRUE)", "b1nodematch('g', diff=TRUE)",
+                        "b1nodematch('g', alpha=0.5)"):
+        with pytest.raises((NotImplementedError, FormulaError), match="not supported"):
+            parse_formula(unsupported)
+
+
+def test_curved_terms_parse():
+    term = parse_formula("gwesp(0.25)").terms[0]
+    assert term.curved and term.cutoff == 30
+    assert not parse_formula("gwesp(0.25, fixed=TRUE)").terms[0].curved
 
 
 def test_formula_must_not_be_empty():

@@ -48,16 +48,15 @@ from .terms import edges
 
 
 def _dyad_independent_start(model: BoundModel) -> tuple[np.ndarray, float]:
-    """Coefficients of the dyad-independent submodel (with the fixed
-    coefficients of its terms), 0 for the other terms, and its exact
-    log-likelihood on the free observed dyads."""
+    """Parameters of the dyad-independent submodel (with the fixed values of
+    its offsets), 0 for the other terms, and its exact log-likelihood on the
+    free observed dyads."""
     x, y = model.mple_data()
-    columns = np.zeros(model.n_stats, dtype=bool)
+    independent = np.zeros(model.n_params, dtype=bool)
     for term, cols in model.term_columns():
         if term.dyad_independent:
-            columns[cols] = True
-    theta, _, loglik = regression(x, y, model, columns)
-    theta[~columns] = 0.0
+            independent[cols] = True
+    theta, _, loglik = regression(x, y, model, params=independent, zero=~independent)
     return theta, loglik
 
 
@@ -84,12 +83,14 @@ def bridge_loglik(model: BoundModel, theta: np.ndarray, control: Control, interv
     if not relative and "edges" not in model.names and "offset(edges)" not in model.names:
         augmented = bind(model.network, model.formula + edges(), model.constraints,
                          model.fixed_values[model.fixed & ~model.constant] if model.fixed.any() else None)
-    extra = augmented.n_stats - model.n_stats
-    theta_to = np.append(theta, np.zeros(extra))
+    # The path runs between the statistics' coefficients (eta), in which the
+    # likelihood is an exponential family whatever the parameters.
+    theta_to = augmented.eta(np.append(theta, np.zeros(augmented.n_params - model.n_params)))
     if relative:
         theta_from, loglik_from = np.zeros(augmented.n_stats), 0.0
     else:
-        theta_from, loglik_from = _dyad_independent_start(augmented)
+        start, loglik_from = _dyad_independent_start(augmented)
+        theta_from = augmented.eta(start)
     # Coefficients equal at both ends (including -inf offsets) don't move.
     same = theta_from == theta_to
     theta_from[same] = theta_to[same]

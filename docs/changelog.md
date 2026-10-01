@@ -4,13 +4,23 @@
 
 The first version, a proof of concept.
 
-- **Terms**: 29 terms for directed and undirected networks, with ergm's
-  definitions and names: `edges`, `mutual`, `edgecov`, `kstar`, `istar`,
+- **Terms**: 58 terms for directed, undirected and bipartite networks, with ergm's
+  definitions and names, among them `edges`, `mutual`, `edgecov`, `kstar`, `istar`,
   `ostar`, `degree`, `idegree`, `odegree`, `isolates`, `gwdegree`,
   `gwidegree`, `gwodegree`, `triangle`, `ttriple`, `ctriple`, `gwesp` and
   `gwdsp` (OTP if directed), `esp`, `dsp`, `nodematch` (with `diff=TRUE`),
   `nodemix`, `nodefactor`, `nodeifactor`, `nodeofactor`, `nodecov`,
   `nodeicov`, `nodeocov` and `absdiff`.
+- **More terms**: `asymmetric`, `sender`, `receiver`, `sociality`,
+  `concurrent`, `twopath`, `transitive`, `cycle`, `gwnsp`, `nsp`,
+  `absdiffcat`, and the shared partner types of directed networks (OTP,
+  ITP, RTP, OSP, ISP) for every shared partner term.
+- **Bipartite networks**, with 18 terms (`b1star`, `b1degree`,
+  `gwb1degree`, `b1concurrent`, `b1factor`, `b1cov`, `b1nodematch`, `b1dsp`,
+  `gwb1dsp` and their `b2` twins) and ergm's goodness of fit statistics.
+- **Curved ERGMs**: the decay of the geometrically weighted terms
+  estimated (`fixed=FALSE`), in the MPLE, contrastive divergence, the Monte
+  Carlo MLE and the log-likelihood.
 - **Operators**: `offset()` (with `-inf` to forbid ties) and `F()`.
 - **Constraints**: `bd`, `blocks`, `degrees`, `odegrees` and `idegrees`, with
   degree-preserving MCMC moves.

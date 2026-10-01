@@ -144,8 +144,9 @@ class ErgmFit:
 
     @property
     def observed(self) -> dict[str, float]:
-        """Statistics of the observed network."""
-        return dict(zip(self.names, self._model.observed().tolist()))
+        """Statistics of the observed network (for curved terms, the counts
+        their parameters weight)."""
+        return dict(zip(self._model.stat_names, self._model.observed().tolist()))
 
     # -- Using the model --------------------------------------------------------------
 
@@ -168,13 +169,18 @@ class ErgmFit:
 
         if self._estimate.sample is None:
             raise ValueError(f"this model was fitted by {self.method}, without MCMC")
-        free = self._model.free
-        target = self._model.observed()
-        if self._estimate.sample_obs is not None:  # missing dyads: their conditional mean
-            target = self._estimate.sample_obs.reshape(-1, len(self.names)).mean(axis=0)
-        names = [n for n, f in zip(self.names, free) if f]
-        return McmcDiagnostics(names, self._estimate.sample[..., free], target[free],
-                               self._estimate.interval)
+        from ._estimation import project
+
+        model, est = self._model, self._estimate
+        target = model.observed()
+        if est.sample_obs is not None:  # missing dyads: their conditional mean
+            target = est.sample_obs.reshape(-1, model.n_stats).mean(axis=0)
+        # Curved terms have many statistics: diagnose the estimating functions,
+        # one per parameter (the statistics themselves for other terms).
+        theta = self.params
+        names = [n for n, f in zip(self.names, model.free) if f]
+        return McmcDiagnostics(names, project(model, theta, est.sample),
+                               project(model, theta, target[None, None, :])[0, 0], est.interval)
 
     def gof(self, nsim: int = 100, **options):
         """Goodness of fit of the model. See :func:`ergmx.gof`."""

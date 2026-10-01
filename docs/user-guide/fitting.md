@@ -126,6 +126,28 @@ ergmx.ergm(mesa, formula, init=previous_fit.params)
 When a fit doesn't converge, or stops with a `DegeneracyError`, see
 [](diagnostics.md).
 
+## Estimating the decay: curved models
+
+`gwesp(0.5, fixed=TRUE)` fixes the decay at 0.5. Without `fixed=TRUE`, as is
+ergm's default, the decay is estimated with the other coefficients, starting
+from 0.5, and the model is a *curved* exponential family:
+
+```{code-cell} ipython3
+curved = ergmx.ergm(
+    mesa, "edges + nodematch('Grade') + nodematch('Race') + gwesp(0.5)", seed=1
+)
+curved.summary()
+```
+
+`gwesp.decay` is the estimated decay, with its standard error. The model's
+statistics are then the counts of ties with each number of shared partners
+(`curved.observed`), which the two parameters weight: see the
+[term reference](../terms.md#curved-terms). R's ergm fits this model only
+from a contrastive divergence start (`init.method = "CD"`): from its default
+start, a simulated network exceeds its cutoff of 30 shared partners and the
+fit stops with an error. ergmx counts those ties in an overflow statistic, and
+its estimates match R's.
+
 ## Fixed coefficients
 
 `offset(term)` fixes a term's coefficients instead of estimating them, at the

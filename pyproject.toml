@@ -37,7 +37,7 @@ Changelog = "https://neylsoncrepalde.github.io/ergmx/changelog.html"
 # What users can add: pip install "ergmx[igraph,plot]".
 [project.optional-dependencies]
 igraph = ["igraph>=0.11.5"]
-networkx = ["networkx>=3.0"]
+networkx = ["networkx>=3.2"]
 plot = ["matplotlib>=3.9"]
 
 # What contributors need: uv sync installs dev, uv sync --group docs adds docs.
@@ -46,7 +46,7 @@ dev = [
     "maturin>=1.9,<2",
     "pytest>=8",
     "igraph>=0.11.5",
-    "networkx>=3.0",
+    "networkx>=3.2",
     "matplotlib>=3.9",
 ]
 docs = [
@@ -57,7 +57,7 @@ docs = [
     "sphinx-copybutton>=0.5.2",
     "sphinxcontrib-mermaid>=1.0",
     "igraph>=0.11.5",
-    "networkx>=3.0",
+    "networkx>=3.2",
     "matplotlib>=3.9",
 ]
 

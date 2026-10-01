@@ -27,6 +27,11 @@ to_igraph <- function(net) {
   for (a in setdiff(network::list.vertex.attributes(net), c("na", "vertex.names"))) {
     g <- set_vertex_attr(g, a, value = network::get.vertex.attribute(net, a))
   }
+  if (network::is.bipartite(net)) {
+    # The first mode is FALSE, as igraph's type attribute.
+    b1 <- net %n% "bipartite"
+    g <- set_vertex_attr(g, "type", value = seq_len(network::network.size(net)) > b1)
+  }
   set_vertex_attr(g, "name", value = network::network.vertex.names(net))
 }
 
@@ -50,7 +55,23 @@ linked_sim <- network::network(as.matrix(as_adjacency_matrix(linked)), directed 
 for (a in c("type", "level")) network::set.vertex.attribute(linked_sim, a, vertex_attr(linked, a))
 network::network.vertex.names(linked_sim) <- vertex_attr(linked, "name")
 
+# Bipartite networks: Davis's Southern Women, bundled with ergmx, and a
+# simulated network with vertex attributes.
+davis_graph <- read_graph(gzcon(file(file.path("python", "ergmx", "data", "davis.graphml.gz"), "rb")),
+                          format = "graphml")
+davis <- network::network(as.matrix(as_adjacency_matrix(davis_graph))[1:18, 19:32],
+                          bipartite = 18, directed = FALSE)
+network::network.vertex.names(davis) <- vertex_attr(davis_graph, "name")
+set.seed(2026)
+bipartite_sim <- network::network.initialize(100, bipartite = 60, directed = FALSE)
+bipartite_sim %v% "g" <- sample(c("a", "b", "c"), 100, replace = TRUE)
+bipartite_sim %v% "x" <- round(runif(100, 0, 10), 1)
+bipartite_sim <- simulate(bipartite_sim ~ edges + b1factor("g") + b2cov("x") + gwb1degree(0.5, fixed = TRUE),
+                          coef = c(-3.2, 0.4, -0.3, 0.05, -0.5), seed = 2026,
+                          control = control.simulate.formula(MCMC.burnin = 100000))
+
 networks <- list(flomarriage = flomarriage, samplk3 = samplk3, linked_sim = linked_sim,
+                 davis = davis, bipartite_sim = bipartite_sim,
                  faux.mesa.high = faux.mesa.high, faux.dixon.high = faux.dixon.high,
                  samplk3.nonresponse = samplk3.nonresponse,
                  faux.mesa.high.missing = faux.mesa.high.missing)
@@ -182,6 +203,68 @@ models <- list(
                        formula = paste("nodemix('level', levels2=c(1, 3)) +",
                                        "F(~gwesp(0.5, fixed=TRUE), ~nodematch('level'))")),
 
+  # More terms. ergm's edgewise RTP statistics depend on the vertices' order
+  # (see rtp_direct below), so they are left out here.
+  mesa_terms3 = list(network = "faux.mesa.high", checks = "stats",
+                     formula = paste("cycle(3:5) + twopath + concurrent + gwnsp(0.5, fixed=TRUE) +",
+                                     "absdiffcat('Grade') + sociality + nsp(0:2)")),
+  dixon_terms3 = list(network = "faux.dixon.high", checks = "stats",
+                      formula = paste("cycle(2:4) + transitive + twopath + asymmetric +",
+                                      "gwnsp(0.5, fixed=TRUE) + dsp(0:2, type='RTP') +",
+                                      "gwdsp(0.5, fixed=TRUE, type='RTP') +",
+                                      "esp(0:3, type='ITP') + gwesp(0.5, fixed=TRUE, type='ITP') +",
+                                      "esp(0:3, type='OSP') + dsp(0:2, type='OSP') +",
+                                      "gwesp(0.5, fixed=TRUE, type='OSP') + gwnsp(0.5, fixed=TRUE, type='OSP') +",
+                                      "esp(0:3, type='ISP') + dsp(0:2, type='ISP') +",
+                                      "gwdsp(0.5, fixed=TRUE, type='ISP') + nsp(1, type='ITP')")),
+  samplk_vertex = list(network = "samplk3", checks = "stats", formula = "sender + receiver"),
+  mesa_mple3 = list(network = "faux.mesa.high", checks = c("stats", "mple"),
+                    formula = "edges + concurrent + cycle(4) + nodematch('Grade') + gwnsp(0.5, fixed=TRUE)"),
+  dixon_mple3 = list(network = "faux.dixon.high", checks = c("stats", "mple"),
+                     formula = paste("edges + mutual + twopath + cycle(3) +",
+                                     "gwesp(0.5, fixed=TRUE, type='ITP') + gwdsp(0.5, fixed=TRUE, type='OSP') +",
+                                     "esp(1, type='ISP')")),
+  mesa_absdiffcat = list(network = "faux.mesa.high", checks = all_checks,
+                         formula = "edges + absdiffcat('Grade')"),
+  mesa_concurrent = list(network = "faux.mesa.high", checks = c("stats", "mle"),
+                         formula = "edges + nodematch('Grade') + concurrent + gwesp(0.5, fixed=TRUE)"),
+  samplk_osp = list(network = "samplk3", checks = all_checks,
+                    formula = "edges + mutual + gwesp(0.5, fixed=TRUE, type='OSP')"),
+  samplk_twopath = list(network = "samplk3", checks = all_checks, formula = "edges + mutual + twopath"),
+
+  # Bipartite networks.
+  davis_terms = list(network = "davis", checks = "stats",
+                     formula = paste("edges + b1degree(0:3) + b2degree(1:2) + b1star(2:3) + b2star(2) +",
+                                     "gwb1degree(0.5, fixed=TRUE) + gwb2degree(0.5, fixed=TRUE) +",
+                                     "b1concurrent + b2concurrent + cycle(4) + gwb1dsp(0.5, fixed=TRUE) +",
+                                     "gwb2dsp(0.5, fixed=TRUE) + b1dsp(0:2) + b2dsp(1)")),
+  bipartite_terms = list(network = "bipartite_sim", checks = "stats",
+                         formula = paste("edges + b1factor('g') + b2factor('g') + b1cov('x') +",
+                                         "b2cov('x') + b1nodematch('g') + b2nodematch('g') +",
+                                         "b1star(2) + b2degree(0:2)")),
+  bipartite_dyadind = list(network = "bipartite_sim", checks = all_checks,
+                           formula = "edges + b1factor('g') + b2factor('g') + b1cov('x') + b2cov('x')"),
+  bipartite_gw = list(network = "bipartite_sim", checks = all_checks,
+                      formula = paste("edges + b1factor('g') + gwb1degree(0.5, fixed=TRUE) +",
+                                      "gwb2degree(0.5, fixed=TRUE)")),
+  bipartite_match = list(network = "bipartite_sim", checks = all_checks,
+                         formula = "edges + b1nodematch('g') + b2star(2)"),
+  bipartite_dsp = list(network = "bipartite_sim", checks = all_checks,
+                       formula = "edges + gwb1dsp(0.5, fixed=TRUE) + b2factor('g')"),
+  davis_dsp = list(network = "davis", checks = all_checks, formula = "edges + gwb1dsp(0.5, fixed=TRUE)"),
+
+  # Curved terms (fixed=FALSE). R's default start fails on mesa_curved (the
+  # cutoff is exceeded during its MCMC), so R starts it from CD.
+  mesa_curved_mple = list(network = "faux.mesa.high", checks = c("stats", "mple"),
+                          formula = "edges + nodematch('Grade') + gwesp(0.5)"),
+  mesa_curved = list(network = "faux.mesa.high", checks = c("stats", "mle"), init_method = "CD",
+                     formula = "edges + nodematch('Grade') + nodematch('Race') + gwesp(0.5)"),
+  bipartite_curved = list(network = "bipartite_sim", checks = all_checks,
+                          formula = "edges + b1factor('g') + gwb1degree(0.5)"),
+  flo_curved = list(network = "flomarriage", checks = c("stats", "mple"), formula = "edges + gwdegree(0.5)"),
+  dixon_curved = list(network = "faux.dixon.high", checks = c("stats", "mle"), init_method = "CD",
+                      formula = "edges + mutual + nodematch('grade') + nodematch('race') + gwesp(0.1)"),
+
   # Missing dyads. ergm imputes missing dyads at random before its MPLE, so the
   # MPLE of dyad-dependent models with missing dyads is random: not compared.
   samplk_missing = list(network = "samplk3.nonresponse", checks = c("stats", "mle"),
@@ -206,14 +289,16 @@ for (name in names(models)) {
     if (is.null(m$constraints)) ergm(f, offset.coef = m$offset_coef, ...)
     else ergm(f, constraints = constraints, offset.coef = m$offset_coef, ...)
   }
+  fit_control <- if (is.null(m$init_method)) control.ergm(seed = 1)
+                 else control.ergm(seed = 1, init.method = m$init_method)
   result <- list(network = m$network, formula = m$formula, checks = as.list(m$checks),
                  constraints = m$constraints, offset_coef = m$offset_coef,
-                 stats = named(summary(f)))
+                 bipartite = network::is.bipartite(net), stats = named(summary(f)))
   if ("mple" %in% m$checks) {
     result$mple <- named(coef(fit_ergm(estimate = "MPLE")))
   }
   if ("mle" %in% m$checks) {
-    seconds <- system.time(fit <- fit_ergm(control = control.ergm(seed = 1)))[["elapsed"]]
+    seconds <- system.time(fit <- fit_ergm(control = fit_control))[["elapsed"]]
     s <- summary(fit)$coefficients
     result <- c(result, list(
       dyad_independent = is.dyad.independent(fit),
@@ -230,8 +315,25 @@ for (name in names(models)) {
   results[[name]] <- result
 }
 
+# ergm's edgewise RTP statistics (esp, gwesp, nsp with type = "RTP") depend on
+# the order of the vertices, and don't match ergm's definition: these are the
+# statistics computed from the definition, which ergmx follows.
+d <- faux.dixon.high
+A <- as.matrix(d)
+M <- A * t(A)  # reciprocated ties
+el <- network::as.edgelist(d)
+rtp <- sapply(seq_len(nrow(el)), function(e) sum(M[el[e, 1], ] * M[, el[e, 2]]))
+r <- 1 - exp(-0.5)
+rtp_direct <- list(esp = tabulate(rtp + 1, 4), gwesp = exp(0.5) * sum(1 - r^rtp),
+                   summary_original = as.numeric(summary(d ~ esp(0:3, type = "RTP"))),
+                   summary_relabeled = {
+                     set.seed(1); perm <- sample(network.size(d))
+                     as.numeric(summary(network::network(A[perm, perm], directed = TRUE) ~
+                                          esp(0:3, type = "RTP")))
+                   })
+
 jsonlite::write_json(
   list(ergm_version = as.character(packageVersion("ergm")),
-       r_version = R.version.string, models = results),
+       r_version = R.version.string, models = results, rtp_direct = rtp_direct),
   file.path(out_dir, "r_reference.json"), auto_unbox = TRUE, digits = NA, pretty = TRUE
 )

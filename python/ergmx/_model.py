@@ -16,17 +16,26 @@ from .terms import Formula, as_formula
 
 @dataclass(frozen=True)
 class BoundModel:
+    """A formula bound to a network.
+
+    The model's *parameters* (`names`) are what is estimated; its *statistics*
+    (`stat_names`), what the Rust core counts. They are the same unless a term
+    is curved, whose few parameters map to many statistics' coefficients,
+    `eta(theta)`.
+    """
+
     network: Network
     formula: Formula
     names: list[str]
     core: _core.Model
     constraints: Constraints = field(default_factory=Constraints)
-    #: Coefficients fixed rather than estimated: offsets, and statistics that the
+    #: Parameters fixed rather than estimated: offsets, and terms that the
     #: constraints keep constant (fixed at 0), with their values.
     fixed: np.ndarray = None
     fixed_values: np.ndarray = None
-    #: Statistics that the constraints keep constant.
+    #: Parameters of terms that the constraints keep constant.
     constant: np.ndarray = None
+    stat_names: list[str] = None
 
     @property
     def dyad_independent(self) -> bool:
@@ -41,11 +50,19 @@ class BoundModel:
 
     @property
     def n_stats(self) -> int:
+        return len(self.stat_names)
+
+    @property
+    def n_params(self) -> int:
         return len(self.names)
 
     @property
+    def curved(self) -> bool:
+        return any(t.curved for t in self.formula)
+
+    @property
     def free(self) -> np.ndarray:
-        """Statistics whose coefficients are estimated."""
+        """Parameters that are estimated."""
         return ~self.fixed
 
     @property
@@ -57,16 +74,48 @@ class BoundModel:
         triangle or shared partner terms, as ergm does, and 0 otherwise."""
         if requested is not None:
             return float(requested)
+        if self.network.bipartite:
+            return 0.0  # triadic moves would only propose ties within a mode
         return 0.5 if any(t.triadic for t in self.formula) else 0.0
 
-    def term_columns(self) -> list:
-        """Each term with the positions of its statistics."""
-        columns, start = [], 0
+    @cached_property
+    def blocks(self) -> list:
+        """Each term with the slices of its statistics and of its parameters."""
+        out, p, q = [], 0, 0
         for term in self.formula:
-            count = len(term.names(self.network))
-            columns.append((term, list(range(start, start + count))))
-            start += count
-        return columns
+            dp, dq = len(term.names(self.network)), len(term.param_names(self.network))
+            out.append((term, slice(p, p + dp), slice(q, q + dq)))
+            p, q = p + dp, q + dq
+        return out
+
+    def term_columns(self) -> list:
+        """Each term with the positions of its parameters."""
+        return [(t, list(range(q.start, q.stop))) for t, _, q in self.blocks]
+
+    def eta(self, theta) -> np.ndarray:
+        """The statistics' coefficients from the parameters."""
+        theta = np.asarray(theta, dtype=float)
+        if not self.curved:
+            return theta.copy()
+        return np.concatenate([t.eta(theta[q], self.network) for t, _, q in self.blocks])
+
+    def jacobian(self, theta) -> np.ndarray:
+        """Derivatives of `eta` (statistics x parameters)."""
+        if not self.curved:
+            return np.eye(self.n_params)
+        theta = np.asarray(theta, dtype=float)
+        out = np.zeros((self.n_stats, self.n_params))
+        for t, ps, qs in self.blocks:
+            out[ps, qs] = t.jacobian(theta[qs], self.network)
+        return out
+
+    def initial(self) -> np.ndarray:
+        """Starting parameters: 0, the decay argument of curved terms, and the
+        fixed values."""
+        theta = np.zeros(self.n_params)
+        for position, decay in _decays(self.formula, self.blocks):
+            theta[position] = decay
+        return np.where(self.fixed, self.fixed_values, theta)
 
     def observed(self) -> np.ndarray:
         """Statistics of the observed network, with missing dyads as non-ties."""
@@ -82,11 +131,22 @@ class BoundModel:
 
     @cached_property
     def fixed_dyads(self) -> np.ndarray:
-        """n x n mask of the dyads fixed by the constraints or by -inf offsets."""
+        """n x n mask of the dyads fixed by the constraints, by -inf offsets, or,
+        in bipartite networks, within a mode."""
         mask = self.constraints.fixed(self.network)
+        if self.network.bipartite:
+            mode = self.network.mode
+            mask |= mode[:, None] == mode[None, :]
         for k in np.flatnonzero(self.fixed & np.isneginf(self.fixed_values)):
-            mask |= self._dyads_counted_by(k)
+            mask |= self._dyads_counted_by(self._stat_of(k))
         return mask
+
+    def _stat_of(self, param: int) -> int:
+        """The statistic of a parameter of a term that is not curved."""
+        for _, ps, qs in self.blocks:
+            if qs.start <= param < qs.stop:
+                return ps.start + param - qs.start
+        raise IndexError(param)
 
     def _dyads_counted_by(self, stat: int) -> np.ndarray:
         """Dyads where adding a tie changes a dyad-independent statistic."""
@@ -144,12 +204,26 @@ class BoundModel:
     def mple_data(self):
         return self.core.mple_data(self.network.edges, self.space_mple)
 
-    def simulate(self, starts, theta, burnin, interval, samples, seed, *, conditional=False, **options):
-        """Runs chains in the model's sample space (conditional on the observed
-        dyads with `conditional`)."""
+    def simulate(self, starts, theta, burnin, interval, samples, seed, *, conditional=False,
+                 canonical=False, **options):
+        """Runs chains at the parameters `theta` (the statistics' coefficients,
+        with `canonical`) in the model's sample space, conditional on the
+        observed dyads with `conditional`. `chain_thetas`, if given, are
+        coefficients of the statistics."""
         space = self.space_obs if conditional else self.space
-        return self.core.simulate(starts, [float(t) for t in theta], burnin, interval, samples, seed,
+        eta = np.asarray(theta, dtype=float) if canonical or not len(theta) else self.eta(theta)
+        return self.core.simulate(starts, [float(t) for t in eta], burnin, interval, samples, seed,
                                   space=space, **options)
+
+
+def _decays(formula, blocks) -> list[tuple[int, float]]:
+    """Positions and starting values of the decay parameters of curved terms."""
+    out = []
+    for term, _, qs in blocks:
+        inner = term.term if term.is_offset else term
+        if inner.curved and hasattr(inner, "initial"):
+            out.append((qs.stop - 1, inner.initial()))
+    return out
 
 
 def _make_unique(names: list[str]) -> list[str]:
@@ -170,12 +244,14 @@ def _make_unique(names: list[str]) -> list[str]:
     return unique
 
 
-def bind(network, formula, constraints=None, offset_coef=None, fitting=False) -> BoundModel:
+def bind(network, formula, constraints=None, offset_coef=None, fitting=False,
+         bipartite=None) -> BoundModel:
     """Bind a formula to a network, with constraints and offset coefficients.
 
     With `fitting`, offset terms need their coefficients, and statistics that
-    the constraints keep constant are reported."""
-    network = as_network(network)
+    the constraints keep constant are reported. `bipartite` names the vertex
+    attribute with the modes of a bipartite network."""
+    network = as_network(network, bipartite)
     formula = as_formula(formula)
     if not len(formula):
         raise ValueError("the formula has no terms")
@@ -183,14 +259,17 @@ def bind(network, formula, constraints=None, offset_coef=None, fitting=False) ->
         term.check(network)
     constraints = parse_constraints(constraints)
     constraints.check(network)
-    names = _make_unique([name for term in formula for name in term.names(network)])
+    stat_names = _make_unique([name for term in formula for name in term.names(network)])
+    names = _make_unique([name for term in formula for name in term.param_names(network)])
     core = _core.Model(network.n, network.directed, [t.full_spec(network) for t in formula])
+    if core.n_stats != len(stat_names):
+        raise RuntimeError(f"internal error: {core.n_stats} statistics, {len(stat_names)} names")
 
     offsets = np.zeros(len(names), dtype=bool)
     constant = np.zeros(len(names), dtype=bool)
     kept = constraints.preserves
-    for term, start in zip(formula, np.cumsum([0] + [len(t.names(network)) for t in formula])):
-        count = len(term.names(network))
+    for term, start in zip(formula, np.cumsum([0] + [len(t.param_names(network)) for t in formula])):
+        count = len(term.param_names(network))
         if term.is_offset:
             offsets[start:start + count] = True
         elif kept is not None and term.degree_dependence is not None and term.degree_dependence <= kept:
@@ -203,7 +282,7 @@ def bind(network, formula, constraints=None, offset_coef=None, fitting=False) ->
         offset_coef = np.atleast_1d(np.asarray(offset_coef, dtype=float))
         if offset_coef.shape != (offsets.sum(),):
             raise ValueError(f"offset_coef must have {int(offsets.sum())} values, one per offset "
-                             f"statistic, not {offset_coef.size}")
+                             f"parameter, not {offset_coef.size}")
         if np.any(np.isposinf(offset_coef)) or np.any(np.isnan(offset_coef)):
             raise ValueError("offset coefficients must be finite or -inf")
         values[offsets] = offset_coef
@@ -215,7 +294,13 @@ def bind(network, formula, constraints=None, offset_coef=None, fitting=False) ->
             f"({constraints!r}): their coefficients can't be estimated and are fixed at 0",
             stacklevel=3,
         )
-    model = BoundModel(network, formula, names, core, constraints, offsets | constant, values, constant)
+    # A constant curved term: theta 0, and the decay (irrelevant) at its start.
+    blocks = BoundModel(network, formula, names, core, stat_names=stat_names).blocks
+    for position, decay in _decays(formula, blocks):
+        if constant[position]:
+            values[position] = decay
+    model = BoundModel(network, formula, names, core, constraints, offsets | constant, values,
+                       constant, stat_names)
     for k in np.flatnonzero(model.fixed & np.isneginf(values)):
         term = next(t for t, cols in model.term_columns() if k in cols)
         if not term.dyad_independent:

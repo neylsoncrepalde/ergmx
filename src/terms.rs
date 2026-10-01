@@ -5,7 +5,8 @@
 //! `sign` is +1 if the tie is being added and -1 if it is being removed.
 //! Definitions follow the R package ergm.
 
-use crate::network::{Network, count_common, for_each_common};
+use crate::network::{Network, count_common};
+use crate::partners::{Bins, Scope, SharedPartners, SpType, Weight};
 use crate::space::Space;
 
 pub trait Term: Send + Sync {
@@ -82,11 +83,18 @@ impl Term for Mutual {
 
 // -- Degree terms ------------------------------------------------------------------
 
+/// Whether a vertex is counted: every vertex, or those of one mode of a
+/// bipartite network.
+fn counted(mask: &Option<Vec<bool>>, v: u32) -> bool {
+    mask.as_ref().is_none_or(|m| m[v as usize])
+}
+
 /// Number of k-stars, for each k: the sum over vertices of C(degree, k), with
 /// degrees (kstar), in-degrees (istar) or out-degrees (ostar).
 struct Stars {
     ks: Vec<u32>,
     ends: Ends,
+    mask: Option<Vec<bool>>,
 }
 
 impl Term for Stars {
@@ -96,8 +104,11 @@ impl Term for Stars {
 
     fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
         let (degrees, count) = self.ends.degrees(net, i, j);
-        for (stat, &k) in out.iter_mut().zip(&self.ks) {
-            for &(_, degree) in &degrees[..count] {
+        for &(v, degree) in &degrees[..count] {
+            if !counted(&self.mask, v) {
+                continue;
+            }
+            for (stat, &k) in out.iter_mut().zip(&self.ks) {
                 // A vertex of degree d gains C(d, k - 1) k-stars with a new tie.
                 *stat += sign * binomial(degree_without(degree, sign), k - 1);
             }
@@ -111,13 +122,88 @@ impl Term for Stars {
 struct GwDegree {
     r: f64,
     ends: Ends,
+    mask: Option<Vec<bool>>,
 }
 
 impl Term for GwDegree {
     fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
         let (degrees, count) = self.ends.degrees(net, i, j);
-        for &(_, degree) in &degrees[..count] {
-            out[0] += sign * self.r.powf(degree_without(degree, sign));
+        for &(v, degree) in &degrees[..count] {
+            if counted(&self.mask, v) {
+                out[0] += sign * self.r.powf(degree_without(degree, sign));
+            }
+        }
+    }
+}
+
+/// Number of vertices with each degree in `bins`: degrees (degree),
+/// in-degrees (idegree) or out-degrees (odegree), with an overflow bin for
+/// curved gwdegree.
+struct DegreeCount {
+    bins: Bins,
+    ends: Ends,
+    mask: Option<Vec<bool>>,
+}
+
+impl Term for DegreeCount {
+    fn n_stats(&self) -> usize {
+        self.bins.len()
+    }
+
+    fn empty(&self, n: u32, _: bool, out: &mut [f64]) {
+        if let Some(s) = self.bins.index(0) {
+            out[s] += (0..n).filter(|&v| counted(&self.mask, v)).count() as f64;
+        }
+    }
+
+    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
+        let (degrees, count) = self.ends.degrees(net, i, j);
+        for &(v, degree) in &degrees[..count] {
+            if counted(&self.mask, v) {
+                // Adding: degree -> degree + 1; removing: degree - 1 -> degree, reversed.
+                let base = if sign > 0.0 { degree } else { degree - 1 };
+                self.bins.shift(base as u32, sign, out);
+            }
+        }
+    }
+}
+
+/// Number of vertices with degree 2 or more.
+struct Concurrent {
+    mask: Option<Vec<bool>>,
+}
+
+impl Term for Concurrent {
+    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
+        for v in [i, j] {
+            let degree = net.neighbours(v).len();
+            if counted(&self.mask, v) && degree == if sign > 0.0 { 1 } else { 2 } {
+                out[0] += sign;
+            }
+        }
+    }
+}
+
+/// Number of vertices without ties (in either direction, if directed).
+struct Isolates;
+
+impl Term for Isolates {
+    fn empty(&self, n: u32, _: bool, out: &mut [f64]) {
+        out[0] += n as f64;
+    }
+
+    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
+        // Toggling i -> j leaves i and j neighbours if j -> i exists.
+        if net.directed() && net.has_edge(j, i) {
+            return;
+        }
+        for v in [i, j] {
+            let neighbours = net.neighbours(v).len();
+            if sign > 0.0 && neighbours == 0 {
+                out[0] -= 1.0;
+            } else if sign < 0.0 && neighbours == 1 {
+                out[0] += 1.0;
+            }
         }
     }
 }
@@ -172,280 +258,61 @@ impl Term for DirectedTriangle {
     }
 }
 
-/// Geometrically weighted edgewise shared partners with a fixed decay
-/// (undirected networks):
-///
-///   gwesp = exp(decay) * sum over edges (a, b) of 1 - r^sp(a, b),
-///
-/// with r = 1 - exp(-decay) and sp(a, b) the number of shared partners of a
-/// and b. Toggling (i, j) changes the term for (i, j) itself and, for every
-/// shared partner u, adds or removes a shared partner of (i, u) and (j, u);
-/// each of those contributes r^sp, with sp counted without the tie (i, j).
-struct Gwesp {
-    exp_decay: f64,
-    r: f64,
-}
+/// Number of 2-paths i -> j -> k with i != k (directed networks; kstar(2) if undirected).
+struct TwoPath;
 
-impl Term for Gwesp {
+impl Term for TwoPath {
     fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
-        let (ni, nj) = (net.neighbours(i), net.neighbours(j));
-        // When removing, j is a shared partner of (i, u) and i one of (j, u).
-        let own = if sign < 0.0 { 1 } else { 0 };
-        let mut total = self.exp_decay * (1.0 - self.r.powi(count_common(ni, nj) as i32));
-        for_each_common(ni, nj, |u| {
-            let nu = net.neighbours(u);
-            total += self.r.powi((count_common(ni, nu) - own) as i32);
-            total += self.r.powi((count_common(nj, nu) - own) as i32);
-        });
-        out[0] += sign * total;
+        let back = net.has_edge(j, i) as usize;
+        let paths = net.out_neighbours(j).len() - back + net.in_neighbours(i).len() - back;
+        out[0] += sign * paths as f64;
     }
 }
 
-/// gwesp for directed networks, with ergm's default outgoing two-path (OTP)
-/// shared partners: k is a shared partner of the tie a -> b if a -> k -> b.
-///
-/// Toggling i -> j changes the term for i -> j itself; adds or removes the
-/// partner j of every tie i -> v with j -> v; and the partner i of every tie
-/// u -> j with u -> i.
-struct GwespOtp {
-    exp_decay: f64,
-    r: f64,
-}
+/// Number of pairs with a tie in one direction only (directed networks).
+struct Asymmetric;
 
-impl Term for GwespOtp {
+impl Term for Asymmetric {
     fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
-        let (out_i, in_i) = (net.out_neighbours(i), net.in_neighbours(i));
-        let (out_j, in_j) = (net.out_neighbours(j), net.in_neighbours(j));
-        let own = if sign < 0.0 { 1 } else { 0 };
-        let mut total = self.exp_decay * (1.0 - self.r.powi(count_common(out_i, in_j) as i32));
-        for_each_common(out_i, out_j, |v| {
-            total += self.r.powi((count_common(out_i, net.in_neighbours(v)) - own) as i32);
-        });
-        for_each_common(in_i, in_j, |u| {
-            total += self.r.powi((count_common(net.out_neighbours(u), in_j) - own) as i32);
-        });
-        out[0] += sign * total;
+        out[0] += if net.has_edge(j, i) { -sign } else { sign };
     }
 }
 
-/// Geometrically weighted dyadwise shared partners with a fixed decay
-/// (undirected networks): like gwesp, but over all pairs of vertices, tied or
-/// not. Toggling (i, j) adds or removes the partner j of every pair (i, u)
-/// with u a neighbour of j, and the partner i of every pair (j, u) with u a
-/// neighbour of i.
-struct Gwdsp {
-    r: f64,
+/// Number of cycles of each length in `ks`: the k-cycles through the tie
+/// i -> j (or i -- j) are the simple paths of length k - 1 from j back to i
+/// (following ties' directions, if directed).
+struct Cycle {
+    ks: Vec<u32>,
+    longest: u32,
 }
 
-impl Term for Gwdsp {
-    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
-        let (ni, nj) = (net.neighbours(i), net.neighbours(j));
-        let own = if sign < 0.0 { 1 } else { 0 };
-        let mut total = 0.0;
-        // Pairs (a, u) gaining or losing the partner b, for (a, b) = (i, j) and (j, i).
-        for (a, na, nb) in [(i, ni, nj), (j, nj, ni)] {
-            for &u in nb.iter().filter(|&&u| u != a) {
-                total += self.r.powi((count_common(na, net.neighbours(u)) - own) as i32);
+impl Cycle {
+    fn count_paths(&self, net: &Network, i: u32, path: &mut Vec<u32>, counts: &mut [f64]) {
+        let v = *path.last().unwrap();
+        let length = path.len() as u32; // edges so far + 1 after the next step
+        for &w in net.out_neighbours(v) {
+            if w == i {
+                counts[length as usize] += 1.0;
+            } else if length < self.longest - 1 && !path.contains(&w) {
+                path.push(w);
+                self.count_paths(net, i, path, counts);
+                path.pop();
             }
         }
-        out[0] += sign * total;
     }
 }
 
-/// Shared partner counts change by one for some ties or pairs when (i, j) is
-/// toggled: `base` is a count without the tie (i, j). Adds the change in the
-/// number of ties (or pairs) with exactly k shared partners, for each k.
-#[inline]
-fn shift_histogram(ks: &[u32], base: u32, sign: f64, out: &mut [f64]) {
-    for (stat, &k) in out.iter_mut().zip(ks) {
-        if k == base + 1 {
-            *stat += sign;
-        } else if k == base {
-            *stat -= sign;
-        }
-    }
-}
-
-/// Number of ties with exactly k edgewise shared partners, for each k
-/// (undirected networks). See Gwesp for which ties change.
-struct Esp {
-    ks: Vec<u32>,
-}
-
-impl Term for Esp {
+impl Term for Cycle {
     fn n_stats(&self) -> usize {
         self.ks.len()
     }
 
     fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
-        let (ni, nj) = (net.neighbours(i), net.neighbours(j));
-        let own = if sign < 0.0 { 1 } else { 0 };
-        let shared = count_common(ni, nj);
+        // counts[l]: simple paths of length l from j to i.
+        let mut counts = vec![0.0; self.longest as usize];
+        self.count_paths(net, i, &mut vec![j], &mut counts);
         for (stat, &k) in out.iter_mut().zip(&self.ks) {
-            if k == shared {
-                *stat += sign;
-            }
-        }
-        let mut bases = Vec::new();
-        for_each_common(ni, nj, |u| {
-            let nu = net.neighbours(u);
-            bases.push(count_common(ni, nu) - own);
-            bases.push(count_common(nj, nu) - own);
-        });
-        for base in bases {
-            shift_histogram(&self.ks, base, sign, out);
-        }
-    }
-}
-
-/// esp for directed networks, with outgoing two-path (OTP) shared partners.
-/// See GwespOtp for which ties change.
-struct EspOtp {
-    ks: Vec<u32>,
-}
-
-impl Term for EspOtp {
-    fn n_stats(&self) -> usize {
-        self.ks.len()
-    }
-
-    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
-        let (out_i, in_i) = (net.out_neighbours(i), net.in_neighbours(i));
-        let (out_j, in_j) = (net.out_neighbours(j), net.in_neighbours(j));
-        let own = if sign < 0.0 { 1 } else { 0 };
-        let shared = count_common(out_i, in_j);
-        for (stat, &k) in out.iter_mut().zip(&self.ks) {
-            if k == shared {
-                *stat += sign;
-            }
-        }
-        let mut bases = Vec::new();
-        for_each_common(out_i, out_j, |v| bases.push(count_common(out_i, net.in_neighbours(v)) - own));
-        for_each_common(in_i, in_j, |u| bases.push(count_common(net.out_neighbours(u), in_j) - own));
-        for base in bases {
-            shift_histogram(&self.ks, base, sign, out);
-        }
-    }
-}
-
-/// Calls `f` with the shared partner count, without the tie (i, j), of every
-/// pair of vertices that gains or loses a shared partner when (i, j) is toggled.
-/// Undirected: the pairs (i, u) with u a neighbour of j, and (j, u) with u a
-/// neighbour of i. Directed (OTP): the pairs (i, v) with j -> v, and (u, j)
-/// with u -> i.
-fn for_each_dyad_partner_change(net: &Network, i: u32, j: u32, removing: bool, mut f: impl FnMut(u32)) {
-    let own = removing as u32;
-    if net.directed() {
-        let out_i = net.out_neighbours(i);
-        for &v in net.out_neighbours(j).iter().filter(|&&v| v != i) {
-            f(count_common(out_i, net.in_neighbours(v)) - own);
-        }
-        let in_j = net.in_neighbours(j);
-        for &u in net.in_neighbours(i).iter().filter(|&&u| u != j) {
-            f(count_common(net.out_neighbours(u), in_j) - own);
-        }
-    } else {
-        let (ni, nj) = (net.neighbours(i), net.neighbours(j));
-        for (a, na, nb) in [(i, ni, nj), (j, nj, ni)] {
-            for &u in nb.iter().filter(|&&u| u != a) {
-                f(count_common(na, net.neighbours(u)) - own);
-            }
-        }
-    }
-}
-
-/// Number of pairs of vertices with exactly k shared partners, for each k
-/// (OTP shared partners and ordered pairs if directed).
-struct Dsp {
-    ks: Vec<u32>,
-}
-
-impl Term for Dsp {
-    fn n_stats(&self) -> usize {
-        self.ks.len()
-    }
-
-    fn empty(&self, n: u32, directed: bool, out: &mut [f64]) {
-        let pairs = n as f64 * (n as f64 - 1.0) / if directed { 1.0 } else { 2.0 };
-        for (stat, &k) in out.iter_mut().zip(&self.ks) {
-            if k == 0 {
-                *stat += pairs;
-            }
-        }
-    }
-
-    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
-        for_each_dyad_partner_change(net, i, j, sign < 0.0, |base| {
-            shift_histogram(&self.ks, base, sign, out)
-        });
-    }
-}
-
-/// gwdsp for directed networks, with OTP shared partners over ordered pairs.
-struct GwdspOtp {
-    r: f64,
-}
-
-impl Term for GwdspOtp {
-    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
-        let mut total = 0.0;
-        for_each_dyad_partner_change(net, i, j, sign < 0.0, |base| total += self.r.powi(base as i32));
-        out[0] += sign * total;
-    }
-}
-
-/// Number of vertices with degree exactly k, for each k: degrees (degree),
-/// in-degrees (idegree) or out-degrees (odegree).
-struct DegreeCount {
-    ks: Vec<u32>,
-    ends: Ends,
-}
-
-impl Term for DegreeCount {
-    fn n_stats(&self) -> usize {
-        self.ks.len()
-    }
-
-    fn empty(&self, n: u32, _: bool, out: &mut [f64]) {
-        for (stat, &k) in out.iter_mut().zip(&self.ks) {
-            if k == 0 {
-                *stat += n as f64;
-            }
-        }
-    }
-
-    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
-        let (degrees, count) = self.ends.degrees(net, i, j);
-        for &(_, degree) in &degrees[..count] {
-            let old = degree as i64;
-            let new = old + sign as i64;
-            for (stat, &k) in out.iter_mut().zip(&self.ks) {
-                *stat += (new == k as i64) as u8 as f64 - (old == k as i64) as u8 as f64;
-            }
-        }
-    }
-}
-
-/// Number of vertices without ties (in either direction, if directed).
-struct Isolates;
-
-impl Term for Isolates {
-    fn empty(&self, n: u32, _: bool, out: &mut [f64]) {
-        out[0] += n as f64;
-    }
-
-    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
-        // Toggling i -> j leaves i and j neighbours if j -> i exists.
-        if net.directed() && net.has_edge(j, i) {
-            return;
-        }
-        for v in [i, j] {
-            let neighbours = net.neighbours(v).len();
-            if sign > 0.0 && neighbours == 0 {
-                out[0] -= 1.0;
-            } else if sign < 0.0 && neighbours == 1 {
-                out[0] += 1.0;
-            }
+            *stat += sign * counts[k as usize - 1];
         }
     }
 }
@@ -536,6 +403,46 @@ impl Term for NodeMix {
     }
 }
 
+/// For each distinct nonzero absolute difference of a numeric attribute, the
+/// number of ties with that difference.
+struct AbsDiffCat {
+    x: Vec<f64>,
+    values: Vec<f64>,
+}
+
+impl Term for AbsDiffCat {
+    fn n_stats(&self) -> usize {
+        self.values.len()
+    }
+
+    fn change(&self, _: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
+        let d = (self.x[i as usize] - self.x[j as usize]).abs();
+        if let Some(s) = self.values.iter().position(|&v| v == d) {
+            out[s] += sign;
+        }
+    }
+}
+
+/// b1nodematch (b2nodematch): number of 2-stars centred on second-mode
+/// (first-mode) vertices whose two ends have the same attribute value.
+struct BipartiteMatch {
+    /// Level of each end vertex (-1 for centres).
+    codes: Vec<i64>,
+}
+
+impl Term for BipartiteMatch {
+    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
+        let (end, centre) = if self.codes[i as usize] >= 0 { (i, j) } else { (j, i) };
+        let level = self.codes[end as usize];
+        let matches = net
+            .neighbours(centre)
+            .iter()
+            .filter(|&&u| u != end && self.codes[u as usize] == level)
+            .count();
+        out[0] += sign * matches as f64;
+    }
+}
+
 /// Sum over ties of the absolute difference of the endpoints' attribute values.
 struct AbsDiff {
     x: Vec<f64>,
@@ -569,6 +476,20 @@ impl Term for EdgeCov {
 #[derive(pyo3::FromPyObject, Clone, Debug)]
 pub struct TermSpec(pub String, pub Vec<f64>, pub Vec<i64>, pub Vec<TermSpec>);
 
+/// Splits integer parameters sent as chunks: a length, then that many values.
+fn chunks(name: &str, ints: &[i64]) -> Result<Vec<Vec<i64>>, String> {
+    let (mut out, mut rest) = (Vec::new(), ints);
+    while let Some((&len, tail)) = rest.split_first() {
+        let len = usize::try_from(len).map_err(|_| format!("{name}: bad parameters"))?;
+        if tail.len() < len {
+            return Err(format!("{name}: bad parameters"));
+        }
+        out.push(tail[..len].to_vec());
+        rest = &tail[len..];
+    }
+    Ok(out)
+}
+
 fn build_term(n: usize, directed: bool, spec: &TermSpec) -> Result<Box<dyn Term>, String> {
     let TermSpec(name, reals, ints, _) = spec;
     let expect = |len: usize, what: &str, want: usize| {
@@ -585,50 +506,81 @@ fn build_term(n: usize, directed: bool, spec: &TermSpec) -> Result<Box<dyn Term>
     let decay = || reals.first().copied().ok_or_else(|| format!("{name}: missing decay"));
     let r = |decay: f64| 1.0 - (-decay).exp();
     let levels = || (ints.iter().copied().max().unwrap_or(-1).max(-1) + 1) as usize;
-    let counts = |min: i64| -> Result<Vec<u32>, String> {
-        if ints.is_empty() || ints.iter().any(|&k| k < min) {
+    // Chunked parameters: counts, flags and vertex masks.
+    let parts = || chunks(name, ints);
+    let counts = |values: &[i64], min: i64| -> Result<Vec<u32>, String> {
+        if values.is_empty() || values.iter().any(|&k| k < min) {
             return Err(format!("{name}: k must be one or more integers >= {min}"));
         }
-        Ok(ints.iter().map(|&k| k as u32).collect())
+        Ok(values.iter().map(|&k| k as u32).collect())
     };
-    let ks = || counts(1);
+    let mask = |values: &[i64]| -> Result<Option<Vec<bool>>, String> {
+        if values.is_empty() {
+            return Ok(None);
+        }
+        expect(values.len(), "vertex mask values", n)?;
+        Ok(Some(values.iter().map(|&x| x != 0).collect()))
+    };
+    let part = |p: &[Vec<i64>], k: usize| -> Result<Vec<i64>, String> {
+        p.get(k).cloned().ok_or_else(|| format!("{name}: missing parameters"))
+    };
+    let sp = |scope: Scope| -> Result<Box<dyn Term>, String> {
+        // gw*: reals [decay], chunks [type], [mode mask];
+        // histograms: chunks [type], [ks], [overflow], [mode mask].
+        let p = parts()?;
+        let kind = SpType::from_code(part(&p, 0)?.first().copied().unwrap_or(1), directed)?;
+        let (weight, mode) = if reals.is_empty() {
+            let bins = Bins::new(&counts(&part(&p, 1)?, 0)?, part(&p, 2)?.first() == Some(&1));
+            (Weight::Histogram(bins), mask(&part(&p, 3)?)?)
+        } else {
+            let d = decay()?;
+            (Weight::Geometric { r: r(d), exp_decay: d.exp() }, mask(&part(&p, 1)?)?)
+        };
+        Ok(Box::new(SharedPartners { kind, scope, weight, mode }))
+    };
+    let ends_of = |both: &str, head: &str| -> Result<Ends, String> {
+        if name == both {
+            only(false)?;
+            Ok(Ends::Both)
+        } else {
+            only(true)?;
+            Ok(if name == head { Ends::Head } else { Ends::Tail })
+        }
+    };
     Ok(match name.as_str() {
         "edges" => Box::new(Edges),
         "mutual" => {
             only(true)?;
             Box::new(Mutual)
         }
-        "kstar" => {
-            only(false)?;
-            Box::new(Stars { ks: ks()?, ends: Ends::Both })
+        // chunks: [ks], [mask]
+        "kstar" | "istar" | "ostar" => {
+            let ends = ends_of("kstar", "istar")?;
+            let p = parts()?;
+            Box::new(Stars { ks: counts(&part(&p, 0)?, 1)?, ends, mask: mask(&part(&p, 1)?)? })
         }
-        "istar" | "ostar" => {
-            only(true)?;
-            let ends = if name == "istar" { Ends::Head } else { Ends::Tail };
-            Box::new(Stars { ks: ks()?, ends })
-        }
-        "degree" => {
-            only(false)?;
-            Box::new(DegreeCount { ks: counts(0)?, ends: Ends::Both })
-        }
-        "idegree" | "odegree" => {
-            only(true)?;
-            let ends = if name == "idegree" { Ends::Head } else { Ends::Tail };
-            Box::new(DegreeCount { ks: counts(0)?, ends })
+        // chunks: [ks], [overflow], [mask]
+        "degree" | "idegree" | "odegree" => {
+            let ends = ends_of("degree", "idegree")?;
+            let p = parts()?;
+            let bins = Bins::new(&counts(&part(&p, 0)?, 0)?, part(&p, 1)?.first() == Some(&1));
+            Box::new(DegreeCount { bins, ends, mask: mask(&part(&p, 2)?)? })
         }
         "isolates" => Box::new(Isolates),
-        "gwdegree" => {
-            only(false)?;
-            Box::new(GwDegree { r: r(decay()?), ends: Ends::Both })
+        // reals [decay]; chunks: [mask]
+        "gwdegree" | "gwidegree" | "gwodegree" => {
+            let ends = ends_of("gwdegree", "gwidegree")?;
+            let p = parts()?;
+            Box::new(GwDegree { r: r(decay()?), ends, mask: mask(&part(&p, 0)?)? })
         }
-        "gwidegree" | "gwodegree" => {
-            only(true)?;
-            let ends = if name == "gwidegree" { Ends::Head } else { Ends::Tail };
-            Box::new(GwDegree { r: r(decay()?), ends })
+        "concurrent" => {
+            only(false)?;
+            Box::new(Concurrent { mask: mask(&part(&parts()?, 0)?)? })
         }
         "triangle" if directed => Box::new(DirectedTriangle),
         "triangle" => Box::new(Triangle),
-        "ttriple" => {
+        // ergm's transitive counts transitive triples, as ttriple does.
+        "ttriple" | "transitive" => {
             only(true)?;
             Box::new(TTriple)
         }
@@ -636,22 +588,30 @@ fn build_term(n: usize, directed: bool, spec: &TermSpec) -> Result<Box<dyn Term>
             only(true)?;
             Box::new(CTriple)
         }
-        "gwesp" => {
-            let d = decay()?;
-            if directed {
-                Box::new(GwespOtp { exp_decay: d.exp(), r: r(d) })
-            } else {
-                Box::new(Gwesp { exp_decay: d.exp(), r: r(d) })
-            }
+        "twopath" => {
+            only(true)?;
+            Box::new(TwoPath)
         }
-        "esp" if directed => Box::new(EspOtp { ks: counts(0)? }),
-        "esp" => Box::new(Esp { ks: counts(0)? }),
-        "gwdsp" if directed => Box::new(GwdspOtp { r: r(decay()?) }),
-        "gwdsp" => Box::new(Gwdsp { r: r(decay()?) }),
-        "dsp" => Box::new(Dsp { ks: counts(0)? }),
+        "asymmetric" => {
+            only(true)?;
+            Box::new(Asymmetric)
+        }
+        "cycle" => {
+            let ks = counts(ints, if directed { 2 } else { 3 })?;
+            let longest = ks.iter().copied().max().unwrap();
+            Box::new(Cycle { ks, longest })
+        }
+        "esp" | "gwesp" => sp(Scope::Edgewise)?,
+        "dsp" | "gwdsp" => sp(Scope::Dyadwise)?,
+        "nsp" | "gwnsp" => sp(Scope::NonEdgewise)?,
         "nodematch" | "nodematchdiff" => {
             expect(ints.len(), "vertex values", n)?;
             Box::new(NodeMatch { codes: ints.clone(), n_levels: levels(), diff: name == "nodematchdiff" })
+        }
+        "bipartitematch" => {
+            only(false)?;
+            expect(ints.len(), "vertex values", n)?;
+            Box::new(BipartiteMatch { codes: ints.clone() })
         }
         "nodemix" => {
             // ints: the n vertex levels, the number of levels L, then the L x L map.
@@ -691,6 +651,13 @@ fn build_term(n: usize, directed: bool, spec: &TermSpec) -> Result<Box<dyn Term>
         "absdiff" => {
             expect(reals.len(), "vertex values", n)?;
             Box::new(AbsDiff { x: reals.clone() })
+        }
+        // reals: the n vertex values, then the distinct differences counted
+        "absdiffcat" => {
+            if reals.len() <= n {
+                return Err("absdiffcat: expected vertex values and differences".into());
+            }
+            Box::new(AbsDiffCat { x: reals[..n].to_vec(), values: reals[n..].to_vec() })
         }
         "edgecov" => {
             expect(reals.len(), "matrix entries", n * n)?;

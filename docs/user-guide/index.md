@@ -15,6 +15,7 @@ fitting
 constraints
 missing-data
 multilevel
+bipartite
 diagnostics
 goodness-of-fit
 model-comparison

@@ -1,6 +1,7 @@
 //! Rust core of ergmx: networks, change statistics and the MCMC sampler.
 
 mod network;
+mod partners;
 mod rng;
 mod sampler;
 mod space;

@@ -6,7 +6,8 @@
 (205, 203)
 
 They are the networks of ergm's documentation and tutorials, distributed
-with ergm under the GPL-3, and multinets' multilevel network ``linked_sim``.
+with ergm under the GPL-3, multinets' multilevel network ``linked_sim``, and
+Davis's Southern Women, from networkx.
 """
 
 from __future__ import annotations
@@ -43,6 +44,13 @@ _DESCRIPTIONS = {
         "in the US South, from the Add Health study design: each student nominated "
         "up to 5 male and 5 female friends. Vertex attributes: grade (7 to 12), "
         "race and sex (1 = male, 2 = female)."
+    ),
+    "davis": (
+        "Davis, Gardner and Gardner's (1941) Southern Women: the attendance of 18 "
+        "women at 14 social events in Natchez, Mississippi, in the 1930s. Bipartite: "
+        "the women are the first mode, the events the second. Vertex attributes: "
+        "type (True for events, igraph's convention) and bipartite (0 or 1, "
+        "networkx's). Fit it with bipartite=True."
     ),
     "linked_sim": (
         "A simulated multilevel network from the multinets package: 100 individuals "

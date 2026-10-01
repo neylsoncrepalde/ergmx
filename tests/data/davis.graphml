@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
+         http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+<!-- Created by igraph -->
+  <key id="v_type" for="node" attr.name="type" attr.type="boolean"/>
+  <key id="v_name" for="node" attr.name="name" attr.type="string"/>
+  <key id="e_na" for="edge" attr.name="na" attr.type="boolean"/>
+  <graph id="G" edgedefault="undirected">
+    <node id="n0">
+      <data key="v_type">false</data>
+      <data key="v_name">Evelyn Jefferson</data>
+    </node>
+    <node id="n1">
+      <data key="v_type">false</data>
+      <data key="v_name">Laura Mandeville</data>
+    </node>
+    <node id="n2">
+      <data key="v_type">false</data>
+      <data key="v_name">Theresa Anderson</data>
+    </node>
+    <node id="n3">
+      <data key="v_type">false</data>
+      <data key="v_name">Brenda Rogers</data>
+    </node>
+    <node id="n4">
+      <data key="v_type">false</data>
+      <data key="v_name">Charlotte McDowd</data>
+    </node>
+    <node id="n5">
+      <data key="v_type">false</data>
+      <data key="v_name">Frances Anderson</data>
+    </node>
+    <node id="n6">
+      <data key="v_type">false</data>
+      <data key="v_name">Eleanor Nye</data>
+    </node>
+    <node id="n7">
+      <data key="v_type">false</data>
+      <data key="v_name">Pearl Oglethorpe</data>
+    </node>
+    <node id="n8">
+      <data key="v_type">false</data>
+      <data key="v_name">Ruth DeSand</data>
+    </node>
+    <node id="n9">
+      <data key="v_type">false</data>
+      <data key="v_name">Verne Sanderson</data>
+    </node>
+    <node id="n10">
+      <data key="v_type">false</data>
+      <data key="v_name">Myra Liddel</data>
+    </node>
+    <node id="n11">
+      <data key="v_type">false</data>
+      <data key="v_name">Katherina Rogers</data>
+    </node>
+    <node id="n12">
+      <data key="v_type">false</data>
+      <data key="v_name">Sylvia Avondale</data>
+    </node>
+    <node id="n13">
+      <data key="v_type">false</data>
+      <data key="v_name">Nora Fayette</data>
+    </node>
+    <node id="n14">
+      <data key="v_type">false</data>
+      <data key="v_name">Helen Lloyd</data>
+    </node>
+    <node id="n15">
+      <data key="v_type">false</data>
+      <data key="v_name">Dorothy Murchison</data>
+    </node>
+    <node id="n16">
+      <data key="v_type">false</data>
+      <data key="v_name">Olivia Carleton</data>
+    </node>
+    <node id="n17">
+      <data key="v_type">false</data>
+      <data key="v_name">Flora Price</data>
+    </node>
+    <node id="n18">
+      <data key="v_type">true</data>
+      <data key="v_name">E1</data>
+    </node>
+    <node id="n19">
+      <data key="v_type">true</data>
+      <data key="v_name">E2</data>
+    </node>
+    <node id="n20">
+      <data key="v_type">true</data>
+      <data key="v_name">E3</data>
+    </node>
+    <node id="n21">
+      <data key="v_type">true</data>
+      <data key="v_name">E4</data>
+    </node>
+    <node id="n22">
+      <data key="v_type">true</data>
+      <data key="v_name">E5</data>
+    </node>
+    <node id="n23">
+      <data key="v_type">true</data>
+      <data key="v_name">E6</data>
+    </node>
+    <node id="n24">
+      <data key="v_type">true</data>
+      <data key="v_name">E7</data>
+    </node>
+    <node id="n25">
+      <data key="v_type">true</data>
+      <data key="v_name">E8</data>
+    </node>
+    <node id="n26">
+      <data key="v_type">true</data>
+      <data key="v_name">E9</data>
+    </node>
+    <node id="n27">
+      <data key="v_type">true</data>
+      <data key="v_name">E10</data>
+    </node>
+    <node id="n28">
+      <data key="v_type">true</data>
+      <data key="v_name">E11</data>
+    </node>
+    <node id="n29">
+      <data key="v_type">true</data>
+      <data key="v_name">E12</data>
+    </node>
+    <node id="n30">
+      <data key="v_type">true</data>
+      <data key="v_name">E13</data>
+    </node>
+    <node id="n31">
+      <data key="v_type">true</data>
+      <data key="v_name">E14</data>
+    </node>
+    <edge source="n0" target="n18">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n0" target="n19">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n0" target="n20">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n0" target="n21">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n0" target="n22">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n0" target="n23">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n0" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n0" target="n26">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n1" target="n18">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n1" target="n19">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n1" target="n20">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n1" target="n22">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n1" target="n23">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n1" target="n24">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n1" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n2" target="n19">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n2" target="n20">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n2" target="n21">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n2" target="n22">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n2" target="n23">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n2" target="n24">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n2" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n2" target="n26">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n3" target="n18">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n3" target="n20">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n3" target="n21">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n3" target="n22">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n3" target="n23">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n3" target="n24">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n3" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n4" target="n20">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n4" target="n21">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n4" target="n22">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n4" target="n24">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n5" target="n20">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n5" target="n22">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n5" target="n23">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n5" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n6" target="n22">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n6" target="n23">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n6" target="n24">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n6" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n7" target="n23">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n7" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n7" target="n26">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n8" target="n22">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n8" target="n24">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n8" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n8" target="n26">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n9" target="n24">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n9" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n9" target="n26">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n9" target="n29">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n10" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n10" target="n26">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n10" target="n27">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n10" target="n29">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n11" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n11" target="n26">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n11" target="n27">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n11" target="n29">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n11" target="n30">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n11" target="n31">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n12" target="n24">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n12" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n12" target="n26">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n12" target="n27">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n12" target="n29">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n12" target="n30">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n12" target="n31">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n13" target="n23">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n13" target="n24">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n13" target="n26">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n13" target="n27">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n13" target="n28">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n13" target="n29">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n13" target="n30">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n13" target="n31">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n14" target="n24">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n14" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n14" target="n27">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n14" target="n28">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n14" target="n29">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n15" target="n25">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n15" target="n26">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n16" target="n26">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n16" target="n28">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n17" target="n26">
+      <data key="e_na">false</data>
+    </edge>
+    <edge source="n17" target="n28">
+      <data key="e_na">false</data>
+    </edge>
+  </graph>
+</graphml>

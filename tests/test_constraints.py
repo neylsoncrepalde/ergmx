@@ -197,3 +197,12 @@ def test_compare_refuses_different_constraints():
     assert bounded.loglik_relative and not free.loglik_relative
     with pytest.raises(ValueError, match="different constraints"):
         ergmx.compare(free, bounded)
+
+
+def test_bipartite_networks_only_have_ties_between_modes():
+    """3 x 3 bipartite networks: every one of the 512 is enumerated."""
+    g = graph(6, [(0, 3), (1, 4), (2, 5)], type=[False, False, False, True, True, True])
+    model = bind(g, "edges + b1star(2) + gwb2degree(0.5, fixed=TRUE) + cycle(4)", bipartite="type")
+    cross = {(i, j) for i in range(3) for j in range(3, 6)}
+    allowed = lambda e: {tuple(sorted(p)) for p in e.tolist()} <= cross  # noqa: E731
+    assert check(model, np.array([-0.3, 0.4, -0.2, 0.3]), allowed, weights=(0.0,)) == 512

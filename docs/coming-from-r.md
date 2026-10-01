@@ -76,7 +76,26 @@ accepted: R expressions such as `log(n)` must be computed first.
   given the observed dyads. ergm 4.12 computes such imputations but compares
   with the network with missing dyads as non-ties.
 
+**Bipartite networks are declared, not ordered.**
+: ergm's bipartite networks have the first mode first (`bipartite = n1`);
+  ergmx reads each vertex's mode from an attribute (`bipartite="type"`), in
+  any order.
+
+**Curved terms start from their decay argument.**
+: In ergm 4, `gwesp(0.5)` without `fixed=TRUE` ignores the 0.5 (it warns,
+  and the start comes from `init`); ergmx starts the decay there. Both
+  estimate it. When a network has more shared partners (or degree) than the
+  cutoff, ergm stops with an error; ergmx counts them in an overflow
+  statistic.
+
+**`transitive` is `ttriple`, as in ergm's code.**
+: ergm 4.12 documents `transitive` as a count of transitive triads but
+  computes transitive triples; ergmx follows the computation.
+
+**Edgewise RTP statistics follow their definition.**
+: ergm 4.12's `esp`, `gwesp` and `nsp` with `type = "RTP"` change when the
+  vertices of the same network are relabeled; ergmx's match the definition.
+
 **Not yet available.**
-: Curved ERGMs (geometrically weighted terms with an estimated decay),
-  `bd()` bounds by attribute, valued and bipartite networks, and many of
+: `bd()` bounds by attribute, valued networks, temporal ERGMs, and many of
   ergm's terms and constraints.

@@ -183,7 +183,7 @@ the oldest dependencies that `ergmx` allows:
 uv run --isolated --python 3.11 pytest
 uv venv --python 3.11 /tmp/lowest
 uv pip install --python /tmp/lowest --resolution lowest-direct . \
-    "pytest>=8" "igraph>=0.11.5" "networkx>=3.0" "matplotlib>=3.9"
+    "pytest>=8" "igraph>=0.11.5" "networkx>=3.2" "matplotlib>=3.9"
 /tmp/lowest/bin/python -m pytest
 ```
 

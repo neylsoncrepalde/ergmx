@@ -21,6 +21,13 @@ class Network:
     source: Any = None  # the graph it came from, to build graphs of the same kind
     graph_attributes: dict[str, Any] = field(default_factory=dict)
     missing: np.ndarray = field(default_factory=lambda: np.zeros((0, 2), dtype=np.uint32))
+    #: For bipartite networks, each vertex's mode: 1 (the first mode, ergm's
+    #: "b1") or 2. None if the network is not bipartite.
+    mode: np.ndarray | None = None
+
+    @property
+    def bipartite(self) -> bool:
+        return self.mode is not None
 
     def degrees(self) -> tuple[np.ndarray, np.ndarray]:
         """Out- and in-degrees (degrees twice, if undirected)."""
@@ -76,10 +83,39 @@ def _split_missing(pairs, flags, directed: bool):
     return _edge_array(ties), _edge_array(missing)
 
 
-def as_network(x: Any) -> Network:
-    """Read an igraph or networkx graph."""
+def _with_modes(network: Network, bipartite) -> Network:
+    """The network with the modes of a bipartite network, read from the vertex
+    attribute `bipartite` (True: igraph's "type" or networkx's "bipartite")."""
+    if bipartite is None or bipartite is False:
+        return network
+    if network.directed:
+        raise ValueError("bipartite networks must be undirected")
+    if bipartite is True:
+        ig = sys.modules.get("igraph")
+        bipartite = "type" if ig is not None and isinstance(network.source, ig.Graph) else "bipartite"
+    values = network.attributes.get(bipartite)
+    if values is None:
+        raise KeyError(f"no vertex attribute {bipartite!r} with the vertices' modes; pass "
+                       "bipartite='<attribute>', whose false (or 0) vertices are the first mode")
+    if any(v is None for v in values):
+        raise ValueError(f"every vertex needs a mode: {bipartite!r} is missing for some")
+    mode = np.where([bool(v) for v in values], 2, 1)
+    for kind, pairs in (("ties", network.edges), ("missing dyads", network.missing)):
+        if len(pairs) and np.any(mode[pairs[:, 0]] == mode[pairs[:, 1]]):
+            raise ValueError(f"a bipartite network has no {kind} within a mode, but this one has")
+    return Network(network.n, network.directed, network.edges, network.attributes, network.source,
+                   network.graph_attributes, network.missing, mode)
+
+
+def as_network(x: Any, bipartite=None) -> Network:
+    """Read an igraph or networkx graph; `bipartite` names the vertex attribute
+    with the modes of a bipartite network (True for the default name)."""
     if isinstance(x, Network):
-        return x
+        return _with_modes(x, bipartite) if bipartite is not None and x.mode is None else x
+    return _with_modes(_read(x), bipartite)
+
+
+def _read(x: Any) -> Network:
     ig = sys.modules.get("igraph")
     nx = sys.modules.get("networkx")
     if ig is not None and isinstance(x, ig.Graph):

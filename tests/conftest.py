@@ -22,9 +22,18 @@ def load(name: str) -> ig.Graph:
 
 
 def options(model: dict) -> dict:
-    """The constraints and offset coefficients of a reference model, as ergm() arguments."""
+    """The constraints, offset coefficients and bipartite modes of a reference
+    model, as ergm() arguments."""
     # jsonlite writes R's NULL as {}.
-    return {k: model[k] for k in ("constraints", "offset_coef") if model.get(k) not in (None, {}, [])}
+    out = {k: model[k] for k in ("constraints", "offset_coef") if model.get(k) not in (None, {}, [])}
+    if model.get("bipartite") is True:
+        out["bipartite"] = "type"
+    return out
+
+
+def without_overflow(stats: dict) -> dict:
+    """Statistics without the overflow bins of curved terms, which ergm doesn't have."""
+    return {k: v for k, v in stats.items() if "#>" not in k}
 
 
 def estimated(model: dict) -> list[str]:
