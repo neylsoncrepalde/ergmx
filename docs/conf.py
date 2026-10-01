@@ -1,9 +1,9 @@
 """Sphinx configuration for the ergmx documentation.
 
-Build locally, after installing ergmx (it needs Rust to build):
+Build locally (see docs/user-guide/installation.md):
 
-    pip install -e ".[docs]"
-    sphinx-build -W --keep-going -d docs/_build/doctrees docs docs/_build/html
+    uv sync --group docs
+    uv run sphinx-build -W --keep-going -d docs/_build/doctrees docs docs/_build/html
 """
 
 from importlib.metadata import version as _version
@@ -23,6 +23,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinxcontrib.mermaid",
 ]
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "figures"]

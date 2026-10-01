@@ -146,7 +146,7 @@ class McmcDiagnostics:
         try:
             import matplotlib.pyplot as plt
         except ImportError:  # pragma: no cover
-            raise ImportError("plotting needs matplotlib: pip install matplotlib") from None
+            raise ImportError('plotting needs matplotlib: install "ergmx[plot]"') from None
         p = len(self.names)
         fig, axes = plt.subplots(p, 2, figsize=(10, 2.2 * p), squeeze=False,
                                  gridspec_kw={"width_ratios": [3, 1]})

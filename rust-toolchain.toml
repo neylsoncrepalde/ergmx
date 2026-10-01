@@ -1,0 +1,8 @@
+# The Rust compiler that builds ergmx, which rustup installs automatically.
+# Pinned so that builds, and clippy's lints, don't change with every Rust
+# release: bump it on purpose. The oldest Rust that builds ergmx is
+# Cargo.toml's rust-version.
+[toolchain]
+channel = "1.98.1"
+components = ["clippy", "rustfmt"]
+profile = "minimal"

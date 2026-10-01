@@ -27,3 +27,6 @@ The first version, a proof of concept.
   path sampling with an Euler–Maclaurin corrected rule, and model comparison.
 - **Datasets**: the networks of R's ergm documentation, and multinets'
   multilevel network `linked_sim`.
+- **Packaging**: Python 3.11 or newer; wheels with the compiled Rust core for
+  Linux, macOS and Windows, one per platform for every Python version;
+  development with uv, and the Rust version pinned in `rust-toolchain.toml`.

@@ -1,0 +1,124 @@
+# Builds ergmx's wheels, with the Rust core compiled in, and its source
+# distribution, and publishes them to PyPI when a GitHub release is published.
+#
+# The wheels use Python's stable ABI (abi3): one wheel per platform serves
+# every Python from 3.11 on. Run it by hand (workflow_dispatch) to build and
+# test the wheels without publishing them.
+#
+# Publishing uses PyPI's trusted publishing, which needs a one-time setup on
+# PyPI: see docs/user-guide/installation.md, "Publishing a release".
+
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux ${{ matrix.libc }} ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64, aarch64]
+        libc: [manylinux, musllinux]
+    steps:
+    - uses: actions/checkout@v7
+    - name: Build the wheel
+      uses: PyO3/maturin-action@v1
+      with:
+        target: ${{ matrix.target }}
+        manylinux: ${{ matrix.libc == 'manylinux' && 'auto' || 'musllinux_1_2' }}
+        args: --release --out dist
+    - name: Test the wheel
+      if: matrix.target == 'x86_64' && matrix.libc == 'manylinux'
+      uses: ./.github/actions/test-wheel
+    - uses: actions/upload-artifact@v7
+      with:
+        name: wheels-linux-${{ matrix.libc }}-${{ matrix.target }}
+        path: dist
+
+  macos:
+    name: macOS ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+        - runner: macos-15-intel
+          target: x86_64
+        - runner: macos-latest
+          target: aarch64
+    steps:
+    - uses: actions/checkout@v7
+    - name: Build the wheel
+      uses: PyO3/maturin-action@v1
+      with:
+        target: ${{ matrix.target }}
+        args: --release --out dist
+    - name: Test the wheel
+      uses: ./.github/actions/test-wheel
+    - uses: actions/upload-artifact@v7
+      with:
+        name: wheels-macos-${{ matrix.target }}
+        path: dist
+
+  windows:
+    name: Windows x64
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Build the wheel
+      uses: PyO3/maturin-action@v1
+      with:
+        target: x64
+        args: --release --out dist
+    - name: Test the wheel
+      uses: ./.github/actions/test-wheel
+    - uses: actions/upload-artifact@v7
+      with:
+        name: wheels-windows-x64
+        path: dist
+
+  sdist:
+    name: Source distribution
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Build the sdist
+      uses: PyO3/maturin-action@v1
+      with:
+        command: sdist
+        args: --out dist
+    - uses: actions/upload-artifact@v7
+      with:
+        name: wheels-sdist
+        path: dist
+
+  publish:
+    name: Publish to PyPI
+    if: github.event_name == 'release'
+    needs: [linux, macos, windows, sdist]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/ergmx/
+    permissions:
+      id-token: write      # trusted publishing
+      attestations: write  # build provenance
+    steps:
+    - uses: actions/download-artifact@v8
+      with:
+        pattern: wheels-*
+        merge-multiple: true
+        path: dist
+    - name: Attest build provenance
+      uses: actions/attest-build-provenance@v4
+      with:
+        subject-path: dist/*
+    - uses: astral-sh/setup-uv@v10
+    - name: Publish
+      run: uv publish --trusted-publishing always dist/*

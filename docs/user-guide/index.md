@@ -8,6 +8,7 @@ runs its code when the documentation is built, so the output is what
 :maxdepth: 2
 
 installation
+under-the-hood
 networks
 formulas
 fitting

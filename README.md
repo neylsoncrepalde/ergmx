@@ -138,8 +138,8 @@ A user guide, a term reference, the API reference and a guide for R users,
 built with Sphinx in `docs/`; every example runs when it is built:
 
 ```bash
-.venv/bin/maturin develop --release --extras docs
-.venv/bin/sphinx-build -W --keep-going -d docs/_build/doctrees docs docs/_build/html
+uv sync --group docs
+uv run sphinx-build -W --keep-going -d docs/_build/doctrees docs docs/_build/html
 ```
 
 `.github/workflows/docs.yml` publishes it to GitHub Pages.
@@ -226,24 +226,51 @@ describing it in `python/ergmx/terms.py`.
 - Bipartite and valued networks.
 - Wheels built for every platform in CI.
 
-## Development
+## Installation
 
-Requires Rust (<https://rustup.rs>) and Python 3.9 or newer.
+ergmx needs Python 3.11 or newer. With [uv](https://docs.astral.sh/uv/):
 
 ```bash
-python -m venv .venv
-.venv/bin/pip install maturin numpy scipy igraph networkx pytest
-.venv/bin/maturin develop --release     # build the Rust core and install ergmx
-.venv/bin/python -m pytest              # Python tests
-cargo test --release                    # Rust tests
+uv add "ergmx[igraph,plot]"        # in a uv project; or: uv pip install / pip install
 ```
+
+Releases come as wheels with the Rust core already compiled, for Linux,
+macOS and Windows, so no Rust compiler is needed. ergmx is not on PyPI yet:
+until then, install it from GitHub, which builds it from source:
+
+```bash
+uv add "ergmx[igraph,plot] @ git+https://github.com/neylsoncrepalde/ergmx"
+```
+
+Building from source needs a C linker (Xcode Command Line Tools,
+`build-essential` or the Visual Studio C++ Build Tools) and Rust 1.88 or
+newer. If Rust isn't installed, maturin downloads a private copy (about 500
+MB, cached). The [installation guide](docs/user-guide/installation.md) has
+the details.
+
+## Development
+
+With [uv](https://docs.astral.sh/uv/) and [rustup](https://rustup.rs):
+
+```bash
+git clone https://github.com/neylsoncrepalde/ergmx.git && cd ergmx
+rustup toolchain install    # the Rust pinned in rust-toolchain.toml
+uv sync                     # Python 3.14, locked dependencies, ergmx built in release mode
+uv run pytest               # Python tests
+cargo clippy --release --all-targets -- -D warnings && cargo test --release
+```
+
+`uv run` rebuilds the Rust core after changes to it. `uv build` makes a wheel
+and a source distribution in `dist/`; `.github/workflows/release.yml` builds
+the wheels of every platform and publishes them to PyPI when a GitHub release
+is published.
 
 To regenerate the R reference results or rerun the benchmark (needs R with
 ergm, igraph and jsonlite):
 
 ```bash
 Rscript scripts/r_reference.R && Rscript scripts/r_gof_reference.R
-Rscript benchmarks/benchmark.R && .venv/bin/python benchmarks/benchmark.py
+Rscript benchmarks/benchmark.R && uv run python benchmarks/benchmark.py
 ```
 
 ## License

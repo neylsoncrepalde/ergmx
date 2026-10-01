@@ -9,35 +9,65 @@ description = "Exponential-family random graph models (ERGMs) in Python, with a 
 readme = "README.md"
 license = "GPL-3.0-only"
 authors = [{ name = "Neylson Crepalde", email = "neylsoncrepalde@gmail.com" }]
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
-    "numpy>=1.22",
-    "scipy>=1.8",
+    "numpy>=1.24",
+    "scipy>=1.10",
 ]
 keywords = ["ergm", "exponential random graph models", "social network analysis", "statnet"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Rust",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Sociology",
 ]
 
+[project.urls]
+Homepage = "https://github.com/neylsoncrepalde/ergmx"
+Documentation = "https://neylsoncrepalde.github.io/ergmx/"
+Changelog = "https://neylsoncrepalde.github.io/ergmx/changelog.html"
+
+# What users can add: pip install "ergmx[igraph,plot]".
 [project.optional-dependencies]
 igraph = ["igraph>=0.11.5"]
 networkx = ["networkx>=3.0"]
-plot = ["matplotlib>=3.6"]
-test = ["pytest>=7", "igraph>=0.11.5", "networkx>=3.0", "matplotlib>=3.6"]
+plot = ["matplotlib>=3.9"]
+
+# What contributors need: uv sync installs dev, uv sync --group docs adds docs.
+[dependency-groups]
+dev = [
+    "maturin>=1.9,<2",
+    "pytest>=8",
+    "igraph>=0.11.5",
+    "networkx>=3.0",
+    "matplotlib>=3.9",
+]
 docs = [
-    "sphinx>=8.1",
+    "sphinx>=8.2",
     "pydata-sphinx-theme>=0.16",
     "myst-nb>=1.2",
     "sphinx-design>=0.6",
     "sphinx-copybutton>=0.5.2",
+    "sphinxcontrib-mermaid>=1.0",
     "igraph>=0.11.5",
     "networkx>=3.0",
-    "matplotlib>=3.6",
+    "matplotlib>=3.9",
+]
+
+[tool.uv]
+# Rebuild the Rust core when uv runs anything after a change to it.
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "Cargo.toml" },
+    { file = "rust-toolchain.toml" },
+    { file = "src/**/*.rs" },
 ]
 
 [tool.maturin]

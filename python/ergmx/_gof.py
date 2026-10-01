@@ -136,7 +136,7 @@ class GofResult:
         try:
             import matplotlib.pyplot as plt
         except ImportError:  # pragma: no cover
-            raise ImportError("plotting needs matplotlib: pip install matplotlib") from None
+            raise ImportError('plotting needs matplotlib: install "ergmx[plot]"') from None
         tables = list(self)
         if axes is None:
             fig, axes = plt.subplots(1, len(tables), figsize=(4.2 * len(tables), 3.6),

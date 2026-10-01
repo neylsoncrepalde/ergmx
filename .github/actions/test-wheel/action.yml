@@ -1,0 +1,13 @@
+name: Test the wheel
+description: Install the built wheel in fresh environments, without Rust or the source tree, and fit a model.
+runs:
+  using: composite
+  steps:
+  - uses: astral-sh/setup-uv@v10
+  - name: Fit a model with the wheel, on the oldest and newest Python
+    shell: bash
+    run: |
+      for python in 3.11 3.14; do
+        uv run --isolated --no-project --python "$python" --with "$(ls dist/*.whl)" --with igraph \
+          python -c "import ergmx; from ergmx import datasets; fit = ergmx.ergm(datasets.load('samplk3'), 'edges + mutual', seed=1); assert fit.converged; print('Python $python:', fit.coef)"
+      done
