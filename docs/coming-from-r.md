@@ -1,5 +1,13 @@
 # Coming from R
 
+:::{important}
+**Last updated on 1 October 2026**, against ergm 4.12.0, the version on CRAN
+then, and its development version on GitHub (4.13.0-8214, commit
+[a85e6a9](https://github.com/statnet/ergm/tree/a85e6a9839e711286f59d95b16c14733929ba0ec)).
+The differences below describe ergm at that point; later versions of ergm may
+have changed them.
+:::
+
 `ergmx` follows R's ergm closely: the same formulas, term names, statistics,
 defaults and output, so a model fitted in R can be refitted in Python and the
 tables compared line by line.
@@ -73,8 +81,9 @@ accepted: R expressions such as `log(n)` must be computed first.
 
 **The goodness of fit of networks with missing dyads uses imputations.**
 : ergmx compares the simulated networks with networks imputed from the model
-  given the observed dyads. ergm 4.12 computes such imputations but compares
-  with the network with missing dyads as non-ties.
+  given the observed dyads. ergm computes such imputations but compares with
+  the network with missing dyads as non-ties (in 4.12.0 and the development
+  version).
 
 **Bipartite networks are declared, not ordered.**
 : ergm's bipartite networks have the first mode first (`bipartite = n1`);
@@ -82,21 +91,26 @@ accepted: R expressions such as `log(n)` must be computed first.
   any order.
 
 **Curved terms start from their decay argument.**
-: In ergm 4, `gwesp(0.5)` without `fixed=TRUE` ignores the 0.5 (it warns,
-  and the start comes from `init`); ergmx starts the decay there. Both
-  estimate it. When a network has more shared partners (or degree) than the
-  cutoff, ergm stops with an error; ergmx counts them in an overflow
-  statistic.
+: In ergm, `gwesp(0.5)` without `fixed=TRUE` ignores the 0.5 (it warns, and
+  the start comes from `init`); ergmx starts the decay there. Both estimate
+  it. When a network has more shared partners (or degree) than the cutoff,
+  ergm stops with an error; ergmx counts them in an overflow statistic.
 
 **`transitive` counts transitive triads, as ergm documents.**
-: ergm 4.12 documents `transitive` as a count of transitive triads but
-  computes transitive triples, the same as `ttriple`. ergmx counts the triads
-  and warns; to reproduce a model fitted in R with `transitive`, use
-  `ttriple`, which gives ergm's statistic and estimates exactly.
+: ergm documents `transitive` as a count of transitive triads but computes
+  transitive triples, the same as `ttriple`, in 4.12.0 and the development
+  version. ergmx counts the triads and warns; to reproduce a model fitted in
+  R with `transitive`, use `ttriple`, which gives ergm's statistic and
+  estimates exactly.
 
-**Edgewise RTP statistics follow their definition.**
-: ergm 4.12's `esp`, `gwesp` and `nsp` with `type = "RTP"` change when the
-  vertices of the same network are relabeled; ergmx's match the definition.
+**Edgewise RTP statistics are right, as in ergm without its cache.**
+: ergm 4.12.0's shared-partner cache, used by default, reads the edgewise
+  RTP statistics (`esp`, `gwesp` and `nsp` with `type = "RTP"`) with the
+  wrong key, so their values depend on the order of the vertices. The
+  development version fixes it
+  ([statnet/ergm#656](https://github.com/statnet/ergm/pull/656)). Until the
+  fix reaches CRAN, `term.options = list(cache.sp = FALSE)` in `summary()` or
+  `ergm()` gives the right values in ergm 4.12.0, which match ergmx's.
 
 **Not yet available.**
 : `bd()` bounds by attribute, valued networks, temporal ERGMs, and many of

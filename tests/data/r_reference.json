@@ -41,7 +41,7 @@
       },
       "loglik": -50.7610235284313,
       "nobs": 120,
-      "seconds": 0.0209999999999999
+      "seconds": 0.0229999999999999
     },
     "flo_edgecov": {
       "network": "flomarriage",
@@ -77,7 +77,7 @@
       },
       "loglik": -47.6790537455384,
       "nobs": 120,
-      "seconds": 0.018
+      "seconds": 0.0190000000000001
     },
     "flo_triangle": {
       "network": "flomarriage",
@@ -113,7 +113,7 @@
       },
       "loglik": -54.0320435345241,
       "nobs": 120,
-      "seconds": 0.233
+      "seconds": 0.236
     },
     "flo_gwdegree": {
       "network": "flomarriage",
@@ -149,7 +149,7 @@
       },
       "loglik": -54.068740079075,
       "nobs": 120,
-      "seconds": 0.209
+      "seconds": 0.21
     },
     "samplk_mutual": {
       "network": "samplk3",
@@ -185,7 +185,7 @@
       },
       "loglik": -133.98562510637,
       "nobs": 306,
-      "seconds": 0.294
+      "seconds": 0.29
     },
     "mesa_gwesp": {
       "network": "faux.mesa.high",
@@ -236,7 +236,7 @@
       },
       "loglik": -867.557609659408,
       "nobs": 20910,
-      "seconds": 18.734
+      "seconds": 18.682
     },
     "mesa_gwdegree": {
       "network": "faux.mesa.high",
@@ -287,7 +287,7 @@
       },
       "loglik": -866.012346547627,
       "nobs": 20910,
-      "seconds": 9.062
+      "seconds": 8.932
     },
     "mesa_terms": {
       "network": "faux.mesa.high",
@@ -513,7 +513,7 @@
       },
       "loglik": -5124.51287371576,
       "nobs": 61256,
-      "seconds": 0.832999999999998
+      "seconds": 0.826999999999998
     },
     "samplk_gwesp": {
       "network": "samplk3",
@@ -554,7 +554,7 @@
       },
       "loglik": -131.36062013783,
       "nobs": 306,
-      "seconds": 1.182
+      "seconds": 1.278
     },
     "dixon_gwesp": {
       "network": "faux.dixon.high",
@@ -605,7 +605,7 @@
       },
       "loglik": -4206.09836270207,
       "nobs": 61256,
-      "seconds": 130.432
+      "seconds": 130.449
     },
     "mesa_terms2": {
       "network": "faux.mesa.high",
@@ -826,7 +826,7 @@
       },
       "loglik": -1126.73397689881,
       "nobs": 20910,
-      "seconds": 0.0229999999999961
+      "seconds": 0.0219999999999914
     },
     "flo_offset": {
       "network": "flomarriage",
@@ -903,7 +903,7 @@
       },
       "loglik": -871.301000661384,
       "nobs": 20910,
-      "seconds": 12.698
+      "seconds": 12.609
     },
     "mesa_F": {
       "network": "faux.mesa.high",
@@ -949,7 +949,7 @@
       },
       "loglik": -894.461634466298,
       "nobs": 20910,
-      "seconds": 13.612
+      "seconds": 13.573
     },
     "mesa_esp": {
       "network": "faux.mesa.high",
@@ -995,7 +995,7 @@
       },
       "loglik": -887.866214926062,
       "nobs": 20910,
-      "seconds": 3.423
+      "seconds": 3.47499999999999
     },
     "samplk_bd": {
       "network": "samplk3",
@@ -1026,7 +1026,7 @@
       },
       "loglik": 17.8427864007292,
       "nobs": 306,
-      "seconds": 0.183999999999997
+      "seconds": 0.192000000000007
     },
     "mesa_blocks_dyadind": {
       "network": "faux.mesa.high",
@@ -1103,7 +1103,7 @@
       },
       "loglik": -598.689896411797,
       "nobs": 4174,
-      "seconds": 8.36599999999999
+      "seconds": 8.524
     },
     "mesa_degrees": {
       "network": "faux.mesa.high",
@@ -1134,7 +1134,7 @@
       },
       "loglik": 252.501839209832,
       "nobs": 20910,
-      "seconds": 5.59100000000001
+      "seconds": 5.56
     },
     "samplk_odegrees": {
       "network": "samplk3",
@@ -1165,7 +1165,7 @@
       },
       "loglik": 22.1304939016467,
       "nobs": 306,
-      "seconds": 0.453000000000003
+      "seconds": 0.459000000000003
     },
     "samplk_degrees": {
       "network": "samplk3",
@@ -1196,7 +1196,7 @@
       },
       "loglik": 23.572417419548,
       "nobs": 306,
-      "seconds": 0.578000000000003
+      "seconds": 0.576999999999998
     },
     "linked_mix": {
       "network": "linked_sim",
@@ -1237,7 +1237,7 @@
       },
       "loglik": -2323.55276293794,
       "nobs": 11175,
-      "seconds": 0.0229999999999961
+      "seconds": 0.0240000000000009
     },
     "linked_multilevel": {
       "network": "linked_sim",
@@ -1283,7 +1283,7 @@
       },
       "loglik": -2323.33875872408,
       "nobs": 11175,
-      "seconds": 2.54499999999999
+      "seconds": 2.577
     },
     "linked_blocks": {
       "network": "linked_sim",
@@ -1324,7 +1324,7 @@
       },
       "loglik": -1461.57097284041,
       "nobs": 6175,
-      "seconds": 1.32999999999998
+      "seconds": 1.41799999999998
     },
     "mesa_terms3": {
       "network": "faux.mesa.high",
@@ -1755,7 +1755,7 @@
       },
       "loglik": -968.15013958721,
       "nobs": 20910,
-      "seconds": 0.0239999999999725
+      "seconds": 0.0250000000000057
     },
     "mesa_concurrent": {
       "network": "faux.mesa.high",
@@ -1794,7 +1794,7 @@
       },
       "loglik": -868.887405935006,
       "nobs": 20910,
-      "seconds": 8.56400000000002
+      "seconds": 8.678
     },
     "samplk_osp": {
       "network": "samplk3",
@@ -1835,7 +1835,7 @@
       },
       "loglik": -130.72096399524,
       "nobs": 306,
-      "seconds": 0.885999999999996
+      "seconds": 0.853000000000009
     },
     "samplk_twopath": {
       "network": "samplk3",
@@ -1876,7 +1876,7 @@
       },
       "loglik": -130.725977541971,
       "nobs": 306,
-      "seconds": 0.262
+      "seconds": 0.24799999999999
     },
     "davis_terms": {
       "network": "davis",
@@ -1995,7 +1995,7 @@
       },
       "loglik": -410.790218041907,
       "nobs": 2400,
-      "seconds": 0.0279999999999916
+      "seconds": 0.0289999999999964
     },
     "bipartite_gw": {
       "network": "bipartite_sim",
@@ -2046,7 +2046,7 @@
       },
       "loglik": -412.775771108326,
       "nobs": 2400,
-      "seconds": 0.247000000000014
+      "seconds": 0.245999999999981
     },
     "bipartite_match": {
       "network": "bipartite_sim",
@@ -2087,7 +2087,7 @@
       },
       "loglik": -424.900980434804,
       "nobs": 2400,
-      "seconds": 0.213999999999999
+      "seconds": 0.215000000000003
     },
     "bipartite_dsp": {
       "network": "bipartite_sim",
@@ -2133,7 +2133,7 @@
       },
       "loglik": -424.353599642212,
       "nobs": 2400,
-      "seconds": 0.248999999999995
+      "seconds": 0.245999999999981
     },
     "davis_dsp": {
       "network": "davis",
@@ -2169,7 +2169,7 @@
       },
       "loglik": -160.751678720953,
       "nobs": 252,
-      "seconds": 0.349999999999994
+      "seconds": 0.36099999999999
     },
     "mesa_curved_mple": {
       "network": "faux.mesa.high",
@@ -2291,7 +2291,7 @@
       },
       "loglik": -867.543918475316,
       "nobs": 20910,
-      "seconds": 17.065
+      "seconds": 17.098
     },
     "bipartite_curved": {
       "network": "bipartite_sim",
@@ -2370,7 +2370,7 @@
       },
       "loglik": -412.979790952134,
       "nobs": 2400,
-      "seconds": 0.225000000000023
+      "seconds": 0.225999999999999
     },
     "flo_curved": {
       "network": "flomarriage",
@@ -2479,7 +2479,7 @@
       },
       "loglik": -4207.21600557685,
       "nobs": 61256,
-      "seconds": 175.576
+      "seconds": 175.824
     },
     "samplk_missing": {
       "network": "samplk3.nonresponse",
@@ -2510,7 +2510,7 @@
       },
       "loglik": -124.621398261725,
       "nobs": 272,
-      "seconds": 0.384999999999991
+      "seconds": 0.389999999999986
     },
     "mesa_missing_dyadind": {
       "network": "faux.mesa.high.missing",
@@ -2551,7 +2551,7 @@
       },
       "loglik": -907.45973068687,
       "nobs": 19864,
-      "seconds": 0.049000000000035
+      "seconds": 0.0440000000000396
     },
     "mesa_missing": {
       "network": "faux.mesa.high.missing",
@@ -2590,7 +2590,7 @@
       },
       "loglik": -824.162129900173,
       "nobs": 19864,
-      "seconds": 15.662
+      "seconds": 15.645
     }
   },
   "ergm_differences": {
@@ -2598,7 +2598,18 @@
       "esp": [847, 309, 39, 2],
       "gwesp": 366.441879195274,
       "summary_original": [889, 269, 37, 2],
-      "summary_relabeled": [886, 273, 36, 2]
+      "summary_relabeled": [886, 273, 36, 2],
+      "uncached": {
+        "esp.RTP0": 847,
+        "esp.RTP1": 309,
+        "esp.RTP2": 39,
+        "esp.RTP3": 2,
+        "gwesp.RTP.fixed.0.5": 366.441879195274,
+        "nsp.RTP0": 59213,
+        "nsp.RTP1": 787,
+        "nsp.RTP2": 57,
+        "gwnsp.RTP.fixed.0.5": 869.524327320447
+      }
     },
     "transitive": {
       "samplk3": {

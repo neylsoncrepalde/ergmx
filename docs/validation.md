@@ -11,7 +11,7 @@ enough to enumerate every possible network. The R scripts in
 
 | Check | Result |
 |---|---|
-| Statistics of all 58 terms and both operators, 56 models | identical to R's `summary()` (to 1e-12), names included, except ergm's edgewise RTP statistics (below) |
+| Statistics of all 58 terms and both operators, 56 models | identical to R's `summary()` (to 1e-12), names included, except `transitive` and the edgewise RTP statistics (below) |
 | MPLE, 38 models, with offsets, `F()`, `blocks`, bipartite networks and curved terms | identical to R (to 1e-6; curved models to 1e-3, where R's optimizer stops on a flat optimum: ergmx's pseudo-likelihood is at least R's) |
 | Dyad-independent MLE, standard errors, log-likelihood and BIC, 10 models, with offsets, `blocks`, missing dyads and bipartite networks | identical to R (to 1e-6; standard errors to 1e-3, the tolerance of R's `glm`) |
 | Monte Carlo MLE, 7 models (4 undirected, 3 directed), 3 to 10 seeds each | within 0.12 standard errors of R's estimates; standard errors 0.89 to 1.12 times R's |
@@ -27,13 +27,17 @@ dyad-dependent models with missing dyads are not compared. R fits two of the
 curved models only from a contrastive divergence start; ergmx fits them from
 its default start.
 
-### Two discrepancies in ergm
+### Two discrepancies in ergm 4.12.0
 
-- **Edgewise RTP statistics.** ergm 4.12's `esp`, `gwesp` and `nsp` with
+- **Edgewise RTP statistics.** ergm 4.12.0's `esp`, `gwesp` and `nsp` with
   `type = "RTP"` depend on the order of the vertices: relabeling
   faux.dixon.high changes `summary(net ~ esp(0:3, type = "RTP"))` from 889,
-  269, 37, 2 to 886, 273, 36, 2. Computed from ergm's definition in R, the
-  counts are 847, 309, 39, 2, which ergmx gives.
+  269, 37, 2 to 886, 273, 36, 2. Its shared-partner cache, on by default,
+  reads them with the wrong key; ergm's development version fixes it
+  ([statnet/ergm#656](https://github.com/statnet/ergm/pull/656)). With the
+  cache off (`term.options = list(cache.sp = FALSE)`), ergm 4.12.0 gives 847,
+  309, 39, 2, as the definition computed in R does, and ergmx's `esp`,
+  `gwesp`, `nsp` and `gwnsp` of type RTP are identical to ergm's.
 - **`transitive`.** ergm documents it as the number of transitive triads
   (types 030T, 120D, 120U and 300: 371 on faux.dixon.high, 13 on samplk3,
   counted by R's igraph) but computes the number of transitive triples, the

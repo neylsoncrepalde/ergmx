@@ -144,10 +144,11 @@ a shared partner $k$ of the pair $(i, j)$ is
 | `"OSP"`, outgoing shared partner | $i \to k$ and $j \to k$ |
 | `"ISP"`, incoming shared partner | $k \to i$ and $k \to j$ |
 
-and the type is part of the names: `gwesp.ITP.fixed.0.5`, `esp.OSP1`. ergm's
-edgewise statistics of type RTP (`esp`, `gwesp`, `nsp`) depend on the order
-of the vertices (relabeling the same network changes them) and don't match
-this definition; ergmx's match it.
+and the type is part of the names: `gwesp.ITP.fixed.0.5`, `esp.OSP1`. In
+ergm 4.12.0, the edgewise statistics of type RTP (`esp`, `gwesp`, `nsp`) are
+wrong unless its shared-partner cache is turned off
+(`term.options = list(cache.sp = FALSE)`), a bug fixed in its development
+version; ergmx's match ergm's with the cache off.
 
 The geometrically weighted terms need `fixed=TRUE`: estimating the decay
 (a curved ERGM) is not supported yet.

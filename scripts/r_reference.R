@@ -203,8 +203,8 @@ models <- list(
                        formula = paste("nodemix('level', levels2=c(1, 3)) +",
                                        "F(~gwesp(0.5, fixed=TRUE), ~nodematch('level'))")),
 
-  # More terms. ergm's edgewise RTP statistics depend on the vertices' order
-  # (see rtp_direct below), so they are left out here.
+  # More terms. ergm 4.12's edgewise RTP statistics are wrong with its
+  # shared-partner cache, on by default (see rtp below), so they are left out.
   mesa_terms3 = list(network = "faux.mesa.high", checks = "stats",
                      formula = paste("cycle(3:5) + twopath + concurrent + gwnsp(0.5, fixed=TRUE) +",
                                      "absdiffcat('Grade') + sociality + nsp(0:2)")),
@@ -317,9 +317,12 @@ for (name in names(models)) {
 
 # Two places where ergm 4.12's computation differs from its documentation.
 #
-# 1. Edgewise RTP statistics (esp, gwesp, nsp with type = "RTP") depend on the
-#    order of the vertices, and don't match ergm's definition: these are the
-#    statistics computed from the definition, which ergmx follows.
+# 1. Edgewise RTP statistics (esp, gwesp, nsp with type = "RTP"): ergm's
+#    shared-partner cache, on by default, reads them with the wrong key when
+#    tail > head, so they depend on the order of the vertices. Fixed in ergm's
+#    development version (statnet/ergm#656, merged 2026-07-17, not yet on
+#    CRAN). Recorded: the statistics from the definition, ergm's with the cache
+#    (original and relabeled network) and without it, which match.
 d <- faux.dixon.high
 A <- as.matrix(d)
 M <- A * t(A)  # reciprocated ties
@@ -332,7 +335,12 @@ rtp_direct <- list(esp = tabulate(rtp + 1, 4), gwesp = exp(0.5) * sum(1 - r^rtp)
                      set.seed(1); perm <- sample(network.size(d))
                      as.numeric(summary(network::network(A[perm, perm], directed = TRUE) ~
                                           esp(0:3, type = "RTP")))
-                   })
+                   },
+                   uncached = named(summary(d ~ esp(0:3, type = "RTP") +
+                                              gwesp(0.5, fixed = TRUE, type = "RTP") +
+                                              nsp(0:2, type = "RTP") +
+                                              gwnsp(0.5, fixed = TRUE, type = "RTP"),
+                                            term.options = list(cache.sp = FALSE))))
 
 # 2. transitive is documented as the number of transitive triads (types 030T,
 #    120D, 120U and 300) but computes transitive triples, as ttriple: ergm's

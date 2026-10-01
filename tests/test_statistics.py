@@ -88,14 +88,18 @@ def test_networks_must_be_binary_without_loops():
 DIFFERENCES = json.loads((DATA / "r_reference.json").read_text())["ergm_differences"]
 
 
-def test_reciprocated_two_paths_follow_the_definition():
-    """ergm's edgewise RTP statistics depend on the order of the vertices (they
-    change when the same network is relabeled) and don't match the definition;
-    ergmx's match the definition, computed in R."""
+def test_reciprocated_two_paths_match_ergm_without_its_cache():
+    """ergm 4.12's shared-partner cache, on by default, gets the edgewise RTP
+    statistics wrong (they change when the same network is relabeled; fixed in
+    ergm's development version, statnet/ergm#656). ergmx's match ergm's with
+    the cache off, and the definition computed in R."""
     rtp = DIFFERENCES["rtp"]
     assert rtp["summary_original"] != rtp["summary_relabeled"]  # ergm's bug, as recorded
-    stats = ergmx.summary_stats(load("faux.dixon.high"),
-                                "esp(0:3, type='RTP') + gwesp(0.5, fixed=TRUE, type='RTP')")
+    formula = ("esp(0:3, type='RTP') + gwesp(0.5, fixed=TRUE, type='RTP') + nsp(0:2, type='RTP') + "
+               "gwnsp(0.5, fixed=TRUE, type='RTP')")
+    stats = ergmx.summary_stats(load("faux.dixon.high"), formula)
+    assert list(stats) == list(rtp["uncached"])
+    np.testing.assert_allclose(list(stats.values()), list(rtp["uncached"].values()), rtol=1e-12)
     assert list(stats.values())[:4] == rtp["esp"]
     assert stats["gwesp.RTP.fixed.0.5"] == pytest.approx(rtp["gwesp"], rel=1e-12)
 
