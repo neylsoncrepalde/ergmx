@@ -1,3 +1,4 @@
+import functools
 import json
 from pathlib import Path
 
@@ -45,9 +46,20 @@ COMBINED = {
 def load(name: str):
     """One of the networks exported from R's ergm package, with its dyadic
     covariates (tests/data/<name>__<covariate>.csv) as graph attributes, or
-    networks combined from several (COMBINED)."""
+    networks combined from several (COMBINED). A copy, of a file read once."""
     if name in COMBINED:
         return COMBINED[name]()
+    g = _read(name).copy()
+    for a in g.attributes():
+        if isinstance(g[a], np.ndarray):
+            g[a] = g[a].copy()
+    return g
+
+
+@functools.lru_cache(maxsize=None)
+def _read(name: str):
+    # Each read leaves a C file stream open in python-igraph, and Windows
+    # allows 512: the test suite would exhaust them.
     g = ig.Graph.Read_GraphML(str(DATA / f"{name}.graphml"))
     del g.vs["id"]  # added by the GraphML reader
     for path in DATA.glob(f"{name}__*.csv"):

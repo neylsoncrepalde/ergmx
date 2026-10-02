@@ -286,6 +286,20 @@ def _grades():
     return [mesa.induced_subgraph([v.index for v in mesa.vs if v["Grade"] == g]) for g in range(7, 13)]
 
 
+def _simulated_networks():
+    """20 networks of 40 vertices simulated from known coefficients (decay
+    0.7), where the decay is well identified: the six grades of
+    faux.mesa.high identify it so poorly that whether the Monte Carlo MLE
+    converges depends on the random path (the number of chains, the
+    platform)."""
+    nets = []
+    for seed in range(100, 120):
+        (g,) = ergmx.simulate(ig.Graph(n=40), "edges + gwesp(0.7)", [-3.5, 0.8, 0.7], seed=seed,
+                              burnin=100_000)
+        nets.append(g)
+    return ergmx.Networks(nets)
+
+
 def _simulated_series():
     """A series simulated from known coefficients (decay 0.7)."""
     sim = ergmx.simulate_dynamic(_grades()[0], "Form(~edges + gwesp(0.7)) + Persist(~edges)",
@@ -294,14 +308,14 @@ def _simulated_series():
 
 
 @pytest.mark.parametrize("combined, op, rest", [
-    (lambda: ergmx.Networks(_grades()), "N", ""),
+    (_simulated_networks, "N", ""),
     (_simulated_series, "Form", " + Persist(~edges)"),
 ])
 def test_curved_fits_inside_operators_are_consistent(combined, op, rest):
     """R can't fit curved terms inside N() or Form() (its MPLE fails). At the
     curved MPLE's decay, the fixed-decay MPLE has the same coefficients; the
-    decay is near the truth (0.7) of the simulated series, and the Monte
-    Carlo MLE converges near the MPLE."""
+    decay is near the truth (0.7) of the simulated networks and series, and
+    the Monte Carlo MLE converges near the MPLE."""
     nets = combined()
     curved = ergmx.ergm(nets, f"{op}(~edges + gwesp(0.5)){rest}", estimate="MPLE")
     decay = curved.coef[f"{op}(1)~gwesp.decay"]

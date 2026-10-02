@@ -70,6 +70,11 @@
   1,461 to 10,000 vertices and on 500 classrooms.
 - **Documentation**: a Quick start, with two complete analyses: an ERGM and
   a multilevel ERGM.
+- **Fixes**: `datasets.load()` reads each bundled network once and returns
+  copies (python-igraph leaves a C file stream open at each read, and
+  Windows allows 512); the Monte Carlo MLE of curved models no longer fails
+  in the linear algebra when the decay runs off along a flat direction of
+  the approximation, and moves each decay by at most 1 per iteration.
 
 ## 0.1.0 (2026-10-01)
 

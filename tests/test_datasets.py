@@ -41,3 +41,15 @@ def test_dataset_errors():
         datasets.load("florentine")
     with pytest.raises(ValueError, match="backend"):
         datasets.load("samplk3", backend="network")
+
+
+def test_loads_are_independent_copies():
+    """Each file is read once (python-igraph leaves a C file stream open per
+    read, and Windows allows 512), but every load is a graph of its own."""
+    first = datasets.load("flomarriage")
+    first.vs["wealth"] = [0] * first.vcount()
+    first.add_edge(0, 1)
+    second = datasets.load("flomarriage")
+    assert second.vs["wealth"] != first.vs["wealth"] and second.ecount() == first.ecount() - 1
+    for _ in range(600):  # more reads than Windows has file streams
+        datasets.load("samplk1")

@@ -142,3 +142,18 @@ def test_stalled_estimation_explains_why():
 def test_bad_init():
     with pytest.raises(ValueError, match="init must be"):
         ergmx.ergm(load("samplk3"), "edges + mutual", init="SA")
+
+
+def test_the_curved_search_stops_where_derivatives_overflow():
+    """A Gauss-Newton search that reaches a point where the derivatives
+    overflow (a decay growing without bound) stays at its best point rather
+    than failing in the linear algebra."""
+    from ergmx._estimation import _maximize
+
+    def grad_hess(theta):
+        if theta[0] > 1:
+            return np.array([np.nan]), np.array([[np.inf]])
+        return np.array([1.0]), np.array([[1.0]])
+
+    theta, converged = _maximize(lambda th: float(th[0]), grad_hess, np.array([0.0]), np.array([True]))
+    assert not converged and np.isfinite(theta).all() and theta[0] > 1

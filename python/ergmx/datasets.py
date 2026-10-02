@@ -14,6 +14,7 @@ simulated by ergmx from a known model.
 
 from __future__ import annotations
 
+from functools import lru_cache
 from importlib import resources
 from typing import Any
 
@@ -124,21 +125,29 @@ def load(name: str, backend: str = "igraph") -> Any:
     _check(name)
     if name in _LISTS:
         return _load_list(name, backend)
+    if backend == "igraph":
+        return _read_igraph(name).copy()
     path = resources.files("ergmx") / "data" / f"{name}.graphml.gz"
     with resources.as_file(path) as file:
-        if backend == "igraph":
-            import igraph as ig
-
-            g = ig.Graph.Read(str(file), format="graphmlz")
-            if "id" in g.vs.attributes():
-                del g.vs["id"]  # added by the GraphML reader
-            return g
         if backend == "networkx":
             import networkx as nx
 
             g = nx.read_graphml(file)
             return nx.relabel_nodes(g, {v: data["name"] for v, data in g.nodes(data=True)})
     raise ValueError(f"backend must be 'igraph' or 'networkx', not {backend!r}")
+
+
+@lru_cache(maxsize=None)
+def _read_igraph(name: str):
+    """A bundled network read once: python-igraph's file reader leaves a C
+    file stream open at each read, and Windows allows only 512 of them."""
+    import igraph as ig
+
+    with resources.as_file(resources.files("ergmx") / "data" / f"{name}.graphml.gz") as file:
+        g = ig.Graph.Read(str(file), format="graphmlz")
+    if "id" in g.vs.attributes():
+        del g.vs["id"]  # added by the GraphML reader
+    return g
 
 
 def _load_list(name: str, backend: str) -> list:

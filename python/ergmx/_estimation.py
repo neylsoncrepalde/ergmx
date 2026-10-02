@@ -224,6 +224,10 @@ def _maximize(value, grad_hess, theta, free, max_iter=500, tol=1e-9):
     for _ in range(max_iter):
         with np.errstate(over="ignore", invalid="ignore"):
             grad, hess = grad_hess(theta)
+        if not (np.all(np.isfinite(grad)) and np.all(np.isfinite(hess))):
+            # Derivatives overflow far out (a decay that grows without
+            # bound): stay at this point, the best found.
+            return theta, False
         if np.max(np.abs(grad)) < tol * (1.0 + abs(current)):
             return theta, True
         scale = np.diag(np.maximum(np.diag(hess), 1e-12))
@@ -419,7 +423,18 @@ def _step(model: BoundModel, theta, sample, target, margin, sample_obs=None):
     new[free] += np.linalg.lstsq(jac.T @ info @ jac, jac.T @ pull, rcond=None)[0]
     if model.curved:
         new = _gauss_newton_lognormal(model, theta, new, pull, info, active)
+        # The approximation can be nearly flat along a decay, far from the
+        # sample: a trust region, decays moving by at most MAX_DECAY_STEP an
+        # iteration (the whole step shrunk to fit).
+        decays = [position for position, _ in _decays_of(model) if model.free[position]]
+        moved = np.max(np.abs(new[decays] - np.asarray(theta, dtype=float)[decays]), initial=0.0)
+        if moved > MAX_DECAY_STEP:
+            new = theta + (new - np.asarray(theta, dtype=float)) * (MAX_DECAY_STEP / moved)
     return jac.T @ info @ jac, gamma, new
+
+
+#: The largest change of a decay parameter in one Monte Carlo MLE iteration.
+MAX_DECAY_STEP = 1.0
 
 
 def _gauss_newton_lognormal(model, theta0, theta, pull, info, active):
