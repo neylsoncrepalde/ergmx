@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from conftest import REFERENCE, estimated, load, models_with, options
+from conftest import formula, REFERENCE, estimated, load, models_with, options
 
 import ergmx
 
@@ -18,7 +18,7 @@ INDEPENDENT = [name for name in FITTED if REFERENCE[name]["dyad_independent"]]
 def test_mple_matches_r(name):
     model = REFERENCE[name]
     g = load(model["network"])
-    fit = ergmx.ergm(g, model["formula"], estimate="MPLE", **options(model))
+    fit = ergmx.ergm(g, formula(model), estimate="MPLE", **options(model))
     assert fit.names == list(model["mple"])
     r_mple = np.array(list(model["mple"].values()))
     if not fit._model.curved:
@@ -29,7 +29,7 @@ def test_mple_matches_r(name):
 
     np.testing.assert_allclose(list(fit.mple.values()), r_mple, rtol=1e-3, atol=1e-6)
     model_ = fit._model
-    x, y = model_.mple_data()
+    x, y, _ = model_.mple_data()
 
     def pseudo(theta):
         lin = fixed_part(x, np.arange(model_.n_stats), model_.eta(theta))
@@ -41,7 +41,7 @@ def test_mple_matches_r(name):
 @pytest.mark.parametrize("name", INDEPENDENT)
 def test_dyad_independent_models_get_the_exact_mle(name):
     model = REFERENCE[name]
-    fit = ergmx.ergm(load(model["network"]), model["formula"], **options(model))
+    fit = ergmx.ergm(load(model["network"]), formula(model), **options(model))
     assert fit.method == "MLE"
     np.testing.assert_allclose(list(fit.coef.values()), list(model["mle"].values()), rtol=1e-6)
     # R's glm stops at a relative deviance change of 1e-8 and computes its
@@ -58,7 +58,7 @@ def test_dyad_independent_models_get_the_exact_mle(name):
 @pytest.mark.parametrize("name", DEPENDENT)
 def test_monte_carlo_mle_matches_r(name):
     model = REFERENCE[name]
-    fit = ergmx.ergm(load(model["network"]), model["formula"], seed=2026, eval_loglik=False,
+    fit = ergmx.ergm(load(model["network"]), formula(model), seed=2026, eval_loglik=False,
                      **options(model))
     assert fit.method == "MCMLE" and fit.converged
     for term in estimated(model):
@@ -119,7 +119,7 @@ def test_contrastive_divergence_estimate_is_its_fixed_point():
 @pytest.mark.parametrize("name", ["samplk_mutual", "mesa_gwesp"])
 def test_mle_from_contrastive_divergence_start_matches_r(name):
     model = REFERENCE[name]
-    fit = ergmx.ergm(load(model["network"]), model["formula"], init="CD", seed=3)
+    fit = ergmx.ergm(load(model["network"]), formula(model), init="CD", seed=3)
     assert fit.method == "MCMLE" and fit.converged
     for term, r_estimate in model["mle"].items():
         assert abs(fit.coef[term] - r_estimate) < 0.25 * model["se"][term], term

@@ -47,7 +47,8 @@ than the model's networks. Print `result["distance"]` for the numbers.
 
 `nsim` sets the number of simulated networks (100 by default) and `stats`
 which distributions to compute, among `"degree"`, `"idegree"`, `"odegree"`,
-`"espartners"`, `"distance"` and `"model"`. The simulated networks are spaced
+`"b1degree"`, `"b2degree"` (bipartite), `"espartners"`, `"dspartners"`,
+`"distance"` and `"model"`. The simulated networks are spaced
 by the MCMC interval the fit ended with; `interval=` and `burnin=` change it.
 
 `gof` also works without a fit, from a formula and coefficients:
@@ -55,3 +56,13 @@ by the MCMC interval the fit ended with; `interval=` and `burnin=` change it.
 ```python
 ergmx.gof(mesa, "edges + nodematch('Grade')", [-6.0, 2.0])
 ```
+
+## By level, and network by network
+
+`by="level"` computes the distributions within each value of a vertex
+attribute, and the ties between two values, as for the levels of a
+[multilevel network](multilevel.md). For models of several networks,
+{func}`ergmx.gofN` checks each network's statistics against its simulations,
+with Pearson residuals, as ergm.multi's `gofN()`: see
+[](multiple-networks.md#goodness-of-fit-network-by-network).
+

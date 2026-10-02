@@ -66,15 +66,32 @@ the current network: 1 and 2 here), `.TimeID` (the transition's position) and
 `.TimeDelta` (the time since the previous network): `Form(~edges, lm=~.Time)`
 estimates a trend in formation. {func}`ergmx.NetSeries` builds the series
 with its times, when they are not 0, 1, 2...; `tergm()` builds it from a
-list.
+list. The operators also take [`N()`](multiple-networks.md)'s `subset`,
+`offset` and `label`.
 
 With a dyad-independent model, the CMLE is a logistic regression and exact:
 `Form(~edges) + Persist(~edges)` gives the log-odds that a non-tie became a
 tie, and that a tie persisted. Dyad-dependent models are fitted by Monte
 Carlo MLE; their samples mix, as in tergm, proposals that toggle a dyad that
 differs from the previous network, which undo formations and dissolutions
-efficiently. Diagnostics, goodness of fit and model comparison work as for
-other fits.
+efficiently. Diagnostics, goodness of fit (also by transition, with
+{func}`ergmx.gofN`) and model comparison work as for other fits.
+
+## Missing dyads
+
+Missing dyads (`na` edges) of the networks transitioned *to* are treated as
+missing, as in a cross-sectional fit. Those of the networks transitioned
+*from* (all but the last) are what the next transition is conditioned on,
+and must be imputed first, as tergm's `NA.impute`: `na_impute="next"` (each
+missing dyad takes its value in the next wave), `"previous"`, `"majority"`
+(the more common value of the network's observed dyads), `"0"` or `"1"`;
+several apply in turn, so `["previous", "0"]` fills what the previous wave
+can't with non-ties. `NetSeries()` and `tergm()` take it:
+
+```python
+fit = ergmx.tergm(waves_with_nonresponse, "Form(~edges + mutual) + Persist(~edges)",
+                  na_impute="next")
+```
 
 ## Simulating the process
 
@@ -82,7 +99,10 @@ A fitted temporal model describes a process: start from a network, and draw
 each next one from the model given the current one.
 {meth}`fit.simulate(time_slices=...) <ergmx.ErgmFit.simulate>` runs it forward
 from the last network of the series (or `nw_start="first"`, a position, or a
-network), as tergm's `simulate(fit, nw.start=, time.slices=)`:
+network), as tergm's `simulate(fit, nw.start=, time.slices=)`. Coefficients
+that change over time (`lm=~.Time`) continue their trend: the k-th step
+after the last network has the time `.Time + k .TimeDelta` and the position
+`.TimeID + k`, and the linear models' predictions for them.
 
 ```{code-cell} ipython3
 future = fit.simulate(time_slices=20, seed=1, monitor="edges + mutual")
@@ -108,5 +128,47 @@ on its exponentially weighted increments), then as long again. Its length
 adapts to the model and the network size; `min_steps` and `max_steps` bound
 it, and equal values fix it.
 
-tergm's other estimator, EGMME, which fits a process to a single network and
-the durations of its ties, is not supported.
+## A process from one network: the EGMME
+
+Often there is a single network, a cross-section, and some knowledge of how
+long ties last: a survey of current partnerships, with their mean duration.
+tergm's equilibrium generalized method of moments (EGMME) finds a process
+whose equilibrium matches both: coefficients of formation and persistence
+such that, simulated for a long time, the network has the observed
+statistics and its ties the observed ages. `tergm(estimate="EGMME")` takes
+the network, the model, and `targets`, a formula of the statistics to match,
+which can include statistics of tie ages: `mean.age`, `edge.ages` (their
+sum), `edges.ageinterval(from, to)`, `edgecov.ages(x)` and
+`nodefactor.mean.age(attr)`, with a tie's age 1 in the step it formed, as in
+tergm.
+
+The Florentine marriages, as a process where marriages last ten time steps
+on average and families with a common partner marry more readily:
+
+```{code-cell} ipython3
+flo = datasets.load("flomarriage")
+observed = ergmx.summary_stats(flo, "edges + gwesp(0, fixed=TRUE)")
+egmme = ergmx.tergm(
+    flo,
+    "Form(~edges + gwesp(0, fixed=TRUE)) + Persist(~edges)",
+    estimate="EGMME",
+    targets="edges + gwesp(0, fixed=TRUE) + mean.age",
+    target_stats=[*observed.values(), 10],
+    seed=1,
+)
+egmme
+```
+
+The estimate is found as tergm does: from EpiModel's approximation of the
+edges coefficients (formation, the log-odds of the density minus the log of
+the mean duration; persistence, the log of the duration minus one),
+stochastic approximation with Polyak averaging, and the delta method's
+standard errors, with the gradient of the targets estimated by central
+differences under common random numbers. It needs at least as many targets
+as coefficients. The fit's {meth}`~ergmx.EgmmeFit.simulate` runs the
+process, and its tie ages are monitors there too:
+
+```{code-cell} ipython3
+run = egmme.simulate(time_slices=500, seed=2, monitor="edges + mean.age")
+run.monitor["edges"][100:].mean(), run.monitor["mean.age"][100:].mean()
+```

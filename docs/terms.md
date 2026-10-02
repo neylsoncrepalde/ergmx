@@ -13,24 +13,71 @@ if undirected, ordered pairs $i \neq j$ if directed.
 The *dyad-independent* terms are marked with {octicon}`dot-fill`: a model of
 only those is fitted exactly, by logistic regression.
 
+Arguments that select levels of an attribute (`levels`, and the older
+`keep`, `base` and `nodes`) take ergm's specifications: `NULL` or `TRUE` for
+all, values (`c('White', 'Black')`, in that order), 1-based indices into the
+sorted values (`2:3`), or negative indices to leave some out (`-1`, the
+default of `nodefactor`). Attributes with missing values (None or NaN) are
+refused, as in ergm: recode them as a level of their own.
+
+Interactions of dyad-independent terms are written as in ergm:
+`nodecov('Grade'):nodematch('Sex')` is the sum over ties of the product of
+the two terms' change statistics, named `nodecov.Grade:nodematch.Sex` (with
+several statistics on a side, one per pair, the first side's varying
+fastest), and `a*b` is `a + b + a:b`.
+
 ## Dyadic terms
 
 `edges()` {octicon}`dot-fill`
 : Number of ties, $\sum_{D} y_{ij}$. Name: `edges`.
 
-`mutual()`, directed
-: Number of reciprocated pairs, $\sum_{i<j} y_{ij} y_{ji}$. Name: `mutual`.
+`mutual(same=, by=, diff=FALSE, levels=)`, directed
+: Number of reciprocated pairs, $\sum_{i<j} y_{ij} y_{ji}$. With `same`, only
+  those between vertices with the same value of that attribute, in total or
+  by value (`diff=TRUE`); with `by`, for each value, the vertices with it in
+  reciprocated pairs. Names: `mutual`, `mutual.<attr>`,
+  `mutual.same.<attr>.<value>`, `mutual.by.<attr>.<value>`.
 
-`asymmetric()`, directed
-: Number of pairs with a tie in one direction only. Name: `asymmetric`.
+`asymmetric(attr=, diff=FALSE, levels=)`, directed
+: Number of pairs with a tie in one direction only; with `attr`, only pairs
+  of vertices with the same value, in total or by value. Names: `asymmetric`,
+  `asymmetric.<attr>`, `asymmetric.<attr>.<value>`.
 
-`sender()`, `receiver()` {octicon}`dot-fill`, directed
-: Each vertex's out-degree (in-degree), one statistic per vertex but the first.
-  Names: `sender2`, `sender3`... by vertex position.
+`sender(nodes=-1)`, `receiver(nodes=-1)` {octicon}`dot-fill`, directed
+: Each vertex's out-degree (in-degree), one statistic per vertex of `nodes`,
+  by default all but the first. Names: `sender2`, `sender3`... by vertex
+  position.
 
-`sociality()` {octicon}`dot-fill`, undirected
-: Each vertex's degree, one statistic per vertex but the first. Names:
-  `sociality2`...
+`sociality(attr=, levels=, nodes=-1)` {octicon}`dot-fill`, undirected
+: Each vertex's degree, one statistic per vertex of `nodes`; with `attr`,
+  only its ties to vertices with the same value. Names: `sociality2`...,
+  `sociality2.<attr>`.
+
+`density()`, `meandeg()` {octicon}`dot-fill`
+: The number of ties over the number of dyads (the first mode's times the
+  second's, if bipartite), and the mean degree, $2|y|/n$ ($|y|/n$ if
+  directed). Names: `density`, `meandeg`.
+
+`dyadcov(x)` {octicon}`dot-fill`
+: In directed networks, a dyadic covariate summed by dyad state: over mutual
+  dyads, over those with only the tie from the lower- to the higher-numbered
+  vertex (in the upper triangle of the adjacency matrix), and over the
+  reverse; of `x`, its upper triangle, as in ergm. This is how ergm
+  documents `dyadcov`, but ergm 4.12 swaps the last two: using `dyadcov` on
+  a directed network warns with {class}`ergmx.ErgmDifferenceWarning`. In
+  undirected networks, `edgecov`. Names: `dyadcov.<attribute>.mutual`,
+  `.utri`, `.ltri`.
+
+`hamming(x=None, cov=None)` {octicon}`dot-fill`
+: The Hamming distance to a reference network: the number of dyads whose
+  value differs from `x`'s (the observed network by default; a graph
+  attribute holding an adjacency matrix, the matrix or a graph), each
+  weighted by the covariate `cov` if given. Names: `hamming`,
+  `hamming.<attribute>`.
+
+`attrcov(attr, mat)` {octicon}`dot-fill`
+: Sum over ties of the entry of `mat` (levels by levels of `attr`, sorted) of
+  the pair of their vertices' levels. Name: `attrcov.<attr>`.
 
 `edgecov(x)` {octicon}`dot-fill`
 : Sum of a dyadic covariate over ties, $\sum_D y_{ij} x_{ij}$. `x` is the name
@@ -49,20 +96,58 @@ only those is fitted exactly, by logistic regression.
 : In- and out-$k$-stars, $\sum_i \binom{d^{in}_i}{k}$ and
   $\sum_i \binom{d^{out}_i}{k}$. Names: `istar2`, `ostar2`...
 
-`degree(d)`, undirected
-: Number of vertices with degree exactly $d$, $\sum_i [d_i = d]$, for one or
-  more $d$ (`degree(0:3)`). Names: `degree0`, `degree1`...
+`kstar(k, attr=)`, `istar(k, attr=)`, `ostar(k, attr=)` with an attribute
+: Only the stars whose vertices all have the same value of `attr`. Names:
+  `kstar2.<attr>`...
 
-`idegree(d)`, `odegree(d)`, directed
+`degree(d, by=, homophily=FALSE, levels=)`, undirected
+: Number of vertices with degree exactly $d$, $\sum_i [d_i = d]$, for one or
+  more $d$ (`degree(0:3)`). With `by`, one count per value of that attribute
+  (of `levels`): `deg1.<attr>.<value>`. With `homophily=TRUE`, degrees only
+  count the ties between vertices with the same value (as ergm, every
+  vertex is counted, and the values left out of `levels` form one more
+  value): `deg1.homophily.<attr>`. Names: `degree0`, `degree1`...
+
+`idegree(d, by=, homophily=, levels=)`, `odegree(d, ...)`, directed
 : Number of vertices with in- or out-degree exactly $d$. Names: `idegree0`,
-  `odegree0`...
+  `odegree0`..., and `ideg1.<attr>.<value>`... with `by`.
+
+`degrange(from, to=Inf, by=, homophily=FALSE, levels=)`, undirected
+: Number of vertices with degree in $[\text{from}, \text{to})$, for each
+  pair (either can have length 1, recycled). `by`, `homophily` and `levels`
+  as for `degree`. Names: `deg1to4`, `deg2+` (`to=Inf`),
+  `deg1to4.<attr><value>`, `deg1to4.homophily.<attr>`.
+
+`idegrange(...)`, `odegrange(...)`, directed
+: The same with in- and out-degrees. Names: `ideg1to4`, `odeg3+`...
+
+`degree1.5()`, `idegree1.5()`, `odegree1.5()`
+: Sum over vertices of their degree (in-, out-degree) to the power 3/2. In
+  Python, `degree1_5()`; in formula strings, both names. Names:
+  `degree1.5`...
+
+`concurrentties(by=, levels=)`, undirected
+: Sum over vertices of their ties beyond the first, $\sum_i \max(d_i - 1,
+  0)$, by value of `by` if given. Names: `concurrentties`,
+  `concurrentties.<attr><value>`.
+
+`isolatededges()`, undirected
+: Number of ties whose two vertices have no other tie. Name: `isolatededges`.
+
+`altkstar(lambda, fixed=TRUE)`, undirected
+: Alternating $k$-stars (Snijders et al. 2006),
+  $\lambda^2 \sum_i \left[(1 - 1/\lambda)^{d_i} - 1 + d_i / \lambda\right]$.
+  Only with `fixed=TRUE`: ergm's version with an estimated lambda is not the
+  same statistic, and ergm recommends `gwdegree`, with `edges` the same
+  model. Name: `altkstar.<lambda>`.
 
 `isolates()`
 : Number of vertices without ties (in either direction, if directed). Name:
   `isolates`.
 
-`concurrent()`, undirected
-: Number of vertices with degree 2 or more. Name: `concurrent`.
+`concurrent(by=, levels=)`, undirected
+: Number of vertices with degree 2 or more, by value of `by` if given.
+  Names: `concurrent`, `concurrent.<attr><value>`.
 
 `twopath()`
 : Number of 2-paths: $i \to j \to k$ with $i \neq k$ if directed;
@@ -78,18 +163,27 @@ only those is fitted exactly, by logistic regression.
 : The same with in- and out-degrees. Names: `gwideg.fixed.<decay>`,
   `gwodeg.fixed.<decay>`.
 
+`gwdegree(decay, fixed=TRUE, attr=, levels=)` with an attribute (also `gwidegree`, `gwodegree`)
+: One statistic per value of `attr`: the geometrically weighted degrees of
+  its vertices. As in ergm, the decay must be fixed. Names:
+  `gwdeg<decay>.<attr>.<value>`.
+
 ## Triad terms
 
-`triangle()`
+`triangle(attr=, diff=FALSE, levels=)`
 : Number of triangles. In directed networks, ergm counts transitive plus
-  cyclic triples, `ttriple + ctriple`. Name: `triangle`.
+  cyclic triples, `ttriple + ctriple`. With `attr`, only the triangles whose
+  vertices all have the same value, in total or by value; `ttriple` and
+  `ctriple` take the same arguments. Names: `triangle`, `triangle.<attr>`,
+  `triangle.<attr>.<value>`. Also `triangles`.
 
 `ttriple()`, directed
 : Number of transitive triples: $i \to j$, $j \to k$ and $i \to k$. Name:
-  `ttriple`.
+  `ttriple`. Also `ttriad`.
 
 `ctriple()`, directed
-: Number of cyclic triples: $i \to j \to k \to i$. Name: `ctriple`.
+: Number of cyclic triples: $i \to j \to k \to i$. Name: `ctriple`. Also
+  `ctriad`.
 
 `transitive()`, directed
 : Number of transitive triads: triads of types 030T, 120D, 120U and 300 in
@@ -103,6 +197,58 @@ only those is fitted exactly, by logistic regression.
 `cycle(k)`
 : Number of cycles of length $k$, for one or more $k$: 3 or more if
   undirected, 2 or more if directed (`cycle(2)` is `mutual`). Names: `cycle3`...
+
+`triadcensus(levels=)`
+: The number of triads of each type of Davis and Leinhardt's census, in
+  ergm's order: 003, 012, 102, 021D, 021U, 021C, 111D, 111U, 030T, 030C, 201,
+  120D, 120U, 120C, 210, 300 (codes 0 to 15), by default all but 003; in
+  undirected networks, triads with 0, 1, 2 or 3 ties, by default 1 to 3.
+  `levels` selects types by code or name (`c('021D', '300')`). Names:
+  `triadcensus.021D`..., `triadcensus.1`...
+
+`balance()`
+: Number of balanced triads: types 102 and 300 (in undirected networks,
+  triads with one or three ties). Name: `balance`.
+
+`intransitive()`, directed
+: Number of intransitive triads: types 111D, 201, 111U, 021C and 030C. This
+  is how ergm documents its `intransitive` term, but ergm 4.12 computes
+  intransitive triples instead (two-paths $i \to j \to k$ without $i \to k$),
+  `twopath` minus `ttriple`: using `intransitive` warns with
+  {class}`ergmx.ErgmDifferenceWarning`. Name: `intransitive`.
+
+`simmelian()`, `nearsimmelian()`, `simmelianties()`, directed
+: Simmelian triads (Krackhardt and Handcock 2007), complete ones (type
+  300); near-Simmelian triads, one tie short (type 210); and the ties in at
+  least one Simmelian triad. Names: `simmelian`, `nearsimmelian`,
+  `simmelianties`.
+
+`transitiveties(attr=, levels=)`, `cyclicalties(attr=, levels=)`
+: Number of ties $i \to j$ with a two-path $i \to k \to j$ (transitive) or
+  $j \to k \to i$ (cyclical); in undirected networks, both are the ties with
+  a shared partner. With `attr`, only ties and two-paths whose three vertices
+  have the same value. Names: `transitiveties`, `transitiveties.<attr>`...
+
+`threetrail(levels=)`
+: Number of 3-trails: walks along three distinct ties, a triangle counting
+  three, $\sum_{ij} y_{ij} (d_i - 1)(d_j - 1)$ if undirected. In directed
+  networks, four statistics by the directions of the outer steps around the
+  middle one: RRR ($i \to j \to k \to l$), RRL, LRR and LRL; `levels`
+  selects some. Names: `threetrail`, `threetrail.RRR`... Also `threepath`.
+
+`opentriad()`, undirected
+: Number of 2-stars minus three times the number of triangles. Name:
+  `opentriad`.
+
+`localtriangle(x)`
+: Number of triangles (transitive plus cyclic triples, if directed) whose
+  three pairs of vertices are neighbours in `x`: a graph attribute holding a
+  symmetric adjacency matrix, the matrix or a graph. Name:
+  `localtriangle.<attribute>`.
+
+`m2star()`, directed
+: Number of mixed 2-stars, $i \to j \to k$ with $i \neq k$: `twopath`.
+  Name: `m2star`.
 
 `gwesp(decay, fixed=TRUE)`
 : Geometrically weighted edgewise shared partners,
@@ -146,21 +292,24 @@ a shared partner $k$ of the pair $(i, j)$ is
 | `"OSP"`, outgoing shared partner | $i \to k$ and $j \to k$ |
 | `"ISP"`, incoming shared partner | $k \to i$ and $k \to j$ |
 
-and the type is part of the names: `gwesp.ITP.fixed.0.5`, `esp.OSP1`. In
+and the type is part of the names: `gwesp.ITP.fixed.0.5`, `esp.OSP1`.
+`desp`, `ddsp`, `dnsp`, `dgwesp`, `dgwdsp` and `dgwnsp` are the same terms
+for directed networks only, as in ergm. In
 ergm 4.12.0, the edgewise statistics of type RTP (`esp`, `gwesp`, `nsp`) are
 wrong unless its shared-partner cache is turned off
 (`term.options = list(cache.sp = FALSE)`), a bug fixed in its development
 version; ergmx's match ergm's with the cache off.
 
-The geometrically weighted terms need `fixed=TRUE`: estimating the decay
-(a curved ERGM) is not supported yet.
+With `fixed=FALSE` (ergm's default), the geometrically weighted terms
+estimate their decay: see [curved terms](#curved-terms).
 
 ## Attribute terms
 
-`nodematch(attr, diff=FALSE)` {octicon}`dot-fill`
+`nodematch(attr, diff=FALSE, levels=)` {octicon}`dot-fill`
 : Number of ties between vertices with the same value of `attr`,
-  $\sum_D y_{ij} [x_i = x_j]$. With `diff=TRUE`, one statistic per value.
-  Names: `nodematch.<attr>`, or `nodematch.<attr>.<value>`.
+  $\sum_D y_{ij} [x_i = x_j]$, for the values of `levels` (all by default).
+  With `diff=TRUE`, one statistic per value. Names: `nodematch.<attr>`, or
+  `nodematch.<attr>.<value>`.
 
 `nodemix(attr, levels=None, levels2=-1)` {octicon}`dot-fill`
 : Number of ties for each *mixing type*: each pair of levels of `attr`, from
@@ -172,10 +321,10 @@ The geometrically weighted terms need `fixed=TRUE`: estimating the decay
   `levels` selects levels, by name or index. Names:
   `mix.<attr>.<level>.<level>`.
 
-`nodefactor(attr)` {octicon}`dot-fill`
-: For each level $\ell$ of `attr` but the first, the number of tie endpoints
-  at that level, $\sum_D y_{ij} ([x_i = \ell] + [x_j = \ell])$. Names:
-  `nodefactor.<attr>.<level>`.
+`nodefactor(attr, levels=-1)` {octicon}`dot-fill`
+: For each level $\ell$ of `levels`, by default all but the first, the
+  number of tie endpoints at that level, $\sum_D y_{ij} ([x_i = \ell] +
+  [x_j = \ell])$. Names: `nodefactor.<attr>.<level>`.
 
 `nodeifactor(attr)`, `nodeofactor(attr)` {octicon}`dot-fill`, directed
 : The same, counting only receivers ($[x_j = \ell]$) or senders
@@ -184,7 +333,7 @@ The geometrically weighted terms need `fixed=TRUE`: estimating the decay
 
 `nodecov(attr)` {octicon}`dot-fill`
 : Sum of a numeric attribute over tie endpoints, $\sum_D y_{ij} (x_i + x_j)$.
-  Name: `nodecov.<attr>`.
+  Name: `nodecov.<attr>`. Also `nodemain`.
 
 `nodeicov(attr)`, `nodeocov(attr)` {octicon}`dot-fill`, directed
 : The same for receivers ($x_j$) or senders ($x_i$) only. Names:
@@ -199,36 +348,102 @@ The geometrically weighted terms need `fixed=TRUE`: estimating the decay
   attribute, the number of ties with $|x_i - x_j| = \delta$. Names:
   `absdiff.<attr>.<difference>`.
 
+`mm(attrs, levels=, levels2=-1)` {octicon}`dot-fill`
+: The cells of a mixing matrix, as ergm's `mm`: `mm('A')` (or `mm(~A)`) is
+  attribute A with itself, `mm(A~B)` rows of A and columns of B (from
+  senders to receivers if directed, both orientations of each tie if
+  undirected), `mm(A~.)` and `mm(.~B)` its margins. Cells are ordered column
+  by column, only those at or above the diagonal for an attribute with
+  itself in an undirected network; `levels2` selects them (all but the first
+  by default). Names: `mm[A=a,B=b]`, `mm[A=a,.]`.
+
+`diff(attr, pow=1, dir="t-h", sign.action="identity")` {octicon}`dot-fill`
+: Sum over ties of a function of the difference of the vertices' values:
+  tail minus head (`dir="t-h"`, `"b1-b2"`) or head minus tail (`"h-t"`,
+  `"b2-b1"`), transformed by `sign.action` (`"abs"`, `"posonly"`,
+  `"negonly"`) and raised to `pow` (its sign, for `pow=0`). Undirected ties
+  go from the lower- to the higher-numbered vertex, as in ergm. In Python,
+  `sign_action`. Names: `diff.t-h.<attr>`, `diff.abs.<attr>`,
+  `diff2.posonly.h-t.<attr>`.
+
+`smalldiff(attr, cutoff)` {octicon}`dot-fill`
+: Number of ties whose vertices' values differ by at most `cutoff`, as
+  ergm's code computes it (its documentation says less than). Name:
+  `smalldiff.<attr><cutoff>`.
+
+`nodecovrange(attr)`, `nodeicovrange(attr)`, `nodeocovrange(attr)`
+: Sum over vertices of the range of `attr` over their neighbours (Hoffman,
+  Block and Snijders 2023): over in- or out-neighbours, or in directed
+  networks for `nodecovrange` over the out-neighbours plus over the
+  in-neighbours. Names: `nodecovrange.<attr>`...
+
+`nodefactordistinct(attr, levels=TRUE)` (also `nodeofactordistinct`, `nodeifactordistinct`)
+: Sum over vertices of the number of distinct values of `attr` among their
+  neighbours (in either direction, if directed; or among out- or
+  in-neighbours). Names: `nodefactordistinct.<attr>`...
+
 ## Bipartite terms
 
 For [bipartite networks](user-guide/bipartite.md). `b1` terms are about the
 first mode, `b2` terms the second; each has a `b2` (or `b1`) twin.
 
-`b1star(k)`
-: Number of $k$-stars centred on first-mode vertices. Names: `b1star2`...
+`b1star(k, attr=)`
+: Number of $k$-stars centred on first-mode vertices; with `attr`, only those
+  whose vertices all have the same value. Names: `b1star2`, `b1star2.<attr>`.
 
-`b1degree(d)`
-: Number of first-mode vertices with degree exactly $d$. Names: `b1degree0`...
+`b1degree(d, by=, levels=)`
+: Number of first-mode vertices with degree exactly $d$, by value of `by` if
+  given. Names: `b1degree0`..., `b1deg1.<attr>.<value>`.
+
+`b1degrange(from, to=Inf, by=, homophily=, levels=)`, `b1mindegree(d)`
+: First-mode vertices with degree in $[\text{from}, \text{to})$, as
+  `degrange`, and with degree at least $d$. Names: `b1deg1to4`, `b1mindeg2`.
 
 `gwb1degree(decay, fixed=TRUE)`
 : Geometrically weighted degree distribution of the first mode. Name:
   `gwb1deg.fixed.<decay>`.
 
-`b1concurrent()`
-: Number of first-mode vertices with degree 2 or more. Name: `b1concurrent`.
+`b1concurrent(by=, levels=)`
+: Number of first-mode vertices with degree 2 or more, by value of `by` if
+  given. Names: `b1concurrent`, `b1concurrent.<attr><value>`.
 
-`b1factor(attr)` {octicon}`dot-fill`
-: For each level of `attr` among first-mode vertices but the first, the
-  number of their ties. Names: `b1factor.<attr>.<level>`.
+`b1factor(attr, levels=-1)` {octicon}`dot-fill`
+: For each level of `levels` among first-mode vertices, by default all but
+  the first, the number of their ties. Names: `b1factor.<attr>.<level>`.
+
+`b1sociality(nodes=-1)` {octicon}`dot-fill`
+: Each first-mode vertex's degree, one statistic per vertex of `nodes`
+  (indices among the first mode's vertices). Names: `b1sociality2`..., by
+  vertex number.
 
 `b1cov(attr)` {octicon}`dot-fill`
 : Sum over ties of the first-mode endpoint's value of a numeric attribute.
   Name: `b1cov.<attr>`.
 
-`b1nodematch(attr)`
+`b1nodematch(attr, diff=FALSE, alpha=1, beta=1, byb2attr=, levels=)`
 : Number of 2-stars centred on second-mode vertices whose two first-mode
-  ends have the same value of `attr` (ergm's default `alpha = beta = 1`).
-  Name: `b1nodematch.<attr>`.
+  ends have the same value of `attr` (Bomiriya et al. 2023): by value with
+  `diff=TRUE`, by value of the centres' attribute `byb2attr`, and
+  discounted with `beta` < 1 (for each tie, half its number of such
+  2-stars to the power beta) or `alpha` < 1 (for each pair of matching
+  ends, their shared partners to the power alpha). Names:
+  `b1nodematch.<attr>`, `b1nodematch.<attr>.<value>`... (`b2nodematch`
+  takes `byb1attr`).
+
+`b1starmix(k, attr, base=, diff=TRUE)`
+: Number of $k$-stars centred on first-mode vertices whose ends all have the
+  same value of `attr`, by the value of the centre and (with `diff=TRUE`) of
+  the ends. Names: `b1starmix.2.<attr>.<centre>.<ends>`.
+
+`b1twostar(b1attr, b2attr=, ...)`
+: Number of 2-stars centred on first-mode vertices, by the value of `b1attr`
+  of the centre and the (unordered) values of `b2attr` of the two ends.
+  Names: `b1twostar.<b1attr>.<value>.<b2attr>.<value>.<value>`.
+
+`b1covrange(attr)`, `b1factordistinct(attr, levels=TRUE)`
+: Sum over first-mode vertices of the range of `attr` over their
+  neighbours, and of the number of distinct values among them. Names:
+  `b1covrange.<attr>`, `b1factordistinct.<attr>`.
 
 `b1dsp(d)`, `gwb1dsp(decay, fixed=TRUE)`
 : Pairs of first-mode vertices with exactly $d$ shared partners, and their
@@ -236,8 +451,10 @@ first mode, `b2` terms the second; each has a `b2` (or `b1`) twin.
   `gwb1dsp.fixed.<decay>`.
 
 `edges`, `edgecov` (with a first-mode by second-mode matrix, as in ergm),
-`cycle(4)`, `isolates`, `degree`, `nodematch` and the other terms that don't
-require a unipartite network also apply.
+`cycle(4)`, `isolates`, `degree`, `nodematch`, `density`, `meandeg`, `diff`
+(from the first mode to the second) and the other terms that don't require a
+unipartite network also apply. `gwb1degree` and `gwb2degree` also take an
+attribute (`attr=`, with a fixed decay), as `gwdegree` does.
 
 ## Curved terms
 
@@ -264,7 +481,8 @@ directed, `gwdegree` and `gwdegree.decay`...
 ## Multilevel terms
 
 MPNet's configurations of two-level networks ([Wang, Robins, Pattison and
-Lazega 2013](https://doi.org/10.1016/j.socnet.2013.01.004)), for undirected networks. Their first argument is the vertex
+Lazega 2013](https://doi.org/10.1016/j.socnet.2013.01.004)), for undirected networks, and below, those of directed networks
+from [MPNet's manual](https://static1.squarespace.com/static/57a1436215d5dbbcd2031828/t/5ec68365a155792a0fa03b8f/1590068122536/MPNetManual.pdf). Their first argument is the vertex
 attribute with the levels, and `levels=(A, B)` its two values (by default,
 the attribute's two values, sorted; vertices with other values are left
 out). For a vertex $v$ of level A, $a_v$ is its number of A-ties (ties to A
@@ -272,9 +490,13 @@ vertices) and $x_v$ its number of X-ties (to B vertices), and $b_v$, $x_v$
 likewise for B; $s^B_{uv}$ is the number of B vertices tied to both $u$ and
 $v$, and $g(d) = e^{\alpha}(1 - (1 - e^{-\alpha})^d)$ the geometric weight
 of the alternating terms, with `decay` $\alpha$ (MPNet's $\lambda =
-e^{\alpha}$; the default `decay=log(2)` is MPNet's $\lambda = 2$). Each
-`a` term has a `b` twin with the levels swapped. See
-[](user-guide/multilevel.md).
+e^{\alpha}$; the default `decay=log(2)` is MPNet's $\lambda = 2$). The
+decay is fixed by default, as in MPNet; with `fixed=FALSE`, it is
+estimated, as for ergm's curved terms (below), for the terms with one
+alternating part: the statistics are then the counts of the histogram the
+term weights, such as `AXS1A.<attr>#1`, `#2`... up to `cutoff`, and the
+parameters `AXS1A.<attr>` and `AXS1A.<attr>.decay`. Each `a` term has a `b`
+twin with the levels swapped. See [](user-guide/multilevel.md).
 
 `star2ax(attr)`, `star2bx(attr)`
 : $\sum_{v \in A} a_v x_v$: 2-stars of an A-tie and an X-tie. Name:
@@ -295,7 +517,8 @@ e^{\alpha}$; the default `decay=log(2)` is MPNet's $\lambda = 2$). Each
 
 `l3xax(attr)`
 : $\sum_{\text{A-ties } uv} x_u x_v$: three-paths of an X-tie, an A-tie
-  and an X-tie, closed ones (the TXAX triangles) included. Name:
+  and an X-tie, closed ones (the TXAX triangles) included, as Wang et al.
+  (2013) count them ("the TXAX configuration is also part of L3XAX"). Name:
   `L3XAX.<attr>`; twin `l3xbx`.
 
 `l3axb(attr)`
@@ -305,6 +528,46 @@ e^{\alpha}$; the default `decay=log(2)` is MPNet's $\lambda = 2$). Each
 `c4axb(attr)`
 : The 4-cycles of an A-tie, a B-tie and the two X-ties joining their ends,
   $\tfrac12 \operatorname{tr}(A X B X^\top)$. Name: `C4AXB.<attr>`.
+
+`exta(attr)`, `extb(attr)`
+: $\sum_{v \in A} t_v x_v$, with $t_v$ the number of A-triangles of $v$: an
+  A-triangle with an X-tie at one of its vertices. Names: `EXTA.<attr>`,
+  `EXTB.<attr>`.
+
+`asaxasb(attr, decay)`
+: $\sum_{\text{X-ties } uv} g(a_u)\, g(b_v)$: alternating A-stars and
+  alternating B-stars joined by an X-tie. Name: `ASAXASB.<attr>.<decay>`.
+
+### Directed two-level networks
+
+In a directed network, A-ties and B-ties are the arcs within each level,
+and X-ties the arcs from an A vertex to a B vertex: affiliations go from
+level A to level B (choose them with `levels=`), and the terms refuse a
+network with arcs from B to A. As those dyads carry no affiliation, fix them
+with `blocks('level', levels2=2)` (the second mixing type, from B to A). For
+$v$ at level S, $\text{in}_v$ and $\text{out}_v$ are its in- and out-degrees
+within S and $x_v$ its X-ties; $s_{uv}$ the vertices of the other level that
+both $u$ and $v$ are X-tied to. Each A term has a B twin.
+
+| Term | Statistic | MPNet |
+|---|---|---|
+| `in2starax`, `out2starax` | $\sum_{v \in A} \text{in}_v x_v$, $\sum \text{out}_v x_v$ | In2StarAX, Out2StarAX |
+| `axs1ain`, `axs1aout` | $\sum_{v \in A} \text{in}_v\, g(x_v)$, $\sum \text{out}_v\, g(x_v)$ | AXS1Ain, AXS1Aout |
+| `aains1x`, `aaouts1x` | $\sum_{v \in A} g(\text{in}_v)\, x_v$, $\sum g(\text{out}_v)\, x_v$ | AAinS1X, AAoutS1X |
+| `txaxarc`, `txaxreciprocity` | over A-arcs (reciprocated pairs) $uv$, $s_{uv}$ | TXAXarc, TXAXreciprocity |
+| `atxaxarc`, `atxaxreciprocity` | the same with $g(s_{uv})$ | ATXAXarc, ATXAXreciprocity |
+| `l3xax`, `l3xaxreciprocity` | over A-arcs (reciprocated pairs) $uv$, $x_u x_v$ | L3XAX, L3XAXreciprocity |
+| `l3axbin`, `l3axbout`, `l3axbpath`, `l3bxapath` | over X-ties $a \to b$, $\text{in}_a \text{in}_b$, $\text{out}_a \text{out}_b$, $\text{in}_a \text{out}_b$, $\text{out}_a \text{in}_b$ | L3AXBin, L3AXBout, L3AXBpath, L3BXApath |
+| `c4axbentrainment` | 4-cycles of an A-arc $u \to v$, a B-arc $w \to z$ and the X-ties $u \to w$, $v \to z$ | C4AXBentrainment |
+| `c4axbexchange` | the same with the X-ties $u \to z$, $v \to w$ | C4AXBexchange |
+| `c4axbexchangeareciprocity`, `c4axbexchangebreciprocity`, `c4axbreciprocity` | 4-cycles of a reciprocated A pair and a B-arc, an A-arc and a reciprocated B pair, and both reciprocated | C4AXBexchangeAreciprocity... |
+| `ainasxainbs`, `aoutasxaoutbs`, `ainasxaoutbs`, `aoutasxainbs` | over X-ties $a \to b$, $g(\text{in}_a)\, g(\text{in}_b)$ and the other combinations | AinASXAinBS... |
+
+The names are MPNet's labels with the attribute (and decay): `TXAXarc.<attr>`,
+`ATXAXarc.<attr>.<decay>`. The manual's drawings of
+C4AXBexchangeBreciprocity repeat those of C4AXBreciprocity; ergmx counts
+what the labels describe, an A-arc with a reciprocated pair of B-arcs.
+MPNet's AC4AXB (alternating four-cycles) is not available.
 
 ## Operators
 
@@ -348,7 +611,15 @@ $\sum_k X_{kc}\, g(y_k)$, named `<operator>(<column>)~<name>`, such as
 network's instead, named `N#<k>~<name>`, as in ergm.multi and tergm. See
 [](user-guide/multiple-networks.md) and [](user-guide/temporal.md).
 
-`N(formula, lm=~1)`
+All of them take ergm.multi's `subset` (the networks to use: an expression
+of their attributes, logical values or indices), `offset` (an amount added
+to every coefficient in each network, an expression or numbers; also
+`offset()` terms in `lm`), which adds the statistics `offset1`,
+`offset2`... with coefficients fixed at 1, and `label` (a name for the
+operator, `N(<label>,<column>)~<name>`, or a function of the statistic's name
+and the column).
+
+`N(formula, lm=~1, subset=, offset=, label=)`
 : ergm.multi's operator: `formula` on each network.
 
 `Form(formula, lm=~1)`
@@ -367,6 +638,31 @@ network's instead, named `N#<k>~<name>`, as in ergm.multi and tergm. See
 
 `Change(formula, lm=~1)`
 : tergm's change: `formula` on the network of the dyads that changed.
+
+## Statistics of tie ages
+
+tergm's durational statistics describe a network together with the ages of
+its ties (1 in the time step a tie formed): they are targets of the EGMME
+(`tergm(estimate="EGMME", targets=...)`) and monitors of dynamic simulations
+(`simulate_dynamic(monitor=...)`), not terms of a model to fit. See
+[](user-guide/temporal.md).
+
+`edge.ages`
+: Sum over ties of their ages.
+
+`mean.age(emptyval=0, log=FALSE)`
+: Mean age of the ties (of their logarithms, `mean.log.age`, with
+  `log=TRUE`); `emptyval` without ties.
+
+`edges.ageinterval(from, to=Inf)`
+: Number of ties with age in [`from`, `to`), for one or more intervals.
+
+`edgecov.ages(x)`
+: Sum over ties of a dyadic covariate times their age.
+
+`nodefactor.mean.age(attr, levels=, emptyval=0, log=FALSE)`
+: For each level of `attr`, the mean age of the ties of its vertices (a tie
+  between two of them counts twice).
 
 ## Proposals
 

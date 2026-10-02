@@ -16,7 +16,7 @@
 //! or removes the partner i or j of some pairs; `for_each_affected` lists
 //! them, and each pair's count without the toggled tie is its *base*.
 
-use crate::network::{Network, count_common, for_each_common};
+use crate::network::{Network, Partners, count_common, for_each_common};
 use crate::terms::Term;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -41,6 +41,17 @@ impl SpType {
             _ => return Err(format!("unknown shared partner type {code}")),
         })
     }
+
+    /// The kind of shared partner counts a network can keep for this type.
+    pub fn kept(self) -> Option<Partners> {
+        match self {
+            SpType::Undirected => Some(Partners::Undirected),
+            SpType::Otp | SpType::Itp => Some(Partners::TwoPaths),
+            SpType::Osp => Some(Partners::OutShared),
+            SpType::Isp => Some(Partners::InShared),
+            SpType::Rtp => None,
+        }
+    }
 }
 
 /// Which pairs a term counts.
@@ -54,8 +65,16 @@ pub enum Scope {
     NonEdgewise,
 }
 
-/// Shared partners of the ordered pair (a, b).
+/// Shared partners of the ordered pair (a, b): kept by the network, or counted.
+#[inline]
 fn count(net: &Network, t: SpType, a: u32, b: u32) -> u32 {
+    let kept = match t {
+        SpType::Itp => net.kept_partners(Partners::TwoPaths, b, a),
+        _ => t.kept().and_then(|kind| net.kept_partners(kind, a, b)),
+    };
+    if let Some(c) = kept {
+        return c;
+    }
     let (out, inn) = (|v| net.out_neighbours(v), |v| net.in_neighbours(v));
     match t {
         SpType::Undirected => count_common(net.neighbours(a), net.neighbours(b)),
@@ -201,9 +220,26 @@ impl Bins {
 }
 
 pub enum Weight {
-    /// exp(decay) * sum of 1 - r^count, with r = 1 - exp(-decay).
-    Geometric { r: f64, exp_decay: f64 },
+    /// exp(decay) * sum of 1 - r^count, with r = 1 - exp(-decay), and the
+    /// powers r^k for counts up to the network size.
+    Geometric { r: f64, exp_decay: f64, powers: Vec<f64> },
     Histogram(Bins),
+}
+
+impl Weight {
+    pub fn geometric(decay: f64, r: f64, n: usize) -> Self {
+        let powers = (0..=n).scan(1.0, |p, _| {
+            let now = *p;
+            *p *= r;
+            Some(now)
+        });
+        Weight::Geometric { r, exp_decay: decay.exp(), powers: powers.collect() }
+    }
+}
+
+#[inline]
+fn power(powers: &[f64], r: f64, k: u32) -> f64 {
+    powers.get(k as usize).copied().unwrap_or_else(|| r.powi(k as i32))
 }
 
 pub struct SharedPartners {
@@ -221,14 +257,14 @@ impl SharedPartners {
         let t = self.kind;
         let counted = |a: u32| self.mode.as_ref().is_none_or(|m| m[a as usize]);
         match &self.weight {
-            Weight::Geometric { r, exp_decay } => {
+            Weight::Geometric { r, exp_decay, powers } => {
                 let mut total = 0.0;
                 if scope == Scope::Edgewise {
-                    total += exp_decay * (1.0 - r.powi(count(net, t, i, j) as i32));
+                    total += exp_decay * (1.0 - power(powers, *r, count(net, t, i, j)));
                 }
                 for_each_affected(net, t, i, j, scope == Scope::Edgewise, |a, b| {
                     if counted(a) {
-                        total += r.powi((count(net, t, a, b) - own) as i32);
+                        total += power(powers, *r, count(net, t, a, b) - own);
                     }
                 });
                 out[0] += sign * total;
@@ -250,6 +286,10 @@ impl SharedPartners {
 }
 
 impl Term for SharedPartners {
+    fn partners(&self) -> Option<Partners> {
+        self.kind.kept()
+    }
+
     fn n_stats(&self) -> usize {
         match &self.weight {
             Weight::Geometric { .. } => 1,

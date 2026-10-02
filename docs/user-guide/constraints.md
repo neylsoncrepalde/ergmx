@@ -21,8 +21,22 @@ ergmx.ergm(network, formula, constraints="bd(maxout=4) + blocks('level', levels2
 |---|---|
 | `bd(maxout=, maxin=, minout=, minin=)` | Degrees within bounds (one value, or one per vertex). Undirected networks use `minout` and `maxout` for degrees. |
 | `blocks(attr, levels=, levels2=)` | The dyads of some mixing types of `attr` are fixed at their observed values: those `nodemix(attr, levels, levels2)` would count. `levels2` selects them as for [nodemix](../terms.md#attribute-terms); by default none. |
+| `bd(attribs=, maxout=, ...)` | Bounds by the alters' classes: `attribs` (a graph attribute, or a vertices x classes logical matrix) marks each vertex's classes, and the bounds (same shape) limit each vertex's ties to alters of each class. |
+| `blockdiag(attr)` | Ties only between vertices with the same value of `attr`: the dyads between blocks are fixed at no tie. |
+| `Dyads(fix=~terms, vary=~terms)` | With `fix`, the dyads that the dyad-independent terms count are fixed; with `vary`, only those may vary; with both, the dyads either lets vary. |
+| `fixedas(fixed.dyads=, present=, absent=)` | These dyads are fixed (`present` checked to be ties, `absent` non-ties). |
+| `fixallbut(free.dyads)` | Every dyad but these is fixed. |
+| `observed` | The observed dyads are fixed: only the missing ones vary, to simulate them. |
 | `degrees` | Every vertex keeps its degree (its in- and out-degrees, if directed). |
 | `odegrees`, `idegrees` | Every vertex keeps its out-degree, or its in-degree (directed networks). |
+| `b1degrees`, `b2degrees` | The vertices of the first (second) mode of a bipartite network keep their degrees. |
+| `edges` | The number of edges is kept. |
+
+Dyads are given as an edge list of R's vertex numbers, from 1
+(`matrix(c(1, 9, 2, 6), ncol=2, byrow=TRUE)`, or a list of pairs), a
+logical $n \times n$ matrix, a graph, or the name of a graph attribute
+holding one. R's argument names with dots (`fixed.dyads`) work in strings;
+in Python they have underscores.
 
 ## Bounded degrees: fixed-choice designs
 
@@ -80,12 +94,13 @@ warns, fixes their coefficients at 0 and reports them as constant.
 The MCMC uses moves that keep the degrees: it swaps the endpoints of two
 ties and, in directed networks, also reverses cyclic triples ($i \to j \to k
 \to i$), without which some networks with the same degrees can't reach each
-other.
+other. Under `b1degrees` (`b2degrees`) it moves the other end of a tie to
+another vertex of that mode, and under `edges` it swaps a tie for a non-tie.
 
 ## What changes with dyad-dependent constraints
 
-`bd` and the degree constraints are *dyad-dependent*: whether a dyad may
-change depends on the others. Then:
+`bd`, `edges` and the degree constraints are *dyad-dependent*: whether a
+dyad may change depends on the others. Then:
 
 - the MPLE ignores the constraint, so `estimate="MPLE"` is not available, and
   the Monte Carlo MLE starts from the contrastive divergence estimate, which

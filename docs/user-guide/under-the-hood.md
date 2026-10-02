@@ -137,8 +137,8 @@ Python, where it is easier to read and change:
 |---|---|
 | Formulas and terms: names, arguments, attributes | The network, as sorted neighbor lists |
 | The estimation: MPLE, contrastive divergence, Monte Carlo MLE | Change statistics of every term |
-| Log-likelihoods, standard errors, diagnostics | The MCMC sampler and its proposals |
-| Summaries, goodness of fit, plots | Parallel chains |
+| Log-likelihoods, standard errors, diagnostics | The MCMC sampler, its proposals and sample spaces |
+| Summaries, goodness of fit, plots | Parallel chains, the MPLE's data, goodness-of-fit distributions |
 
 They meet in a few large calls: once per iteration, Python asks the Rust core
 to run its chains (millions of steps) and gets back an array of the sampled
@@ -147,8 +147,17 @@ nothing once per iteration, and would be too much once per step.
 
 Speed also comes from the algorithms, which the language only makes cheap:
 change statistics update only what a toggle changes, sorted neighbor lists
-make shared partners a merge of two short lists, and triadic proposals help
-the chains explore clustered networks. The proposal matters as much as the
+make shared partners a merge of two short lists (and, in denser networks, a
+cache of every pair's count, as ergm keeps, a lookup), and triadic proposals
+help the chains explore clustered networks.
+
+Memory grows with the ties, not with the pairs of vertices: nothing has a
+row or a cell per dyad. The MPLE's data are the distinct rows of change
+statistics with their counts, built in parallel threads (3 kB rather than
+2 GB for a network of 10,000 vertices); the sample space of many networks
+combined, or of a bipartite network, is described by its groups of vertices
+and lists of fixed dyads; and goodness of fit's distances and shared
+partners come from breadth-first searches and counters. The proposal matters as much as the
 language: with plain tie/no-tie proposals, R's ergm takes 128 s on
 faux.magnolia.high, against 14 s with its triadic default (both without the
 log-likelihood).

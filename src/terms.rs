@@ -5,7 +5,9 @@
 //! `sign` is +1 if the tie is being added and -1 if it is being removed.
 //! Definitions follow the R package ergm.
 
-use crate::network::{Network, count_common};
+use rustc_hash::FxHashMap;
+
+use crate::network::{Network, Partners, count_common};
 use crate::partners::{Bins, Scope, SharedPartners, SpType, Weight};
 use crate::space::Space;
 
@@ -18,11 +20,16 @@ pub trait Term: Send + Sync {
 
     /// Adds to `out` the statistics of the empty network (0 for most terms).
     fn empty(&self, _n: u32, _directed: bool, _out: &mut [f64]) {}
+
+    /// The shared partner counts the term reads, which networks can keep.
+    fn partners(&self) -> Option<Partners> {
+        None
+    }
 }
 
 /// Which endpoints of a tie a vertex-level term looks at.
 #[derive(Clone, Copy)]
-enum Ends {
+pub(crate) enum Ends {
     /// Both endpoints (undirected networks, or both sides of a directed tie).
     Both,
     /// The sender i of i -> j, with out-degrees.
@@ -33,7 +40,7 @@ enum Ends {
 
 impl Ends {
     /// The endpoints of the tie, with their current degrees on this side.
-    fn degrees(self, net: &Network, i: u32, j: u32) -> ([(u32, usize); 2], usize) {
+    pub(crate) fn degrees(self, net: &Network, i: u32, j: u32) -> ([(u32, usize); 2], usize) {
         match self {
             Ends::Both => ([(i, net.neighbours(i).len()), (j, net.neighbours(j).len())], 2),
             Ends::Tail => ([(i, net.out_neighbours(i).len()), (0, 0)], 1),
@@ -41,7 +48,7 @@ impl Ends {
         }
     }
 
-    fn vertices(self, i: u32, j: u32) -> ([u32; 2], usize) {
+    pub(crate) fn vertices(self, i: u32, j: u32) -> ([u32; 2], usize) {
         match self {
             Ends::Both => ([i, j], 2),
             Ends::Tail => ([i, 0], 1),
@@ -52,11 +59,11 @@ impl Ends {
 
 /// Degree of a vertex before the tie existed: its current degree if the tie
 /// is being added, one less if it is being removed.
-fn degree_without(degree: usize, sign: f64) -> f64 {
+pub(crate) fn degree_without(degree: usize, sign: f64) -> f64 {
     if sign > 0.0 { degree as f64 } else { degree as f64 - 1.0 }
 }
 
-fn binomial(n: f64, k: u32) -> f64 {
+pub(crate) fn binomial(n: f64, k: u32) -> f64 {
     (0..k).fold(1.0, |acc, t| acc * (n - t as f64) / (t as f64 + 1.0))
 }
 
@@ -85,7 +92,7 @@ impl Term for Mutual {
 
 /// Whether a vertex is counted: every vertex, or those of one mode of a
 /// bipartite network.
-fn counted(mask: &Option<Vec<bool>>, v: u32) -> bool {
+pub(crate) fn counted(mask: &Option<Vec<bool>>, v: u32) -> bool {
     mask.as_ref().is_none_or(|m| m[v as usize])
 }
 
@@ -423,7 +430,7 @@ impl Term for NodeMatch {
 
     fn change(&self, _: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
         let (a, b) = (self.codes[i as usize], self.codes[j as usize]);
-        if a == b {
+        if a == b && a >= 0 {
             out[if self.diff { a as usize } else { 0 }] += sign;
         }
     }
@@ -818,7 +825,7 @@ fn build_term(n: usize, directed: bool, spec: &TermSpec) -> Result<Box<dyn Term>
             (Weight::Histogram(bins), mask(&part(&p, 3)?)?)
         } else {
             let d = decay()?;
-            (Weight::Geometric { r: r(d), exp_decay: d.exp() }, mask(&part(&p, 1)?)?)
+            (Weight::geometric(d, r(d), n), mask(&part(&p, 1)?)?)
         };
         Ok(Box::new(SharedPartners { kind, scope, weight, mode }))
     };
@@ -981,7 +988,14 @@ fn build_term(n: usize, directed: bool, spec: &TermSpec) -> Result<Box<dyn Term>
             Box::new(Multilevel { kind, level: ints.iter().map(|&l| l as i8).collect(), side, r: r(d), exp_decay: d.exp() })
         }
         "F" => return Err("F() can't be nested in F()".into()),
-        other => return Err(format!("unknown term: {other}")),
+        other => {
+            let child = |s: &TermSpec| build_term(n, directed, s);
+            if let Some(term) = crate::vocab::build(n, directed, spec, &child) {
+                return term;
+            }
+            return crate::multilevel::build(n, directed, other, reals, ints)
+                .unwrap_or_else(|| Err(format!("unknown term: {other}")));
+        }
     })
 }
 
@@ -1137,8 +1151,10 @@ enum Entry {
     /// Terms of ergm's S(formula, attrs), evaluated on the subgraph induced by
     /// some vertices, or on the bipartite subgraph between two disjoint sets
     /// of vertices: `local` numbers the subgraph's vertices (u32::MAX for the
-    /// others) and, if bipartite, `head` marks those of the second set.
-    Subgraph { slot: usize, local: Vec<u32>, head: Option<Vec<bool>>, model: Box<Model> },
+    /// others) and, if bipartite, `head` marks those of the second set. In a
+    /// directed network (`oriented`), the bipartite subgraph has the arcs from
+    /// the first set to the second, as an undirected network (`sub_directed` false).
+    Subgraph { slot: usize, local: Vec<u32>, head: Option<Vec<bool>>, oriented: bool, sub_directed: bool, model: Box<Model> },
 }
 
 impl Entry {
@@ -1167,13 +1183,14 @@ fn place(inner: &[f64], block: &SubBlock, compact: bool, q: usize, scale: f64, o
 impl Entry {
     /// For S(): the dyad (i, j) in the subgraph's numbering, if it is in it.
     #[inline]
-    fn subgraph_dyad(local: &[u32], head: &Option<Vec<bool>>, i: u32, j: u32) -> Option<(u32, u32)> {
+    fn subgraph_dyad(local: &[u32], head: &Option<Vec<bool>>, oriented: bool, i: u32, j: u32) -> Option<(u32, u32)> {
         let (a, b) = (local[i as usize], local[j as usize]);
         if a == u32::MAX || b == u32::MAX {
             return None;
         }
         match head {
             Some(h) if h[i as usize] == h[j as usize] => None,
+            Some(h) if oriented && h[i as usize] => None, // an arc from the second set to the first
             _ => Some((a, b)),
         }
     }
@@ -1259,9 +1276,6 @@ impl Model {
                     }
                     local[v as usize] = position as u32;
                 }
-                if bipartite && directed {
-                    return Err("S(): bipartite subgraphs of directed networks are not supported".into());
-                }
                 let head = bipartite.then(|| {
                     let mut h = vec![false; n_usize];
                     vertices[k..].iter().for_each(|&v| h[v as usize] = true);
@@ -1271,8 +1285,10 @@ impl Model {
                 if size < 2 {
                     return Err("S(): the subgraph needs at least 2 vertices".into());
                 }
-                let model = Box::new(Model::new(size, directed, &spec.3, None, Vec::new())?);
-                entries.push(Entry::Subgraph { slot: n_slots, local, head, model });
+                let sub_directed = directed && !bipartite;
+                let model = Box::new(Model::new(size, sub_directed, &spec.3, None, Vec::new())?);
+                let oriented = directed && bipartite;
+                entries.push(Entry::Subgraph { slot: n_slots, local, head, oriented, sub_directed, model });
                 n_slots += 1;
             } else if spec.0 == "blocks" {
                 // ints: [view, negate, compact, q]; children: one "block" per block,
@@ -1356,13 +1372,36 @@ impl Model {
         self.state_with(net, self.prev.clone())
     }
 
+    /// The shared partner counts the terms read, on the network and (for
+    /// the terms inside F()) on the filtered networks.
+    fn partner_kinds(&self) -> (Vec<Partners>, Vec<Partners>) {
+        let (mut own, mut filtered) = (Vec::new(), Vec::new());
+        for entry in &self.entries {
+            match entry {
+                Entry::Plain(term) => own.extend(term.partners()),
+                Entry::Filtered { terms, .. } => filtered.extend(terms.iter().filter_map(|t| t.partners())),
+                _ => {}
+            }
+        }
+        own.dedup();
+        filtered.dedup();
+        (own, filtered)
+    }
+
     /// The state of a network whose blocks have the previous networks `prev`.
-    pub fn state_with(&self, net: Network, prev: Vec<Network>) -> State {
+    pub fn state_with(&self, mut net: Network, prev: Vec<Network>) -> State {
+        let (own, filtered_kinds) = self.partner_kinds();
+        for &kind in &own {
+            net.keep_partners(kind);
+        }
         let aux = self
             .filters
             .iter()
             .map(|filter| {
                 let mut filtered = Network::new(net.n(), net.directed());
+                for &kind in &filtered_kinds {
+                    filtered.keep_partners(kind);
+                }
                 for &(i, j) in net.edges() {
                     if filter.passes(&net, i, j) {
                         filtered.toggle(i, j);
@@ -1385,10 +1424,10 @@ impl Model {
                         .collect();
                     subs.push(states);
                 }
-                Entry::Subgraph { local, head, model, .. } => {
-                    let mut sub = Network::new(model.n_vertices, net.directed());
+                Entry::Subgraph { local, head, oriented, sub_directed, model, .. } => {
+                    let mut sub = Network::new(model.n_vertices, *sub_directed);
                     for &(i, j) in net.edges() {
-                        if let Some((a, b)) = Entry::subgraph_dyad(local, head, i, j) {
+                        if let Some((a, b)) = Entry::subgraph_dyad(local, head, *oriented, i, j) {
                             sub.toggle(a, b);
                         }
                     }
@@ -1418,8 +1457,8 @@ impl Model {
                             blocks[k].model.toggle(&mut state.subs[*slot][k], a, b);
                         }
                     }
-                    Entry::Subgraph { slot, local, head, model } => {
-                        if let Some((a, b)) = Entry::subgraph_dyad(local, head, i, j) {
+                    Entry::Subgraph { slot, local, head, oriented, model, .. } => {
+                        if let Some((a, b)) = Entry::subgraph_dyad(local, head, *oriented, i, j) {
                             model.toggle(&mut state.subs[*slot][0], a, b);
                         }
                     }
@@ -1449,8 +1488,8 @@ impl Model {
                         }
                     }
                 }
-                Entry::Subgraph { slot, local, head, model } => {
-                    if let Some((a, b)) = Entry::subgraph_dyad(local, head, i, j) {
+                Entry::Subgraph { slot, local, head, oriented, model, .. } => {
+                    if let Some((a, b)) = Entry::subgraph_dyad(local, head, *oriented, i, j) {
                         model.change(&state.subs[*slot][0], a, b, out);
                     }
                 }
@@ -1527,28 +1566,101 @@ impl Model {
         stats
     }
 
-    /// Change statistics for adding each free dyad given the rest of `net`,
-    /// and whether the dyad is a tie: the data of the MPLE logistic regression.
-    pub fn mple_data(&self, net: Network, space: &Space) -> (Vec<f64>, Vec<f64>) {
+    /// The MPLE data compressed, as ergm compresses it: each distinct row of
+    /// change statistics (for adding the dyad's tie) with the number of free
+    /// dyads that have it, by whether they are ties. Returns the rows (row
+    /// major), their response (0 or 1) and counts, sorted. The rows of
+    /// vertices are computed in parallel, and the dyad x statistics matrix
+    /// never exists.
+    pub fn mple_table(&self, net: Network, space: &Space) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
+        use rayon::prelude::*;
         let n = net.n();
-        let directed = net.directed();
+        let p = self.n_stats;
+        let state = self.state(net);
+        // Distinct rows, as the bit patterns of the statistics (with -0 as 0),
+        // with the number of non-ties and ties.
+        type Table = FxHashMap<Vec<u64>, [u64; 2]>;
+        let add = |table: &mut Table, delta: &mut Vec<f64>, key: &mut Vec<u64>, i: u32, j: u32| {
+            self.change(&state, i, j, delta);
+            let tie = state.net.has_edge(i, j);
+            for (k, &d) in key.iter_mut().zip(delta.iter()) {
+                let d = if tie { -d } else { d };
+                *k = if d == 0.0 { 0 } else { d.to_bits() };
+            }
+            match table.get_mut(key) {
+                Some(counts) => counts[tie as usize] += 1,
+                None => {
+                    let mut counts = [0; 2];
+                    counts[tie as usize] = 1;
+                    table.insert(key.clone(), counts);
+                }
+            }
+        };
+        let start = || (Table::default(), vec![0.0; p], vec![0u64; p]);
+        let tables: Vec<Table> = match space.list() {
+            Some(list) => list
+                .par_chunks(4096)
+                .fold(start, |(mut table, mut delta, mut key), chunk| {
+                    chunk.iter().for_each(|&(i, j)| add(&mut table, &mut delta, &mut key, i, j));
+                    (table, delta, key)
+                })
+                .map(|(table, _, _)| table)
+                .collect(),
+            None => (0..n)
+                .into_par_iter()
+                .fold(start, |(mut table, mut delta, mut key), i| {
+                    space.for_each_free_of(i, |j| add(&mut table, &mut delta, &mut key, i, j));
+                    (table, delta, key)
+                })
+                .map(|(table, _, _)| table)
+                .collect(),
+        };
+        let merged = tables
+            .into_iter()
+            .reduce(|mut a, b| {
+                for (key, counts) in b {
+                    let entry = a.entry(key).or_insert([0; 2]);
+                    entry[0] += counts[0];
+                    entry[1] += counts[1];
+                }
+                a
+            })
+            .unwrap_or_default();
+        let mut rows: Vec<(Vec<u64>, [u64; 2])> = merged.into_iter().collect();
+        rows.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        let (mut x, mut y, mut w) = (Vec::new(), Vec::new(), Vec::new());
+        for (key, counts) in rows {
+            for (response, &count) in counts.iter().enumerate() {
+                if count > 0 {
+                    x.extend(key.iter().map(|&bits| f64::from_bits(bits)));
+                    y.push(response as f64);
+                    w.push(count as f64);
+                }
+            }
+        }
+        (x, y, w)
+    }
+
+    /// Change statistics for adding each free dyad given the rest of `net`,
+    /// whether the dyad is a tie, and the dyads (i < j if undirected), in
+    /// the order of the space's free dyads.
+    pub fn mple_data(&self, net: Network, space: &Space) -> (Vec<f64>, Vec<f64>, Vec<(u32, u32)>) {
         let state = self.state(net);
         let dyads = space.n_free() as usize;
         let mut x = Vec::with_capacity(dyads * self.n_stats);
         let mut y = Vec::with_capacity(dyads);
+        let mut pairs = Vec::with_capacity(dyads);
         let mut delta = vec![0.0; self.n_stats];
-        for i in 0..n {
-            let first = if directed { 0 } else { i + 1 };
-            for j in (first..n).filter(|&j| j != i && space.is_free(i, j)) {
-                self.change(&state, i, j, &mut delta);
-                let tie = state.net.has_edge(i, j);
-                if tie {
-                    delta.iter_mut().for_each(|d| *d = -*d);
-                }
-                x.extend_from_slice(&delta);
-                y.push(tie as u8 as f64);
+        space.for_each_free(|i, j| {
+            self.change(&state, i, j, &mut delta);
+            let tie = state.net.has_edge(i, j);
+            if tie {
+                delta.iter_mut().for_each(|d| *d = -*d);
             }
-        }
-        (x, y)
+            x.extend_from_slice(&delta);
+            y.push(tie as u8 as f64);
+            pairs.push((i, j));
+        });
+        (x, y, pairs)
     }
 }

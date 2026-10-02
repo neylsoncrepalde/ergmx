@@ -5,8 +5,9 @@ contrasts for factors, logical and character attributes).
 
 Supported: the intercept (``~1``, removed with ``0 +`` or ``- 1``),
 attributes, arithmetic (``+ - * / ^ %% %/%``), comparisons, ``& | !``,
-``I()``, ``log``, ``exp``, ``sqrt``, ``abs``, ``factor``, ``as.numeric`` and
-``as.logical``. Interactions (``a:b``, ``a*b`` outside ``I()``) are not.
+``I()``, ``log``, ``exp``, ``sqrt``, ``abs``, ``factor``, ``as.numeric``,
+``as.logical`` and ``offset()``; and, in expressions, ``c()`` and ranges
+(``1:3``). Interactions (``a:b``, ``a*b`` outside ``I()``) are not.
 """
 
 from __future__ import annotations
@@ -168,6 +169,9 @@ def _evaluate(node, data: dict[str, np.ndarray]):
         name, args = node[1], node[2]
         if name in ("I", "factor") and len(args) == 1:
             return _evaluate(args[0], data)
+        if name == "c":
+            return np.concatenate([np.atleast_1d(_evaluate(a, data)) for a in args]) if args \
+                else np.zeros(0)
         if name in _FUNCTIONS and len(args) == 1:
             return _FUNCTIONS[name](_evaluate(args[0], data))
         raise LmError(f"unsupported function in a linear model: {deparse(node)}")
@@ -182,7 +186,10 @@ def _evaluate(node, data: dict[str, np.ndarray]):
             return np.logical_or(a, b)
         a, b = np.asarray(a), np.asarray(b)
         if op == ":":
-            raise LmError(f"unsupported in a linear model: {deparse(node)}")
+            if a.ndim or b.ndim:
+                raise LmError(f"unsupported in a linear model: {deparse(node)}")
+            step = 1 if b >= a else -1
+            return np.arange(float(a), float(b) + step / 2, step)
         return {"+": np.add, "-": np.subtract, "*": np.multiply, "/": np.true_divide,
                 "^": np.power, "%%": np.mod, "%/%": np.floor_divide, "==": np.equal,
                 "!=": np.not_equal, "<": np.less, ">": np.greater, "<=": np.less_equal,
@@ -293,15 +300,77 @@ def design(lm, attributes: list[dict]) -> tuple[np.ndarray, list[str]]:
     """The design matrix (networks x columns) of a one-sided lm formula over
     the networks' attributes, and its column names as N() names them ("1"
     for the intercept)."""
+    x, labels, offset = model_frame(lm, attributes)
+    if offset is not None:
+        raise LmError("offset() is only supported in the linear models of N()")
+    return x, labels
+
+
+def _data(attributes: list[dict]) -> dict[str, np.ndarray]:
+    names = sorted({k for a in attributes for k in a})
+    return _arrays({k: [a.get(k) for a in attributes] for k in names})
+
+
+def evaluate(expression, attributes: list[dict]) -> np.ndarray:
+    """An R expression (``~`` optional) of the networks' attributes, one
+    value per network (recycled, if shorter)."""
+    text = str(expression).strip()
+    text = text[1:] if text.startswith("~") else text
+    value = np.asarray(_evaluate(_Parser(text).parse(), _data(attributes)))
+    if value.ndim == 0:
+        return np.full(len(attributes), value.item())
+    if not value.size or len(attributes) % value.size:
+        raise LmError(f"{expression!r} has {value.size} values for {len(attributes)} networks")
+    return np.resize(value, len(attributes))
+
+
+def network_subset(subset, attributes: list[dict]) -> np.ndarray:
+    """The networks N()'s ``subset`` keeps, as a mask: an R expression of their
+    attributes (``~n >= 4``), logical values (recycled) or 1-based indices
+    (negative ones exclude)."""
+    n = len(attributes)
+    if isinstance(subset, str):
+        text = subset.strip().lstrip("~")
+        value = np.asarray(_evaluate(_Parser(text).parse(), _data(attributes)))
+    else:
+        value = np.asarray(subset)
+    if value.dtype == bool or value.dtype == np.bool_:
+        return np.resize(value, n) if value.size else np.zeros(n, dtype=bool)  # recycled, as R
+    if value.dtype.kind in "if":
+        idx = value.astype(int).ravel()
+        if np.all(idx < 0):
+            mask = np.ones(n, dtype=bool)
+            mask[-idx - 1] = False
+            return mask
+        if np.all(idx > 0):
+            if idx.max() > n:
+                raise LmError(f"subset: network {idx.max()} is beyond the {n} networks")
+            mask = np.zeros(n, dtype=bool)
+            mask[idx - 1] = True
+            return mask
+        raise LmError("subset: network indices must be all positive or all negative")
+    raise LmError(f"subset {subset!r} is neither logical nor network indices")
+
+
+def model_frame(lm, attributes: list[dict]) -> tuple[np.ndarray, list[str], np.ndarray | None]:
+    """The design matrix and column names of a linear model, and the sum of
+    its offset() terms (None without any)."""
     text = "~1" if lm is None else str(lm).strip()
     text = text[1:] if text.startswith("~") else text
     if not text.strip():
         raise LmError("the linear model is empty")
-    names = sorted({k for a in attributes for k in a})
-    data = _arrays({k: [a.get(k) for a in attributes] for k in names})
-    intercept, terms = True, []
+    data = _data(attributes)
+    intercept, terms, offset = True, [], None
     for sign, node in _terms(_Parser(text).parse()):
-        if node[0] == "num" and node[1] in (0, 1):
+        if node[0] == "call" and node[1] == "offset":
+            if sign < 0 or len(node[2]) != 1:
+                raise LmError(f"bad offset term: {deparse(node)}")
+            value = np.broadcast_to(np.asarray(_evaluate(node[2][0], data), dtype=float),
+                                    (len(attributes),))
+            if not np.all(np.isfinite(value)):
+                raise LmError(f"{deparse(node)} is not finite for some networks")
+            offset = value if offset is None else offset + value
+        elif node[0] == "num" and node[1] in (0, 1):
             intercept = (node[1] == 1) == (sign > 0)
         elif node[0] == "binary" and node[1] in ("*", ":"):
             raise LmError(f"interactions are not supported in linear models: {deparse(node)}")
@@ -332,4 +401,4 @@ def design(lm, attributes: list[dict]) -> tuple[np.ndarray, list[str]]:
             labels.append(deparse(node))
     if not columns:
         raise LmError("the linear model has no columns")
-    return np.column_stack(columns), labels
+    return np.column_stack(columns), labels, offset

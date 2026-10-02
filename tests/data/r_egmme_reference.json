@@ -1,0 +1,93 @@
+{
+  "tergm_version": "4.2.2",
+  "models": {
+    "edges_duration": {
+      "n": 30,
+      "formula": "Form(~edges) + Persist(~edges)",
+      "targets": "edges + mean.age",
+      "target_stats": [15, 10],
+      "fits": [
+        {
+          "coef": {
+            "Form~edges": -5.64758369936035,
+            "Persist~edges": 2.21127690377383
+          },
+          "se": {
+            "Form~edges": 0.255704763484441,
+            "Persist~edges": 0.265344040791765
+          },
+          "seconds": 10.574
+        },
+        {
+          "coef": {
+            "Form~edges": -5.63606091224126,
+            "Persist~edges": 2.19200437854943
+          },
+          "se": {
+            "Form~edges": 0.428069358955479,
+            "Persist~edges": 0.406629769971967
+          },
+          "seconds": 10.025
+        },
+        {
+          "coef": {
+            "Form~edges": -5.63309272917209,
+            "Persist~edges": 2.17517341736194
+          },
+          "se": {
+            "Form~edges": 0.26131436136979,
+            "Persist~edges": 0.342940366976724
+          },
+          "seconds": 9.088
+        }
+      ]
+    },
+    "degree_duration": {
+      "n": 30,
+      "formula": "Form(~edges + degree(1)) + Diss(~edges)",
+      "targets": "edges + degree(1) + mean.age",
+      "target_stats": [15, 18, 20],
+      "fits": [
+        {
+          "coef": {
+            "Form~edges": -6.27009923657711,
+            "Form~degree1": 1.0018563026159,
+            "Diss~edges": -2.94284430831633
+          },
+          "se": {
+            "Form~edges": 0.667779249270794,
+            "Form~degree1": 0.490842822884257,
+            "Diss~edges": 0.543953204624922
+          },
+          "seconds": 16.639
+        },
+        {
+          "coef": {
+            "Form~edges": -6.28683582210513,
+            "Form~degree1": 1.00849546677048,
+            "Diss~edges": -2.96154606055084
+          },
+          "se": {
+            "Form~edges": 0.280458855955929,
+            "Form~degree1": 0.218708265450116,
+            "Diss~edges": 0.187953707616321
+          },
+          "seconds": 21.812
+        },
+        {
+          "coef": {
+            "Form~edges": -6.25913390800393,
+            "Form~degree1": 0.980927197818773,
+            "Diss~edges": -2.94442482465709
+          },
+          "se": {
+            "Form~edges": 0.353589446139622,
+            "Form~degree1": 0.425630011212566,
+            "Diss~edges": 0.312608156665178
+          },
+          "seconds": 17.649
+        }
+      ]
+    }
+  }
+}

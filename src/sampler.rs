@@ -27,7 +27,12 @@
 //!   (a -> b -> c -> a becomes a -> c -> b -> a), without which some networks
 //!   with the same in- and out-degrees can't reach each other (Rao, Jana and
 //!   Bandyopadhyay 1996);
-//! * `odegrees` (`idegrees`): move the head (tail) of a tie to another vertex.
+//! * `odegrees` (`idegrees`): move the head (tail) of a tie to another vertex;
+//! * `b1degrees` (`b2degrees`): move the end of a tie in the other mode to
+//!   another vertex of that mode;
+//!
+//! and `edges`, which preserves the number of edges, swaps a random tie for a
+//! random non-tie.
 //!
 //! Dynamic simulation (tergm's, of a model conditional on the previous
 //! network) runs one chain per time step, from the previous network, until the
@@ -204,7 +209,10 @@ impl Proposal<'_> {
             Preserve::Nothing => self.toggle(net, ties, discord, rng),
             Preserve::Degrees if net.directed() && rng.unif() < CYCLE_PROB => self.reverse_cycle(net, ties, rng),
             Preserve::Degrees => self.swap(net, ties, rng),
-            Preserve::OutDegrees | Preserve::InDegrees => self.move_end(net, ties, rng),
+            Preserve::OutDegrees | Preserve::InDegrees | Preserve::FirstModeDegrees | Preserve::SecondModeDegrees => {
+                self.move_end(net, ties, rng)
+            }
+            Preserve::Edges => self.swap_tie(net, ties, rng),
         }
     }
 
@@ -316,16 +324,40 @@ impl Proposal<'_> {
         }
         let (a, b) = ties.random(net, rng);
         let n = net.n() as u64;
-        let keep = if self.space.preserve == Preserve::OutDegrees { a } else { b };
+        let keep = match self.space.preserve {
+            Preserve::OutDegrees => a,
+            Preserve::InDegrees => b,
+            // The end in the mode whose degrees are kept; within-mode dyads aren't free.
+            mode => {
+                let first = self.space.first_mode.as_ref().expect("mode degrees need the modes");
+                if first[a as usize] == (mode == Preserve::FirstModeDegrees) { a } else { b }
+            }
+        };
         let mut v = rng.below(n - 1) as u32;
         if v >= keep {
             v += 1;
         }
-        let (i, j) = if self.space.preserve == Preserve::OutDegrees { (a, v) } else { (v, b) };
+        let (i, j) = if self.space.preserve == Preserve::InDegrees { (v, b) } else { (keep, v) };
         if !self.open(net, i, j) {
             return None;
         }
         Some(Move::of(&[(a, b), (i, j)], 0.0))
+    }
+
+    /// Swaps a random tie for a random non-tie, keeping the number of edges;
+    /// symmetric, so log q = 0.
+    fn swap_tie(&self, net: &Network, ties: &EdgeIndex, rng: &mut Rng) -> Option<Move> {
+        let m = ties.count(net) as u64;
+        if m == 0 || m >= self.space.n_free() {
+            return None;
+        }
+        let (a, b) = ties.random(net, rng);
+        loop {
+            let (c, d) = self.space.random_dyad(net, rng)?;
+            if !net.has_edge(c, d) {
+                return Some(Move::of(&[(a, b), (c, d)], 0.0));
+            }
+        }
     }
 }
 

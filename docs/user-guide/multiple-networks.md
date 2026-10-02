@@ -90,9 +90,22 @@ numeric one. Factors and character attributes get one column per level but
 the first; `~0 + factor(.NetworkID)` gives each network its own coefficient.
 
 The `lm` formula accepts attributes, arithmetic, comparisons, `&`, `|`, `!`,
-`I()`, `log()`, `exp()`, `sqrt()`, `abs()` and `factor()`. Interactions
-(`a:b`), and N()'s `subset`, `offset` and `label` arguments, are not
-supported yet.
+`I()`, `log()`, `exp()`, `sqrt()`, `abs()`, `factor()` and `offset()`;
+interactions (`a:b`) are not supported yet.
+
+`N()`'s other arguments are ergm.multi's. `subset` restricts the terms to
+some networks, an expression of their attributes such as `~n >= 4` (or
+logical values, or indices): the others contribute nothing, and the linear
+model's levels are those of the networks kept. `offset` adds a known amount
+to every coefficient of the formula in each network, such as `~log(n)`: the
+statistics get companions `offset1`, `offset2`..., whose coefficients are
+fixed at 1. `label` names the operator in the statistics' names,
+`N(<label>,1)~edges`, which tells apart the parameters of several `N()`
+terms:
+
+```{code-cell} ipython3
+ergmx.summary_stats(networks, "N(~edges, subset=~n >= 4, label='big') + N(~edges, offset=~log(n))")
+```
 
 ## Curved terms
 
@@ -124,3 +137,42 @@ a list with one network per household:
 first = fit.simulate(1, seed=1)[0]
 len(first), [g.ecount() for g in first[:5]], [g.ecount() for g in weekday[:5]]
 ```
+
+## Goodness of fit network by network
+
+Summed distributions can hide a model that fits some networks and not
+others. {func}`ergmx.gofN`, as ergm.multi's `gofN()`, compares each network's
+statistics with those simulated from the fit: their mean (the fitted value),
+variance, and the Pearson residual, (observed - fitted) / sd. By default the
+statistics are the model's, each network's share; `GOF=` checks others. Its
+summary describes the residuals over the networks, whose variance is near 1
+for a model that fits:
+
+```{code-cell} ipython3
+by_household = ergmx.gofN(fit, "edges + triangle + kstar(2)", seed=1)
+by_household.summary()
+```
+
+Indexing by statistic gives the table of the networks (`.to_frame()` as a
+pandas DataFrame), and `plot()` the residuals against the fitted values (or
+`against=`, an expression of the networks' attributes) and their
+scale-location plot, with a weighted local regression to show a trend and
+the most extreme networks labelled:
+
+```{code-cell} ipython3
+by_household.plot(["edges", "triangle"]);
+```
+
+`summary(by=)` splits the summary by an attribute of the networks, such as
+`by="~n"`, and `subset=` keeps some networks. With missing dyads, the
+observed statistics are averaged over networks imputed from the model, as
+in ergm.multi.
+
+ergm.multi's `gofN()` leaves out the statistics of the empty network, so it
+reports `degree0` and `isolates` minus the network size; ergmx reports the
+statistics themselves, and warns (`ErgmDifferenceWarning`) when the
+statistics checked have this difference. Its default interval between
+simulated networks is three times the number of dyads, where ergm.multi uses
+the fit's (1024 by default): with many small networks, each network's
+simulated statistics are then autocorrelated, and its fitted values and
+residuals about twice as noisy as `nsim` independent draws.

@@ -46,6 +46,10 @@ tables compared line by line.
 | `ergm(NetSeries(g1, g2) ~ Form(~edges) + Diss(~edges))` | `ergmx.ergm(ergmx.NetSeries(g1, g2), "Form(~edges) + Diss(~edges)")` |
 | `simulate(fit, nw.start = "last", time.slices = 10)` | {meth}`fit.simulate(time_slices=10) <ergmx.ErgmFit.simulate>` |
 | `simulate(g ~ Form(...) + Persist(...), coef = c(...), time.slices = 10, dynamic = TRUE)` | {func}`ergmx.simulate_dynamic(g, "Form(...) + Persist(...)", [...], 10) <ergmx.simulate_dynamic>` |
+| `tergm(g ~ Form(~edges) + Persist(~edges), targets = ~edges + mean.age, target.stats = c(20, 10), estimate = "EGMME")` | `ergmx.tergm(g, "Form(~edges) + Persist(~edges)", estimate="EGMME", targets="edges + mean.age", target_stats=[20, 10])` |
+| `tergm(..., control = control.tergm(CMLE.NA.impute = "next"))`, `NetSeries(..., NA.impute = "next")` | `ergmx.tergm(..., na_impute="next")`, `ergmx.NetSeries(..., na_impute="next")` |
+| `gofN(fit, GOF = ~edges + triangle)` (ergm.multi) | {func}`ergmx.gofN(fit, "edges + triangle") <ergmx.gofN>` |
+| `saveRDS(fit, "fit.rds")`, `readRDS("fit.rds")` | {meth}`fit.save("fit.pkl") <ergmx.ErgmFit.save>`, {func}`ergmx.load_fit("fit.pkl") <ergmx.load_fit>` |
 | `data(Goeyvaerts)` (ergm.multi) | `ergmx.datasets.load("Goeyvaerts")`, a list of graphs |
 | `predict(fit)`, `predict(fit, conditional = FALSE)` | {meth}`fit.predict() <ergmx.ErgmFit.predict>`, `fit.predict(conditional=False)` |
 | `predict(net ~ edges + mutual, eta = c(-2, 1.8))` | {func}`ergmx.predict(g, "edges + mutual", [-2, 1.8]) <ergmx.predict>` |
@@ -117,6 +121,23 @@ accepted: R expressions such as `log(n)` must be computed first.
   R with `transitive`, use `ttriple`, which gives ergm's statistic and
   estimates exactly.
 
+**`intransitive` counts intransitive triads, as ergm documents.**
+: The same for `intransitive`: documented as intransitive triads (types
+  111D, 201, 111U, 021C and 030C), computed by ergm 4.12.0 as intransitive
+  triples, two-paths without a shortcut. ergmx counts the triads and warns;
+  ergm's statistic is `twopath` minus `ttriple`.
+
+**`dyadcov`'s `utri` and `ltri` are as ergm documents.**
+: ergm documents `dyadcov`'s second and third statistics, in directed
+  networks, as the dyads in the upper- and lower-triangular asymmetric
+  states, but counts a lone tie from the lower- to the higher-numbered
+  vertex, in the upper triangle of the adjacency matrix, as `ltri`. ergmx
+  follows the documentation and warns: its `utri` is ergm's `ltri`.
+
+**`smalldiff` counts differences up to the cutoff, as ergm's code.**
+: ergm's documentation says less than the cutoff, but its code, and so
+  ergmx, counts the ties whose difference is at most the cutoff.
+
 **Edgewise RTP statistics are right, as in ergm without its cache.**
 : ergm 4.12.0's shared-partner cache, used by default, reads the edgewise
   RTP statistics (`esp`, `gwesp` and `nsp` with `type = "RTP"`) with the
@@ -135,16 +156,45 @@ accepted: R expressions such as `log(n)` must be computed first.
 
 **N()'s linear models cover the common cases.**
 : `lm` formulas take attributes, arithmetic, comparisons, `&`, `|`, `!`,
-  `I()`, `log()`, `exp()`, `sqrt()`, `abs()` and `factor()`, with R's column
-  names; not interactions (`a:b`), nor `N()`'s `subset`, `offset` and `label`
-  arguments.
+  `I()`, `log()`, `exp()`, `sqrt()`, `abs()`, `factor()` and `offset()`, with
+  R's column names; not interactions (`a:b`). `subset`, `offset` and `label`
+  are ergm.multi's, but `label` as a function is a Python function of one
+  statistic's name and one column (R's is vectorized), and a numeric
+  `offset` may be a single number (R requires one per network).
+
+**gofN() reports degree0 and isolates themselves, from nearly independent draws.**
+: ergm.multi's `gofN()` leaves out the empty network's statistics, so its
+  observed and fitted `degree0` and `isolates` are the counts minus the
+  network size (the residuals are unaffected); ergmx reports the counts and
+  warns. ergmx's default interval between simulated networks is three times
+  the number of dyads, so that each network's draws are nearly independent;
+  ergm.multi's (the fit's, 1024 by default) leaves those of many small
+  networks autocorrelated. `gofN()`'s `subset` selects the networks reported.
+
+**Attribute arguments are names.**
+: Terms take vertex attributes by name, and `levels=` the specifications of
+  ergm's `?nodal_attributes` (values, 1-based indices, negative indices, `TRUE`,
+  `NULL`); not functions of attributes (`~Grade > 9`) or `I()`. Covariate
+  matrices and reference networks (`edgecov`, `dyadcov`, `hamming`,
+  `localtriangle`, `bd(attribs=)`) are graph attributes, arrays or graphs.
+  `altkstar` needs `fixed=TRUE`, and `gwdegree(attr=)` a fixed decay, as in
+  ergm.
 
 **Dynamic simulation uses tergm's stopping rule and discordant proposals.**
 : Each time step's chain runs until the number of changed dyads stops
   growing, as tergm's `MCMC.burnin.min`, `.max`, `.pval` and `.add`
   (`min_steps`, `max_steps`, `pval`, `add`), with tergm's discordTNT proposal
-  mixed into the TNT and triadic proposals. Linear models that vary over
-  time (`lm=~.Time`) can be fitted but not simulated forward.
+  mixed into the TNT and triadic proposals. A fit whose coefficients vary
+  over time (`lm=~.Time`) continues its trend when simulated forward, at
+  `.Time + k .TimeDelta`.
+
+**The EGMME follows tergm's algorithm, with its own convergence check.**
+: Starting values from EpiModel's approximation, a gradient by central
+  differences under common random numbers, stochastic approximation with
+  Polyak averaging, and the delta method's standard errors, as tergm. The
+  fit is reported as converged when the shift of the coefficients that would
+  bring the final run's targets to theirs is under half a standard error.
+  Tie ages start at 1, as in tergm.
 
 **Predictions include missing dyads; unconditional ones respect the constraints.**
 : ergm's `predict()` for a formula leaves out the dyads whose value is
@@ -161,6 +211,9 @@ accepted: R expressions such as `log(n)` must be computed first.
   errors differ, by up to a quarter on the models tested.
 
 **Not yet available.**
-: `bd()` bounds by attribute, valued networks, tergm's EGMME estimator and
-  duration terms (`edgeages`, `mean.age`), ergm.multi's `gofN()`, and many of
-  ergm's terms and constraints.
+: Valued networks; ergm.multi's `lm.gofN()` and N()'s `weights` and
+  `contrasts`; tergm's durational *model* terms (as opposed to EGMME
+  targets and monitors); among ergm's binary terms, `degcor`,
+  `degcrossprod`, `tripercent`, `coincidence` and the projection and
+  `Sum`/`Prod`/`Exp`-style operators; and the `degreedist` and `egocentric`
+  constraints.

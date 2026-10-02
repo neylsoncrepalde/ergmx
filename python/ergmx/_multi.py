@@ -5,11 +5,13 @@ Persist(), Diss(), Cross() and Change() evaluate their terms on each block."""
 
 from __future__ import annotations
 
+import dataclasses
+import warnings
 from typing import Any
 
 import numpy as np
 
-from ._network import Block, Network, _read, _with_modes
+from ._network import Block, Network, _edge_array, _read, _with_modes
 
 
 def _graphs(args, kind: str) -> tuple[list, list[str] | None]:
@@ -98,7 +100,81 @@ def Networks(*networks, bipartite=None) -> Network:  # noqa: N802 (R's name)
     return _combine(parts, attributes, None)
 
 
-def NetSeries(*networks, times=None, bipartite=None) -> Network:  # noqa: N802 (R's name)
+IMPUTERS = ("next", "previous", "majority", "0", "1")
+
+
+def _dyads(p: Network) -> int:
+    if p.bipartite:
+        b = int(np.sum(p.mode))
+        return b * (p.n - b)
+    return p.n * (p.n - 1) // (1 if p.directed else 2)
+
+
+def _impute(nets: list[Network], imputers, after: Network) -> list[Network]:
+    """tergm's imputation of the missing dyads of the networks transitioned
+    from, with each of the imputers in turn: ``"next"`` (the dyad's value in
+    the next network, ``after`` for the last), ``"previous"`` (in the previous
+    one), ``"majority"`` (the more common value of the network's observed
+    dyads) and ``"0"`` or ``"1"``."""
+    if isinstance(imputers, str):
+        imputers = [imputers]
+    chosen = []
+    for imputer in imputers:
+        matches = [m for m in IMPUTERS if m.startswith(str(imputer))] if imputer else []
+        if len(matches) != 1:
+            raise ValueError(f"unknown NA imputation option {imputer!r}: give one or more of "
+                             + ", ".join(repr(m) for m in IMPUTERS))
+        chosen.append(matches[0])
+    directed = nets[0].directed
+
+    def key(pair):
+        a, b = int(pair[0]), int(pair[1])
+        return (a, b) if directed or a < b else (b, a)
+
+    ties = [{key(e) for e in p.edges} for p in [*nets, after]]
+    missing = [{key(e) for e in p.missing} for p in [*nets, after]]
+
+    def fill(t, dyads, source):  # missing dyads of network t take network source's values
+        ties[t] |= {d for d in dyads if d in ties[source]}
+        missing[t] = {d for d in missing[t] if d not in dyads or d in missing[source]}
+
+    tie = False
+    for imputer in chosen:
+        if imputer == "next":
+            for t in reversed(range(len(nets))):
+                fill(t, set(missing[t]), t + 1)
+        elif imputer == "previous":
+            for t in range(1, len(nets)):
+                fill(t, set(missing[t]), t - 1)
+        else:
+            for t, p in enumerate(nets):
+                if not missing[t]:
+                    continue
+                value = imputer == "1"
+                if imputer == "majority":
+                    density = len(ties[t]) / (_dyads(p) - len(missing[t]))
+                    if density == 0.5:
+                        tie = True
+                        continue
+                    value = density > 0.5
+                if value:
+                    ties[t] |= missing[t]
+                missing[t] = set()
+    left = [bool(m) for m in missing[:-1]]
+    if "previous" in chosen and left[0]:
+        warnings.warn("NA imputation 'previous' can't impute the dyads of the first network",
+                      stacklevel=3)
+    if "next" in chosen and left[-1]:
+        warnings.warn("NA imputation 'next' can't impute the dyads of the last network transitioned "
+                      "from that are missing in the last network too", stacklevel=3)
+    if tie:
+        warnings.warn("NA imputation 'majority': a network has as many ties as non-ties among its "
+                      "observed dyads; its missing dyads stay missing", stacklevel=3)
+    return [dataclasses.replace(p, edges=_edge_array(sorted(ties[t])), missing=_edge_array(sorted(missing[t])))
+            for t, p in enumerate(nets)]
+
+
+def NetSeries(*networks, times=None, bipartite=None, na_impute=None) -> Network:  # noqa: N802 (R's name)
     """A series of networks on the same vertices, as R's ``tergm::NetSeries()``,
     to model each transition conditional on the network before it.
 
@@ -121,6 +197,15 @@ def NetSeries(*networks, times=None, bipartite=None) -> Network:  # noqa: N802 (
         The times the networks were observed: 0, 1, 2... by default.
     bipartite : str or bool, optional
         For bipartite networks, the vertex attribute with each vertex's mode.
+    na_impute : str or list of str, optional
+        How to impute the missing dyads of the networks transitioned from
+        (all but the last), as tergm's ``NA.impute``: ``"next"`` (the dyad's
+        value in the next network), ``"previous"`` (in the previous one),
+        ``"majority"`` (the more common value among the network's observed
+        dyads), ``"0"`` or ``"1"``; several are applied in turn. The networks
+        transitioned to keep their missing dyads, which the fit treats as
+        missing. Without it, missing dyads in the networks transitioned from
+        are an error.
     """
     graphs, _ = _graphs(networks, "NetSeries")
     parts = _parts(graphs, bipartite, "NetSeries")
@@ -131,22 +216,26 @@ def NetSeries(*networks, times=None, bipartite=None) -> Network:  # noqa: N802 (
     times = list(range(len(parts))) if times is None else list(times)
     if len(times) != len(parts) or any(b <= a for a, b in zip(times, times[1:])):
         raise ValueError("NetSeries(): times must be increasing, one per network")
-    for t, p in enumerate(parts[:-1]):
-        if len(p.missing):
-            raise NotImplementedError(f"NetSeries(): network {t + 1} has missing dyads; missing "
-                                      "dyads are only supported in the last network")
+    before = parts[:-1] if na_impute is None else _impute(parts[:-1], na_impute, parts[-1])
+    left = [times[t] for t, p in enumerate(before) if len(p.missing)]
+    if left:
+        raise ValueError(f"NetSeries(): the network(s) at time(s) {', '.join(map(str, left))} have "
+                         "missing dyads, and are transitioned from: impute them with na_impute= "
+                         "(only the networks transitioned to can have missing dyads)")
     attributes = [{**_graph_attributes(p), "n": p.n, ".NetworkID": k, ".NetworkName": str(k),
                    ".Time": times[k], ".TimeID": k, ".TimeDelta": times[k] - times[k - 1]}
                   for k, p in enumerate(parts) if k > 0]
-    return _combine(parts[1:], attributes, parts[:-1])
+    return _combine(parts[1:], attributes, before)
 
 
-def series_from(networks, times=None, bipartite=None) -> Network:
+def series_from(networks, times=None, bipartite=None, na_impute=None) -> Network:
     """A NetSeries from a NetSeries, or from a list of networks."""
     if isinstance(networks, Network) and networks.series:
+        if na_impute is not None:
+            raise ValueError("na_impute= is for a list of networks: give it to NetSeries()")
         return networks
     if isinstance(networks, Network) and networks.combined:
         raise ValueError("tergm() needs a NetSeries() or a list of networks, not Networks()")
     if not isinstance(networks, (list, tuple)):
         raise TypeError("tergm() needs a list of networks, in time order, or a NetSeries()")
-    return NetSeries(list(networks), times=times, bipartite=bipartite)
+    return NetSeries(list(networks), times=times, bipartite=bipartite, na_impute=na_impute)

@@ -51,12 +51,12 @@ def _dyad_independent_start(model: BoundModel) -> tuple[np.ndarray, float]:
     """Parameters of the dyad-independent submodel (with the fixed values of
     its offsets), 0 for the other terms, and its exact log-likelihood on the
     free observed dyads."""
-    x, y = model.mple_data()
+    x, y, w = model.mple_table()
     independent = np.zeros(model.n_params, dtype=bool)
     for term, cols in model.term_columns():
         if term.dyad_independent:
             independent[cols] = True
-    theta, _, loglik = regression(x, y, model, params=independent, zero=~independent)
+    theta, _, loglik = regression(x, y, model, params=independent, zero=~independent, weights=w)
     return theta, loglik
 
 

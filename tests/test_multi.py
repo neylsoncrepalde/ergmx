@@ -74,8 +74,110 @@ def test_formulas_take_r_syntax():
     assert [t.lm for t in f] == ["~I(n<=3) + I(.NetworkID >= 2)", "~log(n)"]
     with pytest.raises(ValueError, match="can't be inside"):
         ergmx.parse_formula("N(~N(~edges))")
-    with pytest.raises(NotImplementedError, match="subset"):
-        ergmx.parse_formula("N(~edges, subset=FALSE)")
+    t, = ergmx.parse_formula("N(~edges, ~log(n), subset=~n>=4 & .NetworkID != 2, offset=~log(n), label='hh')")
+    assert (t.lm, t.subset, t.offset, t.name_label) == ("~log(n)", "~n>=4 & .NetworkID != 2", "~log(n)", "hh")
+    t, = ergmx.parse_formula("N(~edges, subset=c(TRUE, FALSE), offset=2)")
+    assert (t.subset, t.offset) == ("c(TRUE, FALSE)", "2")
+    with pytest.raises(NotImplementedError, match="weights"):
+        ergmx.parse_formula("N(~edges, weights=~n)")
+    with pytest.raises(NotImplementedError, match="contrasts"):
+        ergmx.parse_formula("N(~edges, contrasts=1)")
+
+
+def _sized():
+    nets = monks()
+    for k, g in enumerate(nets):
+        g["x"], g["big"] = [1.5, 2.0, -1.0][k], k > 0
+    return nets, ergmx.Networks(nets)
+
+
+def test_subset_keeps_networks():
+    nets, combined = _sized()
+    edges = np.array([g.ecount() for g in nets])
+    for subset, kept in [("~big", [1, 2]), ("~.NetworkID != 2", [0, 2]), ([True, False], [0, 2]),
+                         ([3], [2]), ([-1], [1, 2]), ("c(1, 3)", [0, 2]), ("TRUE", [0, 1, 2])]:
+        stats = ergmx.summary_stats(combined, ergmx.N("~edges", lm="~x", subset=subset))
+        assert stats == {"N(1)~edges": edges[kept].sum(), "N(x)~edges": edges[kept] @ np.array([1.5, 2.0, -1.0])[kept]}
+    # The linear model's levels are those of the kept networks.
+    assert list(ergmx.summary_stats(combined, "N(~edges, ~factor(x), subset=~big)")) == \
+        ["N(1)~edges", "N(factor(x)2)~edges"]
+    with pytest.raises(ValueError, match="keeps no network"):
+        ergmx.summary_stats(combined, "N(~edges, subset=~x > 5)")
+    with pytest.raises(ValueError, match="beyond"):
+        ergmx.summary_stats(combined, "N(~edges, subset=4)")
+
+
+def test_offsets_add_statistics_with_coefficient_one():
+    nets, combined = _sized()
+    edges = np.array([g.ecount() for g in nets])
+    mutual = np.array([ergmx.summary_stats(g, "mutual")["mutual"] for g in nets])
+    model = bind(combined, "N(~edges + mutual, lm=~big, offset=~x / 2)")
+    assert model.names == ["N(1)~edges", "N(bigTRUE)~edges", "N(1)~mutual", "N(bigTRUE)~mutual"]
+    assert model.stat_names == ["N(1)~edges", "N(bigTRUE)~edges", "offset1", "N(1)~mutual",
+                                "N(bigTRUE)~mutual", "offset2"]
+    x = np.array([1.5, 2.0, -1.0]) / 2
+    np.testing.assert_allclose(model.observed(), [edges.sum(), edges[1:].sum(), edges @ x, mutual.sum(),
+                                                  mutual[1:].sum(), mutual @ x])
+    theta = np.array([-2.0, 0.5, 1.0, -0.3])
+    np.testing.assert_allclose(model.eta(theta), [-2.0, 0.5, 1.0, 1.0, -0.3, 1.0])
+    jac, h = model.jacobian(theta), 1e-6
+    numeric = np.column_stack([(model.eta(theta + h * e) - model.eta(theta - h * e)) / (2 * h) for e in np.eye(4)])
+    np.testing.assert_allclose(jac, numeric, atol=1e-8)
+    # The same as offset() in the linear model, or numbers.
+    same = ergmx.summary_stats(combined, "N(~edges + mutual, lm=~big + offset(x / 2))")
+    assert list(same.values()) == pytest.approx(model.observed())
+    numbers = ergmx.summary_stats(combined, ergmx.N("~edges", offset=list(x)))
+    assert numbers["offset1"] == pytest.approx(edges @ x)
+    # Each network's coefficient is its prediction plus its offset: the MPLE
+    # of edges alone is the logit of the density shifted by the offsets.
+    fit = ergmx.ergm(combined, "N(~edges, offset=~x / 2)", estimate="MPLE")
+    p = 1 / (1 + np.exp(-(fit.params[0] + x)))
+    assert p @ np.full(3, 18 * 17) == pytest.approx(edges.sum(), rel=1e-6)
+
+
+def test_labels_name_the_statistics():
+    _, combined = _sized()
+    assert list(ergmx.summary_stats(combined, "N(~edges, lm=~big, label='hh')")) == \
+        ["N(hh,1)~edges", "N(hh,bigTRUE)~edges"]
+    assert list(ergmx.summary_stats(combined, ergmx.N("~edges + mutual", lm="~x",
+                                                      label=lambda name, column: f"{name}[{column}]"))) == \
+        ["edges[1]", "edges[x]", "mutual[1]", "mutual[x]"]
+
+
+def test_subsets_and_offsets_of_curved_terms():
+    """Curved terms keep the statistics of the kept networks only (N#1, N#2
+    for the networks kept), and each network's decay and coefficient are the
+    linear model's predictions plus the offset."""
+    nets, combined = _sized()
+    model = bind(combined, "N(~edges + gwesp(0.5), subset=~big, offset=~x)")
+    assert model.stat_names[0].startswith("N#1~") and not any(n.startswith("N#3") for n in model.stat_names)
+    theta = np.array([-2.0, 0.4, 0.7])
+    total = model.eta(theta) @ model.observed()
+    expected = 0.0
+    for g, x in zip(nets[1:], [2.0, -1.0]):
+        edges, coef, decay = theta + x
+        fixed = ergmx.summary_stats(g, f"edges + gwesp({decay}, fixed=TRUE)")
+        expected += edges * fixed["edges"] + coef * fixed[f"gwesp.OTP.fixed.{decay:g}"]
+    assert total == pytest.approx(expected, rel=1e-10)
+    jac, h = model.jacobian(theta), 1e-6
+    numeric = np.column_stack([(model.eta(theta + h * e) - model.eta(theta - h * e)) / (2 * h) for e in np.eye(3)])
+    np.testing.assert_allclose(jac, numeric, atol=1e-6)
+
+
+def test_sampler_with_subsets_and_offsets_is_exact():
+    a = ig.Graph(n=4, edges=[(0, 1), (1, 2)])
+    b = ig.Graph(n=3, edges=[(0, 2)])
+    c = ig.Graph(n=3, edges=[(0, 1), (1, 2)])
+    for g, size in zip((a, b, c), (0.5, -0.5, 1.0)):
+        g["size"] = size
+    model = bind(ergmx.Networks(a, b, c), "N(~edges + triangle, subset=~size < 1, offset=~size) + N(~kstar(2))")
+    theta = np.array([-0.4, 0.3, 0.2])
+    eta = model.eta(theta)
+    expected = _enumerate(model, eta)
+    runs = np.array([model.simulate([model.network.edges] * 4, theta, 1000, 10, 800, seed)[0]
+                     .reshape(-1, len(eta)).mean(axis=0) for seed in range(12)])
+    se = runs.std(axis=0, ddof=1) / np.sqrt(len(runs))
+    assert np.all(np.abs(runs.mean(axis=0) - expected) < 5 * se + 1e-9)
 
 
 def test_n_needs_combined_networks_and_equal_parameters():

@@ -77,10 +77,12 @@ interpretation, with laboratories as A and researchers as B:
 | `l3xax`, `l3xbx` | an affiliation, a within-level tie, an affiliation | meso-level popularity and within-level activity |
 | `l3axb` | an A-tie, an affiliation, a B-tie | assortativity of activity across levels: active researchers belong to active laboratories |
 | `c4axb` | an A-tie, a B-tie and the two affiliations that join their ends | cross-level alignment: members of collaborating laboratories seek each other's advice |
+| `exta`, `extb` | a triangle within a level with an affiliation at one of its vertices | affiliations of the members of closed groups |
+| `asaxasb` | alternating stars at both ends of an affiliation | assortativity of activity across levels, attenuated |
 
-The term reference gives each one's statistic. They're for undirected
-networks; MPNet's directed variants are not available yet. A model of the
-three networks and their interdependence:
+The term reference gives each one's statistic, and MPNet's configurations
+of directed networks (below). A model of the three networks and their
+interdependence:
 
 ```{code-cell} ipython3
 mpnet = ergmx.ergm(
@@ -97,7 +99,70 @@ mpnet.summary()
 In this simulated network, the cross-level effects are small: only the
 individuals' within-level activity is slightly negatively associated with
 their affiliations (`Star2AX`), and there is no cross-level alignment
-(`C4AXB`). The tools below model the same network by kinds of tie.
+(`C4AXB`).
+
+## Goodness of fit by level
+
+`gof(by=...)` compares the distributions of each level's network (degrees,
+edgewise shared partners and distances within the level) and each level's
+number of affiliations with those of simulated networks, as MPNet's goodness
+of fit does for networks A, B and X:
+
+```{code-cell} ipython3
+mpnet.gof(by="level", seed=1, stats=["degree", "espartners", "affiliations"]).plot();
+```
+
+The model reproduces the degrees and shared partners within both levels.
+The numbers of affiliations are close, with a few more individuals with four
+and organizations with ten than the simulated networks usually have.
+
+## Estimating the decays
+
+MPNet fixes the weights of its alternating configurations; with
+`fixed=FALSE`, `ergmx` estimates the decay along with the coefficients, as
+ergm's curved terms, from the start `decay` (by default log 2):
+
+```python
+ergmx.ergm(network, "... + atxax('level', fixed=FALSE) + axs1b('level', fixed=FALSE)")
+```
+
+The statistics are the counts of the histogram each term weights (for
+`atxax`, the A-ties with 1, 2... shared B partners), and the parameters the
+coefficient and its decay, `ATXAX.level` and `ATXAX.level.decay`. A decay
+is only identified if the network has a spread of those counts: in
+`linked_sim`, few ties share more than one partner, and the decays are not.
+Terms with two alternating parts (`aaaxs`, `abaxs`, `asaxasb` and the
+directed `ainasxainbs`...) need a fixed decay.
+
+## Directed multilevel networks
+
+In a directed network, the ties within each level are arcs (advice among
+researchers, partnerships from one laboratory to another), and the
+affiliations are the arcs from the vertices of level A to those of level B
+(A and B are the attribute's values in sorted order, or `levels=(A, B)`).
+The dyads from B to A carry no affiliation: fix them with `blocks()`, whose
+second mixing type in a directed network is from the second level to the
+first. `S()` with two sets takes the arcs from the first set to the second,
+as in ergm. MPNet's directed configurations then distinguish incoming and
+outgoing ties, arcs and reciprocated pairs:
+
+```python
+model = ergmx.ergm(
+    network,
+    "S(~edges + mutual, ~level == 'A') + S(~edges + mutual, ~level == 'B') "
+    "+ S(~edges, (level == 'A') ~ (level == 'B')) "
+    "+ in2starax('level') + txaxarc('level') + txbxreciprocity('level') + c4axbentrainment('level')",
+    constraints="blocks('level', levels2=2)",
+)
+```
+
+`c4axbentrainment` counts the four-cycles where an A-arc and a B-arc go
+the same way between affiliated vertices (if laboratory u advises v, the
+researchers of u advise those of v); `c4axbexchange` those where they go
+opposite ways. The [term reference](../terms.md#directed-two-level-networks)
+lists them all.
+
+The tools below model the same undirected network by kinds of tie.
 
 ## Densities by kind of tie
 

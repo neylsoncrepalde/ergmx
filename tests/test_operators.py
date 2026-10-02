@@ -50,9 +50,8 @@ def test_minus_infinity_offsets_forbid_ties():
                      offset_coef=[float("-inf")])
     assert fit.method == "MLE" and fit.df == 2
     model = bind(g, "edges + nodecov('wealth')")
-    x, y = model.core.mple_data(model.network.edges)
-    rows = [(i, j) for i in range(n) for j in range(i + 1, n)]  # the order of mple_data
-    keep = np.array([pair not in set(forbidden) for pair in rows])
+    x, y, pairs = model.core.mple_data(model.network.edges)
+    keep = np.array([tuple(pair) not in set(forbidden) for pair in pairs.tolist()])
     beta, _, loglik = logistic_regression(x[keep], y[keep], np.ones(keep.sum()))
     np.testing.assert_allclose([fit.coef["edges"], fit.coef["nodecov.wealth"]], beta, rtol=1e-8)
     assert fit.loglik == pytest.approx(loglik)

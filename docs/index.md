@@ -15,12 +15,13 @@ the same terms and statistics, and `summary()`, `gof()` and
 and runs chains in parallel threads, so fits take seconds.
 
 :::{note}
-`ergmx` has 74 terms and 9 operators for directed, undirected and bipartite
-networks, curved ERGMs, sample space constraints, missing ties, multilevel
-networks (as MPNet), samples of networks (as ergm.multi), temporal ERGMs and
-dynamic simulation (as tergm), MPLE, contrastive divergence and Monte Carlo
-MLE, MCMC diagnostics, log-likelihoods, model comparison, goodness of fit,
-tie probabilities, marginal effects and tables of results, all
+`ergmx` has 167 terms and 9 operators for directed, undirected and bipartite
+networks, and interactions; curved ERGMs, sample space constraints, missing
+ties, multilevel networks (as MPNet), samples of networks (as ergm.multi),
+temporal ERGMs, EGMME and dynamic simulation (as tergm), MPLE, contrastive
+divergence and Monte Carlo MLE, MCMC diagnostics, log-likelihoods, model
+comparison, goodness of fit, tie probabilities, marginal effects and tables
+of results, for networks of up to tens of thousands of vertices, all
 [validated against R](validation.md).
 :::
 
@@ -74,14 +75,14 @@ multilevel ERGM.
 Networks, formulas, fitting, curved models, constraints, missing ties,
 multilevel and bipartite networks, samples of networks, networks over time,
 diagnostics, goodness of fit, model comparison, interpreting and reporting
-results, and simulation.
+results, simulation, and saving fits.
 :::
 
 :::{grid-item-card} {fas}`list` Term reference
 :link: terms
 :link-type: doc
 
-The 74 terms and 9 operators, their statistics and their names.
+The 167 terms and 9 operators, their statistics and their names.
 :::
 
 :::{grid-item-card} {fas}`code` API reference

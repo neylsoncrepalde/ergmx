@@ -4,7 +4,9 @@
 # tests/data/<network>__<name>.csv (graph attributes in the tests), and writes
 # tests/data/r_reference.json with, for every model and the checks it is used
 # for: the observed statistics ("stats"), the MPLE ("mple"), and the MLE with
-# its standard errors, log-likelihood and the time R took ("mle").
+# its standard errors, log-likelihood and the time R took ("mle"). Models
+# whose R formula or constraints refer to R objects give ergmx's version too
+# (py_formula, py_constraints), with the objects as graph attributes.
 #
 # Run from the root of the ergmx repository:
 #   Rscript scripts/r_reference.R
@@ -45,6 +47,12 @@ data(faux.dixon.high)
 # nominations are unknown), and 5% of the dyads of faux.mesa.high at random.
 samplk3.nonresponse <- samplk3
 samplk3.nonresponse[c(1, 7), ] <- NA
+# And unknown nominations in the earlier waves, for NetSeries' NA.impute.
+samplk1.na <- samplk1
+samplk1.na[1, 2:5] <- NA
+samplk1.na[3, 6:7] <- NA
+samplk2.na <- samplk2
+samplk2.na[3, 6:9] <- NA
 set.seed(2026)
 faux.mesa.high.missing <- faux.mesa.high
 pairs <- t(combn(network.size(faux.mesa.high), 2))
@@ -72,12 +80,24 @@ bipartite_sim <- simulate(bipartite_sim ~ edges + b1factor("g") + b2cov("x") + g
                           coef = c(-3.2, 0.4, -0.3, 0.05, -0.5), seed = 2026,
                           control = control.simulate.formula(MCMC.burnin = 100000))
 
+# faux.mesa.high without the ties between grades, its vertices ordered by
+# grade, for blockdiag().
+by_grade <- order(faux.mesa.high %v% "Grade")
+within <- as.matrix(faux.mesa.high)[by_grade, by_grade]
+grade <- (faux.mesa.high %v% "Grade")[by_grade]
+within[outer(grade, grade, "!=")] <- 0
+faux.mesa.within <- network::network(within, directed = FALSE)
+for (a in c("Grade", "Race", "Sex")) {
+  network::set.vertex.attribute(faux.mesa.within, a, (faux.mesa.high %v% a)[by_grade])
+}
+
 networks <- list(flomarriage = flomarriage, samplk1 = samplk1, samplk2 = samplk2,
                  samplk3 = samplk3, linked_sim = linked_sim,
                  davis = davis, bipartite_sim = bipartite_sim,
                  faux.mesa.high = faux.mesa.high, faux.dixon.high = faux.dixon.high,
-                 samplk3.nonresponse = samplk3.nonresponse,
-                 faux.mesa.high.missing = faux.mesa.high.missing)
+                 samplk3.nonresponse = samplk3.nonresponse, samplk1.na = samplk1.na,
+                 samplk2.na = samplk2.na,
+                 faux.mesa.high.missing = faux.mesa.high.missing, faux.mesa.within = faux.mesa.within)
 
 # Dyadic covariates, stored as network attributes for edgecov("name").
 set.seed(2026)
@@ -86,11 +106,29 @@ random_matrix <- function(n) {
   diag(x) <- 0
   x
 }
+random_neighbourhoods <- function(n) {
+  x <- matrix(rbinom(n * n, 1, 0.3), n, n)
+  x <- 1 * ((x + t(x)) > 0)
+  diag(x) <- 0
+  x
+}
+# bd(attribs=): each student's sex as classes, and at most one tie more to
+# each sex than the student sends.
+sexmat <- 1 * outer(faux.dixon.high %v% "sex", 1:2, "==")
+maxsex <- as.matrix(faux.dixon.high) %*% sexmat + 1
 covariates <- list(
   flomarriage = list(business = as.matrix(flobusiness)),
   faux.mesa.high = list(asym = random_matrix(network.size(faux.mesa.high))),
   faux.dixon.high = list(asym = random_matrix(network.size(faux.dixon.high)))
 )
+# Drawn after the others, which keep their values.
+covariates$faux.mesa.high$nbhd_mesa <- random_neighbourhoods(network.size(faux.mesa.high))
+covariates$faux.dixon.high <- c(covariates$faux.dixon.high, list(sexmat = sexmat, maxsex = maxsex))
+covariates$samplk3 <- list(wave2 = as.matrix(samplk2), nbhd_samplk = random_neighbourhoods(network.size(samplk3)))
+nbhd_mesa <- covariates$faux.mesa.high$nbhd_mesa
+nbhd_samplk <- covariates$samplk3$nbhd_samplk
+wave2 <- samplk2
+sexmat <- sexmat == 1
 for (name in names(covariates)) {
   for (cov in names(covariates[[name]])) {
     networks[[name]] %n% cov <- covariates[[name]][[cov]]
@@ -112,12 +150,113 @@ combined <- list(
   samplk123.Networks = Networks(samplk1, samplk2, samplk3),
   samplk123.NetSeries = NetSeries(samplk1, samplk2, samplk3),
   samplk12.NetSeries = NetSeries(samplk1, samplk2),
+  samplk123.na.next = NetSeries(samplk1.na, samplk2.na, samplk3.nonresponse, NA.impute = "next"),
+  samplk123.na.previous = NetSeries(samplk1.na, samplk2.na, samplk3.nonresponse,
+                                    NA.impute = c("previous", "majority")),
   Goeyvaerts.weekday = Networks(Filter(function(g) (g %n% "included") && (g %n% "weekday"), Goeyvaerts))
 )
 
 # The same formula strings are parsed by ergmx.
 all_checks <- c("stats", "mple", "mle")
+# Edge lists for fixedas() and fixallbut() on flomarriage, as R code.
+r_edges <- function(m) sprintf("matrix(c(%s), ncol=2, byrow=TRUE)", paste(t(m), collapse = ", "))
+flo_ties <- network::as.edgelist(flomarriage)
+flo_absent <- which(as.matrix(flomarriage) == 0 & upper.tri(as.matrix(flomarriage)), arr.ind = TRUE)
+set.seed(2026)
+flo_free <- rbind(flo_ties[1:8, ], flo_absent[sample(nrow(flo_absent), 40), ])
 models <- list(
+  # More of ergm's vocabulary: statistics.
+  mesa_vocab1 = list(network = "faux.mesa.high", checks = "stats",
+                     formula = paste("degrange(1:2, 4) + degrange(2, by='Race') + degree(1:2, by='Race') +",
+                                     "degree(0:1, by='Sex', homophily=TRUE) + concurrent(by='Sex') +",
+                                     "concurrentties + concurrentties(by='Sex') + degree1.5 + isolatededges +",
+                                     "density + meandeg + altkstar(2, fixed=TRUE) + degrange(1, 3, by='Race', homophily=TRUE)")),
+  mesa_vocab2 = list(network = "faux.mesa.high", checks = "stats",
+                     formula = paste("triadcensus(0:3) + balance + threetrail + opentriad + transitiveties +",
+                                     "transitiveties(attr='Race') + cyclicalties + kstar(2:3, attr='Sex') +",
+                                     "triangle(attr='Race') + triangle(attr='Grade', diff=TRUE) + nodecovrange('Grade') +",
+                                     "nodefactordistinct('Race') + gwdegree(0.5, fixed=TRUE, attr='Sex')")),
+  mesa_vocab3 = list(network = "faux.mesa.high", checks = "stats",
+                     formula = paste("mm('Race') + mm(Race~Sex) + mm(Race~.) + attrcov('Sex', matrix(c(1,2,2,3),2)) +",
+                                     "smalldiff('Grade', 2) + diff('Grade', sign.action='abs') +",
+                                     "nodematch('Race', diff=TRUE, levels=-1) + nodefactor('Race', levels=c('White','Black')) +",
+                                     "sociality(nodes=c(1, 3)) + nodecov('Grade'):nodematch('Sex') +",
+                                     "nodefactor('Race'):nodecov('Grade') + dyadcov('asym') + hamming +",
+                                     "localtriangle(nbhd_mesa) + nodefactordistinct('Race', levels=c('Hisp','White'))"),
+                     py_formula = paste("mm('Race') + mm(Race~Sex) + mm(Race~.) + attrcov('Sex', matrix(c(1,2,2,3),2)) +",
+                                        "smalldiff('Grade', 2) + diff('Grade', sign.action='abs') +",
+                                        "nodematch('Race', diff=TRUE, levels=-1) + nodefactor('Race', levels=c('White','Black')) +",
+                                        "sociality(nodes=c(1, 3)) + nodecov('Grade'):nodematch('Sex') +",
+                                        "nodefactor('Race'):nodecov('Grade') + dyadcov('asym') + hamming +",
+                                        "localtriangle('nbhd_mesa') + nodefactordistinct('Race', levels=c('Hisp','White'))")),
+  dixon_vocab1 = list(network = "faux.dixon.high", checks = "stats",
+                      formula = paste("triadcensus + simmelian + simmelianties + nearsimmelian + m2star + ctriad +",
+                                      "ttriad + transitiveties + transitiveties(attr='sex') + cyclicalties +",
+                                      "cyclicalties(attr='race') + threetrail + balance + triangle(attr='race')")),
+  dixon_vocab2 = list(network = "faux.dixon.high", checks = "stats",
+                      formula = paste("idegree(0:2, by='sex') + odegrange(c(0,3), c(3, Inf)) +",
+                                      "idegrange(1, 3, by='race', homophily=TRUE) + idegree1.5 + odegree1.5 +",
+                                      "nodeicovrange('grade') + nodeocovrange('grade') + nodecovrange('grade') +",
+                                      "nodeifactor('race', levels=c('W','B')) + sender(nodes=c(2,5)) +",
+                                      "receiver(nodes=-(1:240)) + mutual(same='sex') + mutual(by='race') +",
+                                      "mutual(same='race', diff=TRUE) + asymmetric(attr='sex') +",
+                                      "asymmetric(attr='race', diff=TRUE) + istar(2, attr='sex') + ostar(2:3, attr='race') +",
+                                      "desp(0:2) + dgwesp(0.5, fixed=TRUE) + dnsp(1, type='OSP') + mm(race~sex) + mm(.~sex) +",
+                                      "nodefactordistinct('race') + nodeofactordistinct('race') + nodeifactordistinct('race') +",
+                                      "ttriple(attr='sex', diff=TRUE) + ctriple(attr='race') + dyadcov('asym') +",
+                                      "gwodegree(0.5, fixed=TRUE, attr='race') + nodeifactor('race'):nodeofactor('sex') +",
+                                      "density + meandeg")),
+  samplk_vocab = list(network = "samplk3", checks = "stats",
+                      formula = "threetrail + hamming(wave2) + localtriangle(nbhd_samplk) + triadcensus(c('021D','300'))",
+                      py_formula = "threetrail + hamming('wave2') + localtriangle('nbhd_samplk') + triadcensus(c('021D','300'))"),
+  bip_vocab1 = list(network = "bipartite_sim", checks = "stats",
+                    formula = paste("b1twostar('g') + b2twostar('g') + b1starmix(2, 'g') + b2starmix(2, 'g') +",
+                                    "b1sociality + b2sociality(nodes=c(1,2)) + b1nodematch('g', diff=TRUE) +",
+                                    "b1nodematch('g', byb2attr='g', diff=TRUE) + b1degrange(1:2, 4) + b1degrange(1, by='g') +",
+                                    "b2degrange(0, 2, by='g', homophily=TRUE) + b1mindegree(2:3) + b2mindegree(1) +",
+                                    "b1covrange('x') + b2covrange('x') + b1factordistinct('g') + b2factordistinct('g') +",
+                                    "b1concurrent(by='g') + b2concurrent(by='g') + b1degree(1:2, by='g') +",
+                                    "b2degree(1, by='g', levels=-1) + b1factor('g', levels=TRUE) +",
+                                    "b2factor('g', levels=c('c','a')) + density + meandeg + isolatededges + diff('x') +",
+                                    "b1star(2, attr='g') + b2star(2, attr='g') + gwb1degree(0.5, fixed=TRUE, attr='g')")),
+  bip_vocab2 = list(network = "bipartite_sim", checks = "stats",
+                    formula = "b1nodematch('g', beta=0.5) + b2nodematch('g', alpha=0.25) + b1starmix(2, 'g', diff=FALSE)"),
+  bip_vocab3 = list(network = "bipartite_sim", checks = "stats",
+                    formula = "b1nodematch('g', alpha=0.5) + b1nodematch('g', levels=c('a','c'), diff=TRUE)"),
+  # Dyad-independent models of the new terms, and the new constraints.
+  mesa_mm_dyadind = list(network = "faux.mesa.high", checks = all_checks,
+                         formula = "edges + mm(Sex~Grade) + nodecov('Grade'):nodematch('Sex')"),
+  mesa_attrcov_dyadind = list(network = "faux.mesa.high", checks = all_checks,
+                              formula = paste("edges + attrcov('Race', matrix(c(2,1,1,1,0, 1,2,1,1,0, 1,1,2,1,0,",
+                                              "1,1,1,2,0, 0,0,0,0,1), 5)) + smalldiff('Grade', 1) +",
+                                              "diff('Grade', sign.action='abs')")),
+  dixon_dyadcov_dyadind = list(network = "faux.dixon.high", checks = all_checks,
+                               formula = paste("edges + dyadcov('asym') + nodeifactor('race', levels=c('W','B')) +",
+                                               "diff('grade', pow=2, sign.action='posonly')")),
+  mesa_dyads_fix = list(network = "faux.mesa.high", checks = all_checks,
+                        formula = "edges + nodematch('Grade') + nodematch('Race')",
+                        constraints = "Dyads(fix=~nodematch('Sex'))"),
+  mesa_dyads_vary = list(network = "faux.mesa.high", checks = all_checks, formula = "edges + nodefactor('Sex')",
+                         constraints = "Dyads(vary=~nodematch('Grade'))"),
+  flo_fixedas = list(network = "flomarriage", checks = all_checks, formula = "edges + nodecov('wealth')",
+                     constraints = sprintf("fixedas(present=%s, absent=%s)", r_edges(flo_ties[1:3, ]),
+                                           r_edges(flo_absent[1:3, ]))),
+  flo_fixallbut = list(network = "flomarriage", checks = all_checks, formula = "edges + nodecov('wealth')",
+                       constraints = sprintf("fixallbut(%s)", r_edges(flo_free))),
+  mesa_blockdiag = list(network = "faux.mesa.within", checks = all_checks,
+                        formula = "edges + nodefactor('Sex') + nodematch('Race')", constraints = "blockdiag('Grade')"),
+  # Monte Carlo MLEs with new terms and constraints.
+  mesa_vocab_mle = list(network = "faux.mesa.high", checks = c("stats", "mle"),
+                        formula = "edges + nodematch('Grade') + degree(1, by='Sex') + gwesp(0.5, fixed=TRUE)"),
+  mesa_edges_constraint = list(network = "faux.mesa.high", checks = c("stats", "mle"),
+                               formula = "nodematch('Grade') + nodematch('Race') + gwesp(0.5, fixed=TRUE)",
+                               constraints = "edges"),
+  bip_b1degrees = list(network = "bipartite_sim", checks = c("stats", "mle"),
+                       formula = "b2star(2) + b2factor('g')", constraints = "b1degrees"),
+  dixon_bd_attribs = list(network = "faux.dixon.high", checks = c("stats", "mle"),
+                          formula = "edges + mutual + nodematch('race')",
+                          constraints = "bd(attribs=sexmat, maxout=maxsex)",
+                          py_constraints = "bd(attribs='sexmat', maxout='maxsex')"),
   flo_dyadind = list(network = "flomarriage", checks = all_checks,
                      formula = "edges + nodecov('wealth') + absdiff('wealth')"),
   flo_edgecov = list(network = "flomarriage", checks = all_checks,
@@ -324,6 +463,15 @@ models <- list(
                       formula = paste("N(~edges, ~I(n<=3) + I(n>=5)) +",
                                       "N(~kstar(2) + nodematch('gender') + absdiff('age')) +",
                                       "N(~triangle, ~I(n>=6))")),
+  # N()'s subset, offset and label.
+  goey_offset = list(network = "Goeyvaerts.weekday", checks = all_checks,
+                     formula = "N(~edges + nodematch('gender'), offset=~log(n))"),
+  goey_subset = list(network = "Goeyvaerts.weekday", checks = all_checks,
+                     formula = paste("N(~edges, subset=~n>=4, lm=~I(n>=5)) +",
+                                     "N(~nodematch('gender') + absdiff('age'), lm=~1+offset(I(n<=2)))")),
+  goey_subset_label = list(network = "Goeyvaerts.weekday", checks = all_checks,
+                           formula = paste("N(~edges + triangle, subset=~n>=4, label='big') +",
+                                           "N(~edges, subset=c(TRUE, FALSE), label='odd')")),
 
   # Series of networks (tergm's CMLE).
   series_stats = list(network = "samplk123.NetSeries", checks = "stats",
@@ -338,12 +486,23 @@ models <- list(
   series_one = list(network = "samplk12.NetSeries", checks = all_checks,
                     formula = "Form(~edges + mutual) + Diss(~edges + mutual)"),
   series_curved = list(network = "samplk123.NetSeries", checks = "stats",
-                       formula = "Form(~edges + mutual + gwesp(0.5, cutoff=10)) + Persist(~edges)")
+                       formula = "Form(~edges + mutual + gwesp(0.5, cutoff=10)) + Persist(~edges)"),
+  # Missing dyads: imputed in the networks transitioned from, missing in those
+  # transitioned to.
+  series_na_next_dyadind = list(network = "samplk123.na.next", checks = all_checks,
+                                formula = "Form(~edges + nodematch('group')) + Persist(~edges)"),
+  series_na_next = list(network = "samplk123.na.next", checks = c("stats", "mle"),
+                        formula = "Form(~edges + mutual) + Persist(~edges + mutual)"),
+  series_na_previous = list(network = "samplk123.na.previous", checks = all_checks,
+                            formula = "Form(~edges + nodematch('group')) + Diss(~edges)")
 )
 
 named <- function(x) as.list(x)
 
 results <- list()
+# ERGMX_ONLY=name1,name2 runs only those models, written to r_reference.only.json.
+only <- Sys.getenv("ERGMX_ONLY")
+if (nzchar(only)) models <- models[strsplit(only, ",")[[1]]]
 for (name in names(models)) {
   m <- models[[name]]
   net <- c(networks, combined)[[m$network]]
@@ -358,6 +517,7 @@ for (name in names(models)) {
                  else control.ergm(seed = 1, init.method = m$init_method)
   result <- list(network = m$network, formula = m$formula, checks = as.list(m$checks),
                  constraints = m$constraints, offset_coef = m$offset_coef,
+                 py_formula = m$py_formula, py_constraints = m$py_constraints,
                  bipartite = network::is.bipartite(net), stats = named(summary(f)))
   if ("mple" %in% m$checks) {
     result$mple <- named(coef(fit_ergm(estimate = "MPLE")))
@@ -419,9 +579,54 @@ transitive <- lapply(list(samplk3 = samplk3, faux.dixon.high = faux.dixon.high),
        triads = sum(census[c("030T", "120D", "120U", "300")]))
 })
 
+# 3. dyadcov's utri is documented as the dyads in the upper triangular
+#    asymmetric state (only the tie from the lower- to the higher-numbered
+#    vertex), but ergm counts those as ltri, and the reverse as utri.
+dyadcov_states <- {
+  one <- network.initialize(3); one[1, 2] <- 1
+  ones <- matrix(1, 3, 3)
+  named(summary(one ~ dyadcov(ones)))
+}
+
+# 4. intransitive is documented as the number of intransitive triads (types
+#    111D, 201, 111U, 021C and 030C) but computes intransitive triples
+#    (twopath - ttriple): ergm's value, twopath - ttriple, and the triads.
+intransitive <- lapply(list(samplk3 = samplk3, faux.dixon.high = faux.dixon.high), function(net) {
+  census <- triad_census(graph_from_adjacency_matrix(as.matrix(net), mode = "directed"))
+  names(census) <- c("003", "012", "102", "021D", "021U", "021C", "111D", "111U", "030T", "030C",
+                     "201", "120D", "120U", "120C", "210", "300")
+  list(ergm_intransitive = as.numeric(summary(net ~ intransitive)),
+       twopath_minus_ttriple = as.numeric(summary(net ~ twopath) - summary(net ~ ttriple)),
+       triads = sum(census[c("111D", "201", "111U", "021C", "030C")]))
+})
+
+# ergm.multi's gofN() on the households (a dyad-independent fit, whose MLE
+# ergmx reproduces exactly): each network's observed statistics, and the mean
+# and variance of 2000 simulated ones, for the model's statistics (the
+# default) and for other statistics. ergm.multi leaves out the statistics of
+# the empty network, so it reports degree0 and isolates minus the network size.
+gofn <- if (nzchar(only)) NULL else {
+  goey <- combined$Goeyvaerts.weekday
+  gofn_formula <- "N(~edges, ~I(n<=3) + I(n>=5)) + N(~nodematch('gender') + absdiff('age'))"
+  gofn_fit <- ergm(as.formula(paste("goey ~", gofn_formula)), control = control.ergm(seed = 1))
+  per_network <- function(g) lapply(g, function(x) lapply(x[c("observed", "fitted", "var", "var.obs", "pearson")],
+                                                         function(v) ifelse(is.na(v), NA, v)))
+  set.seed(1)
+  default <- suppressMessages(gofN(gofn_fit, control = control.gofN.ergm(nsim = 2000)))
+  gof_formula <- "edges + triangle + degree(0:2) + isolates"
+  set.seed(2)
+  other <- suppressMessages(gofN(gofn_fit, GOF = as.formula(paste("~", gof_formula)),
+                                 control = control.gofN.ergm(nsim = 2000)))
+  list(network = "Goeyvaerts.weekday", formula = gofn_formula, coef = named(coef(gofn_fit)), nsim = 2000,
+       default = per_network(default), gof_formula = gof_formula, gof = per_network(other),
+       network_size = sapply(subnetwork_templates(goey), network.size))
+}
+
 jsonlite::write_json(
   list(ergm_version = as.character(packageVersion("ergm")),
-       r_version = R.version.string, models = results,
-       ergm_differences = list(rtp = rtp_direct, transitive = transitive)),
-  file.path(out_dir, "r_reference.json"), auto_unbox = TRUE, digits = NA, pretty = TRUE
+       r_version = R.version.string, models = results, gofn = gofn,
+       ergm_differences = list(rtp = rtp_direct, transitive = transitive, intransitive = intransitive,
+                               dyadcov_lower_to_higher_tie = dyadcov_states)),
+  file.path(out_dir, if (nzchar(only)) "r_reference.only.json" else "r_reference.json"),
+  auto_unbox = TRUE, digits = NA, pretty = TRUE
 )

@@ -167,3 +167,20 @@ forbids the ties the term counts: see [](multilevel.md#fixed-coefficients).
 example to bounded degrees in fixed-choice designs: see [](constraints.md).
 Dyads whose value is unknown are marked as edges with `na=True`; the fit is
 then conditional on the observed ones: see [](missing-data.md).
+
+## Saving fits
+
+A fit takes seconds to minutes; {meth}`fit.save(path) <ergmx.ErgmFit.save>`
+keeps it, with its network, estimates, MCMC sample and settings, and
+{func}`ergmx.load_fit` brings it back, to summarize, simulate, check or
+compare as before (R's `saveRDS()` and `readRDS()`):
+
+```python
+fit.save("mesa_fit.pkl")
+fit = ergmx.load_fit("mesa_fit.pkl")
+```
+
+The file is a Python pickle (the fits pickle, too, with `pickle.dump()`),
+so load only files you trust; loading a file saved by another version of
+ergmx warns.
+

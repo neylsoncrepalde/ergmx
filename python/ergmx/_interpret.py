@@ -10,6 +10,7 @@ import numpy as np
 from scipy import stats
 from scipy.special import expit
 
+from . import _core
 from ._estimation import Control, fixed_part
 
 
@@ -136,15 +137,12 @@ def _dyads(model):
     nor between networks), with its change statistics, as ergm's ``predict``
     (which, like ergm, ignores the constraints and counts missing dyads)."""
     net = model.network
-    possible = ~net.between_blocks()
-    if net.bipartite:
-        possible &= net.mode[:, None] != net.mode[None, :]
-    np.fill_diagonal(possible, False)
-    if not net.directed:
-        possible = np.triu(possible, 1)
-    x, _ = model.core.mple_data(net.edges, model._space(possible, bounds=False, preserve=False))
-    tail, head = np.nonzero(possible)
-    return x, tail, head
+    space = None
+    if net.combined or net.bipartite:
+        space = _core.Space(net.n, net.directed, net.block_ids(),
+                            np.ascontiguousarray(net.mode == 1) if net.bipartite else None)
+    x, _, pairs = model.core.mple_data(net.edges, space)
+    return x, pairs[:, 0].astype(np.int64), pairs[:, 1].astype(np.int64)
 
 
 def predict(model, theta, *, conditional: bool = True, type: str = "response", nsim: int = 100,

@@ -94,3 +94,14 @@ The observed values are averages over the imputations, so they need not be
 whole numbers. They show what `edges + mutual` misses: nearly every monk named
 three brothers, the fixed-choice design that the constraint `bd(maxout=4)`,
 or `odegrees`, represents (see [](constraints.md)).
+
+## Several networks, and waves
+
+In networks combined with {func}`ergmx.Networks`, each network's missing
+dyads are missing in the joint model, and {func}`ergmx.gofN` imputes them
+too. In a series of networks ({func}`ergmx.tergm`), the missing dyads of the
+networks transitioned *to* are missing as here; those of the networks
+transitioned *from*, which the next transition is conditional on, are
+imputed first with `na_impute=`, as tergm's `NA.impute`: see
+[](temporal.md#missing-dyads).
+

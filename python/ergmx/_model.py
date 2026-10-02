@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from functools import cached_property
 
 import numpy as np
@@ -36,6 +36,16 @@ class BoundModel:
     #: Parameters of terms that the constraints keep constant.
     constant: np.ndarray = None
     stat_names: list[str] = None
+
+    # Pickling (saving fits): the Rust core and the sample spaces are rebuilt
+    # from the network and the formula when the model is loaded.
+    def __getstate__(self) -> dict:
+        return {f.name: getattr(self, f.name) for f in fields(self) if f.name != "core"}
+
+    def __setstate__(self, state: dict) -> None:
+        for name, value in state.items():
+            object.__setattr__(self, name, value)
+        object.__setattr__(self, "core", _core_model(self.network, self.formula))
 
     @property
     def dyad_independent(self) -> bool:
@@ -130,17 +140,29 @@ class BoundModel:
     # -- Sample spaces ----------------------------------------------------------------------
 
     @cached_property
-    def fixed_dyads(self) -> np.ndarray:
-        """n x n mask of the dyads fixed by the constraints, by -inf offsets,
-        in bipartite networks within a mode, and in combined networks between
-        networks."""
-        mask = self.constraints.fixed(self.network) | self.network.between_blocks()
-        if self.network.bipartite:
-            mode = self.network.mode
-            mask |= mode[:, None] == mode[None, :]
+    def restriction(self) -> dict:
+        """The dyads the model may change, described without n x n arrays
+        where possible: within the networks of a combined network (and
+        blockdiag()'s groups), between the modes of a bipartite network, but
+        the fixed ones (pairs, and a mask for the constraints that need one
+        and for -inf offsets), or only some (`only`)."""
+        network = self.network
+        groups = network.block_ids()
+        extra = self.constraints.groups(network)
+        if extra is not None:
+            groups = extra if groups is None else np.unique(np.column_stack([groups, extra]), axis=0,
+                                                            return_inverse=True)[1].ravel()
+        mask = self.constraints.fixed(network)
         for k in np.flatnonzero(self.fixed & np.isneginf(self.fixed_values)):
-            mask |= self._dyads_counted_by(self._stat_of(k))
-        return mask
+            counted = self._dyads_counted_by(self._stat_of(k))
+            mask = counted if mask is None else mask | counted
+        return {
+            "groups": None if groups is None else np.ascontiguousarray(groups, dtype=np.int64),
+            "modes": (network.mode == 1) if network.bipartite else None,
+            "fixed_mask": mask,
+            "fixed": self.constraints.fixed_pairs(network),
+            "only": self.constraints.free_pairs(network),
+        }
 
     def _stat_of(self, param: int) -> int:
         """The statistic of a parameter of a term that is not curved."""
@@ -151,48 +173,59 @@ class BoundModel:
 
     def _dyads_counted_by(self, stat: int) -> np.ndarray:
         """Dyads where adding a tie changes a dyad-independent statistic."""
-        x, _ = self.core.mple_data(self.network.edges)
+        x, _, pairs = self.core.mple_data(self.network.edges)
         n = self.network.n
-        if self.network.directed:
-            rows, cols = np.nonzero(~np.eye(n, dtype=bool))
-        else:
-            rows, cols = np.triu_indices(n, 1)
         mask = np.zeros((n, n), dtype=bool)
-        hit = x[:, stat] != 0
-        mask[rows[hit], cols[hit]] = True
+        hit = pairs[x[:, stat] != 0].astype(np.int64)
+        mask[hit[:, 0], hit[:, 1]] = True
         return mask | mask.T if not self.network.directed else mask
 
-    def _space(self, free: np.ndarray | None, bounds=True, preserve=True):
-        n = self.network.n
-        b = self.constraints.bounds(self.network) if bounds else None
+    def _space(self, *, fixed=None, only=None, bounds=True, preserve=True, restrict=True):
+        """The Rust sample space: the model's restriction (with more `fixed`
+        pairs, or `only` some), and its degree bounds and preserved degrees."""
+        network, r = self.network, self.restriction
+        b = self.constraints.bounds(network) if bounds else None
+        classes = self.constraints.class_bounds(network) if bounds else None
         kind = self.constraints.preserve_kind if preserve else ""
-        if free is None and b is None and not kind:
+        fixed_pairs = r["fixed"] if fixed is None else np.vstack([r["fixed"], fixed]).astype(np.uint32)
+        if only is not None and r["only"] is not None:
+            from .constraints import _within
+
+            only = only[_within(only, r["only"], network)]
+        elif only is None:
+            only = r["only"]
+        mask = r["fixed_mask"]
+        if (restrict and r["groups"] is None and r["modes"] is None and mask is None and not len(fixed_pairs)
+                and only is None and b is None and classes is None and not kind):
             return None
-        flat = None if free is None else np.ascontiguousarray(free, dtype=bool).ravel()
-        return _core.Space(n, self.network.directed, flat, b, kind)
+        first = self.constraints.first_mode(network) if kind in ("b1degrees", "b2degrees") else None
+        as_pairs = lambda a: None if a is None else np.ascontiguousarray(a, dtype=np.uint32).reshape(-1, 2)  # noqa: E731
+        return _core.Space(network.n, network.directed, r["groups"],
+                           None if r["modes"] is None else np.ascontiguousarray(r["modes"], dtype=bool),
+                           None if mask is None else np.ascontiguousarray(mask, dtype=bool).ravel(),
+                           as_pairs(fixed_pairs), as_pairs(only), b, kind, first, classes)
 
     @cached_property
     def space(self):
         """Where the networks of the model live (None: every network)."""
-        fixed = self.fixed_dyads
-        return self._space(~fixed if fixed.any() else None)
+        return self._space()
 
     @cached_property
     def space_obs(self):
         """The networks that agree with the observed dyads, for conditional samples."""
         if not self.has_missing:
             return None
-        free = self.network.dyad_mask(self.network.missing) & ~self.fixed_dyads
-        return self._space(free)
+        from .constraints import _canonical
+
+        return self._space(only=_canonical(self.network, self.network.missing))
 
     @cached_property
     def space_mple(self):
         """The dyads of the logistic regressions: free and observed."""
-        free = ~self.fixed_dyads & ~self.network.dyad_mask(self.network.missing)
-        np.fill_diagonal(free, False)
-        if free.all(where=~np.eye(self.network.n, dtype=bool)):
-            return None
-        return self._space(free, bounds=False, preserve=False)
+        from .constraints import _canonical
+
+        missing = _canonical(self.network, self.network.missing)
+        return self._space(fixed=missing if len(missing) else None, bounds=False, preserve=False)
 
     @property
     def n_observations(self) -> int:
@@ -203,7 +236,12 @@ class BoundModel:
         return n * (n - 1) // (1 if self.network.directed else 2)
 
     def mple_data(self):
+        """Change statistics of every free observed dyad, its tie, and the dyad."""
         return self.core.mple_data(self.network.edges, self.space_mple)
+
+    def mple_table(self):
+        """The distinct rows of the MPLE data, their ties and counts."""
+        return self.core.mple_table(self.network.edges, self.space_mple)
 
     def simulate(self, starts, theta, burnin, interval, samples, seed, *, conditional=False,
                  canonical=False, **options):
@@ -240,6 +278,16 @@ def _make_unique(names: list[str]) -> list[str]:
     return unique
 
 
+def _core_model(network: Network, formula: Formula) -> _core.Model:
+    """The Rust core's model of a formula on a network."""
+    specs = [t.full_spec(network) for t in formula]
+    if network.combined:
+        layout = [(b.start, b.network.n) for b in network.blocks]
+        prev = [b.prev.edges for b in network.blocks] if network.series else None
+        return _core.Model(network.n, network.directed, specs, layout, prev)
+    return _core.Model(network.n, network.directed, specs)
+
+
 def bind(network, formula, constraints=None, offset_coef=None, fitting=False,
          bipartite=None) -> BoundModel:
     """Bind a formula to a network, with constraints and offset coefficients.
@@ -257,13 +305,7 @@ def bind(network, formula, constraints=None, offset_coef=None, fitting=False,
     constraints.check(network)
     stat_names = _make_unique([name for term in formula for name in term.names(network)])
     names = _make_unique([name for term in formula for name in term.param_names(network)])
-    specs = [t.full_spec(network) for t in formula]
-    if network.combined:
-        layout = [(b.start, b.network.n) for b in network.blocks]
-        prev = [b.prev.edges for b in network.blocks] if network.series else None
-        core = _core.Model(network.n, network.directed, specs, layout, prev)
-    else:
-        core = _core.Model(network.n, network.directed, specs)
+    core = _core_model(network, formula)
     if core.n_stats != len(stat_names):
         raise RuntimeError(f"internal error: {core.n_stats} statistics, {len(stat_names)} names")
 
@@ -307,8 +349,8 @@ def bind(network, formula, constraints=None, offset_coef=None, fitting=False,
         term = next(t for t, cols in model.term_columns() if k in cols)
         if not term.dyad_independent:
             raise NotImplementedError("-inf offsets are only supported for dyad-independent terms")
-    if np.isneginf(values).any():
-        forbidden = model.fixed_dyads & network.dyad_mask(network.edges)
-        if forbidden.any():
+    if np.isneginf(values).any() and len(network.edges):
+        mask = model.restriction["fixed_mask"]
+        if mask is not None and mask[network.edges[:, 0], network.edges[:, 1]].any():
             raise ValueError("the observed network has ties that a -inf offset forbids")
     return model

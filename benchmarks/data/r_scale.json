@@ -1,0 +1,135 @@
+{
+  "ergm_version": "4.12.0",
+  "ergm_multi_version": "0.3.0",
+  "models": {
+    "magnolia_1461": {
+      "n": 1461,
+      "formula": "edges + nodematch('Grade') + nodematch('Race') + nodematch('Sex') + gwesp(0.25, fixed=TRUE)",
+      "mple_seconds": 0.224,
+      "mle_seconds": 17.247,
+      "mple": {
+        "edges": -9.86196867543858,
+        "nodematch.Grade": 2.85346129580512,
+        "nodematch.Race": 0.988631313190778,
+        "nodematch.Sex": 0.824528544570376,
+        "gwesp.fixed.0.25": 1.69461119501558
+      },
+      "coef": {
+        "edges": -9.78040930378661,
+        "nodematch.Grade": 2.74598098148386,
+        "nodematch.Race": 0.905978449388151,
+        "nodematch.Sex": 0.76573028792786,
+        "gwesp.fixed.0.25": 1.80096151619234
+      },
+      "se": {
+        "edges": 0.102254426444928,
+        "nodematch.Grade": 0.0864503689029475,
+        "nodematch.Race": 0.0744832613767888,
+        "nodematch.Sex": 0.0635170098144258,
+        "gwesp.fixed.0.25": 0.0494151543584386
+      }
+    },
+    "magnolia_2500": {
+      "n": 2500,
+      "formula": "edges + nodematch('Grade') + nodematch('Race') + nodematch('Sex') + gwesp(0.25, fixed=TRUE)",
+      "mple_seconds": 0.398,
+      "mle_seconds": 11.444,
+      "mple": {
+        "edges": -10.3384398213416,
+        "nodematch.Grade": 2.83094960462675,
+        "nodematch.Race": 0.853479018171719,
+        "nodematch.Sex": 0.815718772392617,
+        "gwesp.fixed.0.25": 1.78722389624303
+      },
+      "coef": {
+        "edges": -10.316815918006,
+        "nodematch.Grade": 2.83512147914815,
+        "nodematch.Race": 0.859148006850513,
+        "nodematch.Sex": 0.778851863200491,
+        "gwesp.fixed.0.25": 1.77059264490454
+      },
+      "se": {
+        "edges": 0.0838266771308878,
+        "nodematch.Grade": 0.0707200674867954,
+        "nodematch.Race": 0.0617841533827264,
+        "nodematch.Sex": 0.0552785270418314,
+        "gwesp.fixed.0.25": 0.0472727708283903
+      }
+    },
+    "magnolia_5000": {
+      "n": 5000,
+      "formula": "edges + nodematch('Grade') + nodematch('Race') + nodematch('Sex') + gwesp(0.25, fixed=TRUE)",
+      "mple_seconds": 1.44,
+      "mle_seconds": 12.018,
+      "mple": {
+        "edges": -10.9466308273743,
+        "nodematch.Grade": 2.7903894376913,
+        "nodematch.Race": 0.740288109769963,
+        "nodematch.Sex": 0.759831606691483,
+        "gwesp.fixed.0.25": 1.88743373843662
+      },
+      "coef": {
+        "edges": -10.9583118199303,
+        "nodematch.Grade": 2.79493848173018,
+        "nodematch.Race": 0.746595780261258,
+        "nodematch.Sex": 0.768875618508098,
+        "gwesp.fixed.0.25": 1.89333158609016
+      },
+      "se": {
+        "edges": 0.0622027405295129,
+        "nodematch.Grade": 0.0516564070752256,
+        "nodematch.Race": 0.0451253007930014,
+        "nodematch.Sex": 0.0402277978390454,
+        "gwesp.fixed.0.25": 0.0416581398997789
+      }
+    },
+    "magnolia_10000": {
+      "n": 10000,
+      "formula": "edges + nodematch('Grade') + nodematch('Race') + nodematch('Sex') + gwesp(0.25, fixed=TRUE)",
+      "mple_seconds": 5.626,
+      "mle_seconds": 36.913,
+      "mple": {
+        "edges": -11.6232095896105,
+        "nodematch.Grade": 2.70176145206273,
+        "nodematch.Race": 0.879778057331317,
+        "nodematch.Sex": 0.727007207340835,
+        "gwesp.fixed.0.25": 1.81159796762267
+      },
+      "coef": {
+        "edges": -11.6202485027022,
+        "nodematch.Grade": 2.6992787794797,
+        "nodematch.Race": 0.879326905885056,
+        "nodematch.Sex": 0.723198167171356,
+        "gwesp.fixed.0.25": 1.81755830359129
+      },
+      "se": {
+        "edges": 0.0463562876653315,
+        "nodematch.Grade": 0.0368144443189913,
+        "nodematch.Race": 0.0360047736695518,
+        "nodematch.Sex": 0.0343400753678609,
+        "gwesp.fixed.0.25": 0.0403778708607619
+      }
+    },
+    "classrooms": {
+      "n": 10000,
+      "formula": "N(~edges + nodematch('gender') + gwesp(0.5, fixed=TRUE))",
+      "mple_seconds": 2.58799999999999,
+      "mle_seconds": 91.271,
+      "mple": {
+        "N(1)~edges": -2.51852070420241,
+        "N(1)~nodematch.gender": 1.01627488139466,
+        "N(1)~gwesp.fixed.0.5": 0.598878900151234
+      },
+      "coef": {
+        "N(1)~edges": -2.48802574982479,
+        "N(1)~nodematch.gender": 1.0137520124682,
+        "N(1)~gwesp.fixed.0.5": 0.587924447338078
+      },
+      "se": {
+        "N(1)~edges": 0.0301965291432641,
+        "N(1)~nodematch.gender": 0.0131615642221948,
+        "N(1)~gwesp.fixed.0.5": 0.0145596468099817
+      }
+    }
+  }
+}

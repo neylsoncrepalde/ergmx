@@ -28,7 +28,6 @@ import random
 import igraph as ig
 import matplotlib.pyplot as plt
 import multinets as mn
-import numpy as np
 
 import ergmx
 from ergmx import datasets
@@ -161,40 +160,20 @@ z-scores were beyond ±2: the chains hadn't mixed as well.
 
 ## Does the model fit each level?
 
-{meth}`~ergmx.ErgmFit.gof` compares the distributions of the whole network,
-which mixes the levels. To check each level separately, simulate networks
-from the model (given the memberships, as the fit), and compare each
-level's degree distribution with the observed one:
+{meth}`~ergmx.ErgmFit.gof` with `by="level"` compares each level's network
+with those of 100 networks simulated from the model (given the memberships,
+as the fit): its degrees, edgewise shared partners and distances, as MPNet's
+goodness of fit does ([Goodness of fit](../goodness-of-fit.md)):
 
 ```{code-cell} ipython3
-def degrees(g):
-    """Each vertex's number of ties within its level."""
-    return {level: g.induced_subgraph(g.vs.select(level=level)).degree()
-            for level in ("researcher", "laboratory")}
-
-
-observed = degrees(labs)
-simulated = [degrees(g) for g in multilevel.simulate(100, seed=1)]
-
-fig, axes = plt.subplots(1, 2, figsize=(11, 4))
-titles = {"researcher": "Ties among researchers", "laboratory": "Ties among laboratories"}
-for ax, level in zip(axes, observed):
-    top = max(observed[level]) + 4
-    counts = np.array([np.bincount(s[level], minlength=top)[:top] for s in simulated])
-    ax.boxplot(counts, positions=range(top), showfliers=False, medianprops={"color": "grey"})
-    ax.plot(range(top), np.bincount(observed[level], minlength=top), color="black", marker="o",
-            markersize=3)
-    ax.set(title=titles[level], xlabel="degree", ylabel="vertices")
-fig.tight_layout()
+multilevel.gof(by="level", stats=["degree", "espartners", "distance"], seed=1).plot();
 ```
 
-The model reproduces the researchers' degrees (the black line is the
-observed distribution, the boxplots the simulated ones). The laboratories'
-are noisier, as there are only 30 of them: the observed network has one
-laboratory with 4 ties, where the simulated networks have 5 in the median,
-and four with 8, as many as the most of any simulated network. Both are
-within the range of the simulations, and the model is the true one: with
-so few vertices, such deviations happen by chance.
+The model reproduces both levels' distributions (the black lines are the
+observed ones, the boxplots the simulated ones), as the true model should.
+The laboratories' degrees are noisier, as there are only 30 of them: one
+laboratory with 4 ties and four with 8 are at the edge of the simulations,
+deviations that happen by chance with so few vertices.
 
 ## Which model is better?
 

@@ -61,6 +61,15 @@ class Network:
         """Whether the network is a series of transitions (NetSeries())."""
         return self.blocks is not None and self.blocks[0].prev is not None
 
+    def block_ids(self) -> np.ndarray | None:
+        """Each vertex's network in a combined network (None if not combined)."""
+        if self.blocks is None:
+            return None
+        ids = np.full(self.n, -1, dtype=np.int64)
+        for k, b in enumerate(self.blocks):
+            ids[b.start:b.stop] = k
+        return ids
+
     def between_blocks(self) -> np.ndarray:
         """n x n mask of the dyads between different networks of a combined network."""
         mask = np.zeros((self.n, self.n), dtype=bool)

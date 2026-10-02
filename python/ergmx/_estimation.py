@@ -157,13 +157,15 @@ def _pseudo_loglik(lin, y, weights) -> float:
     return float(np.sum(weights * (y * lin - np.logaddexp(0, lin))))
 
 
-def regression(x, y, model: BoundModel, params=None, zero=None):
+def regression(x, y, model: BoundModel, params=None, zero=None, weights=None):
     """The logistic regression of the dyads on their change statistics: the
     MPLE, or the exact MLE of a dyad-independent model.
 
     The parameters in `params` (the free ones, by default) are estimated;
     the others keep their fixed values, or 0, and those in `zero` are 0
-    whatever their fixed values. With curved terms, the
+    whatever their fixed values. ``weights`` counts the dyads of each row
+    (as ``BoundModel.mple_table`` gives them); without, the rows are
+    counted here. With curved terms, the
     statistics' coefficients are nonlinear in the parameters: the decays are
     first held at their starting values, which leaves a logistic regression,
     then all parameters are refined by Gauss-Newton steps. Returns the
@@ -174,9 +176,10 @@ def regression(x, y, model: BoundModel, params=None, zero=None):
     theta[~params & ~model.fixed] = 0.0
     if zero is not None:
         theta[zero] = 0.0
-    # Many dyads share the same change statistics: fit on the distinct rows.
-    rows, counts = np.unique(np.column_stack([x, y]), axis=0, return_counts=True)
-    x, y, weights = rows[:, :-1], rows[:, -1], counts.astype(float)
+    if weights is None:
+        # Many dyads share the same change statistics: fit on the distinct rows.
+        rows, counts = np.unique(np.column_stack([x, y]), axis=0, return_counts=True)
+        x, y, weights = rows[:, :-1], rows[:, -1], counts.astype(float)
     linear = params.copy()
     if model.curved:
         for position, _ in _decays_of(model):
@@ -259,8 +262,8 @@ def _gauss_newton_mple(x, y, weights, model, theta, params):
 
 
 def mple(model: BoundModel) -> Estimate:
-    x, y = model.mple_data()
-    theta, cov, loglik = regression(x, y, model)
+    x, y, w = model.mple_table()
+    theta, cov, loglik = regression(x, y, model, weights=w)
     return Estimate(theta, cov, None, loglik, "MPLE", 0, True, None, loglik_se=0.0)
 
 

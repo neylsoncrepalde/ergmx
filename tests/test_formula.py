@@ -23,7 +23,7 @@ def test_terms_combine_with_plus():
 @pytest.mark.parametrize(
     ("formula", "message"),
     [
-        ("edges + localtriangle", "unknown term 'localtriangle'"),
+        ("edges + tripercent", "unknown term 'tripercent'"),
         ("edges + nodematch(attr)", "must be literals"),
         ("edges - triangle", "can't parse"),
         ("edges +", "can't parse the formula"),
@@ -36,9 +36,8 @@ def test_bad_formulas(formula, message):
 
 
 def test_unsupported_options_are_errors_not_silent():
-    for unsupported in ("degree(1, by='Sex')", "cycle(4, semi=TRUE)", "b1nodematch('g', diff=TRUE)",
-                        "b1nodematch('g', alpha=0.5)"):
-        with pytest.raises((NotImplementedError, FormulaError), match="not supported"):
+    for unsupported in ("cycle(4, semi=TRUE)", "altkstar(2)"):
+        with pytest.raises((NotImplementedError, FormulaError), match="not supported|only fixed=TRUE"):
             parse_formula(unsupported)
 
 

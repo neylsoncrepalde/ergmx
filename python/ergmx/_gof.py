@@ -7,8 +7,8 @@ from dataclasses import dataclass
 
 import numpy as np
 from scipy import sparse
-from scipy.sparse.csgraph import shortest_path
 
+from . import _core
 from ._estimation import Control
 from ._model import bind
 
@@ -21,10 +21,12 @@ _TITLES = {
     "espartners": "edgewise shared partners",
     "dspartners": "dyadwise shared partners",
     "distance": "minimum geodesic distance",
+    "affiliations": "affiliations",
     "model": "model statistics",
 }
 _UNITS = {"degree": "nodes", "idegree": "nodes", "odegree": "nodes", "b1degree": "nodes",
-          "b2degree": "nodes", "espartners": "edges", "dspartners": "dyads", "distance": "dyads"}
+          "b2degree": "nodes", "espartners": "edges", "dspartners": "dyads", "distance": "dyads",
+          "affiliations": "nodes"}
 
 
 def _adjacency(n: int, directed: bool, edges: np.ndarray) -> sparse.csr_matrix:
@@ -33,33 +35,59 @@ def _adjacency(n: int, directed: bool, edges: np.ndarray) -> sparse.csr_matrix:
     return a if directed else a + a.T
 
 
+#: The distributions computed by the Rust core, without n x n matrices.
+_RUST = ("espartners", "dspartners", "distance")
+
+
 def _distribution(n: int, directed: bool, edges: np.ndarray, stat: str, mode=None) -> np.ndarray:
+    if stat in _RUST:
+        return _many(n, directed, [edges], stat)[0]
     a = _adjacency(n, directed, edges)
     if stat in ("b1degree", "b2degree"):
         degrees = np.asarray(a.sum(axis=1)).ravel()[mode == (1 if stat == "b1degree" else 2)]
         return np.bincount(degrees, minlength=n)
-    if stat == "dspartners":
-        # Shared partners of every pair: two-paths i -> k -> j (OTP, ordered pairs, if directed).
-        two_paths = (a @ a).toarray()
-        pairs = two_paths[~np.eye(n, dtype=bool)] if directed else two_paths[np.triu_indices(n, 1)]
-        return np.bincount(pairs.astype(np.int64), minlength=n - 1)
     if stat in ("degree", "odegree"):
         return np.bincount(np.asarray(a.sum(axis=1)).ravel(), minlength=n)
     if stat == "idegree":
         return np.bincount(np.asarray(a.sum(axis=0)).ravel(), minlength=n)
-    if stat == "espartners":
-        if not len(edges):
-            return np.zeros(n - 1, dtype=np.int64)
-        # Shared partners of each tie i -> j: two-paths i -> k -> j (OTP if directed).
-        two_paths = (a @ a).tocsr()
-        partners = np.asarray(two_paths[edges[:, 0], edges[:, 1]]).ravel().astype(np.int64)
-        return np.bincount(partners, minlength=n - 1)
-    if stat == "distance":
-        d = shortest_path(a, directed=directed, unweighted=True)
-        d = d[~np.eye(n, dtype=bool)] if directed else d[np.triu_indices(n, 1)]
-        finite = d[np.isfinite(d)].astype(np.int64)
-        return np.append(np.bincount(finite, minlength=n)[1:], np.sum(~np.isfinite(d)))
     raise ValueError(f"unknown goodness-of-fit statistic {stat!r}")
+
+
+def _many(n: int, directed: bool, edge_lists, stat: str) -> np.ndarray:
+    """A distribution of each of several networks (networks x values)."""
+    lists = [np.ascontiguousarray(e, dtype=np.uint32).reshape(-1, 2) for e in edge_lists]
+    if stat in _RUST:
+        if n < 2:
+            return np.zeros((len(lists), n if stat == "distance" else 0), dtype=np.int64)
+        return _core.gof_distribution(n, directed, lists, stat).astype(np.int64)
+    return np.array([_distribution(n, directed, e, stat) for e in lists])
+
+
+def _pooled_many(network, edge_lists, stat: str) -> np.ndarray:
+    """A distribution of each of several networks, summed over the networks
+    of a combined network (counting no pairs of vertices in different
+    networks): networks x values."""
+    if not network.combined:
+        if stat in _RUST:
+            return _many(network.n, network.directed, edge_lists, stat)
+        return np.array([_pooled(network, e, stat) for e in edge_lists])
+    size = max(b.network.n for b in network.blocks)
+    total = np.zeros((len(edge_lists), size), dtype=np.int64)
+    parts = [network.split(e) for e in edge_lists]
+    for k, block in enumerate(network.blocks):
+        if stat in _RUST:
+            d = _many(block.network.n, network.directed, [p[k] for p in parts], stat)
+        else:
+            d = np.array([_distribution(block.network.n, network.directed, p[k], stat, block.network.mode)
+                          for p in parts])
+        if not d.shape[1]:
+            continue
+        if stat == "distance":  # distances 1..n-1, then unreachable pairs
+            total[:, :d.shape[1] - 1] += d[:, :-1]
+            total[:, -1] += d[:, -1]
+        else:
+            total[:, :d.shape[1]] += d
+    return total[:, :size - 1] if stat in ("espartners", "dspartners") else total
 
 
 def _pooled(network, edges: np.ndarray, stat: str) -> np.ndarray:
@@ -95,6 +123,22 @@ class GofTable:
     labels: list[str]
     observed: np.ndarray
     simulated: np.ndarray  # nsim x len(labels)
+    #: The statistic (degree, espartners...), for by-level tables named "degree.<level>".
+    stat: str | None = None
+    #: The level of a vertex attribute (gof's by=) whose network this is.
+    level: str | None = None
+
+    @property
+    def kind(self) -> str:
+        return self.stat or self.name
+
+    @property
+    def title(self) -> str:
+        if self.level is None:
+            return _TITLES[self.kind]
+        if self.kind == "affiliations":
+            return f"affiliations of {self.level}"
+        return f"{_TITLES[self.kind]}, {self.level}"
 
     @property
     def min(self) -> np.ndarray:
@@ -118,19 +162,19 @@ class GofTable:
     def _shown(self) -> np.ndarray:
         """Rows worth printing: up to the last one where anything is non-zero."""
         rows = np.arange(len(self.labels))
-        if self.name == "model":
+        if self.kind == "model":
             return rows
-        finite = len(rows) - 1 if self.name == "distance" else len(rows)  # distance ends with Inf
+        finite = len(rows) - 1 if self.kind == "distance" else len(rows)  # distance ends with Inf
         busy = np.flatnonzero(((self.observed > 0) | (self.max > 0))[:finite])
         keep = rows <= (busy.max() if busy.size else 0)
-        if self.name == "distance":
+        if self.kind == "distance":
             keep[-1] = True  # always show unreachable pairs
         return rows[keep]
 
     def __str__(self) -> str:
         rows = self._shown()
         width = max(len(self.labels[r]) for r in rows)
-        lines = [f"Goodness-of-fit for {_TITLES[self.name]}", "",
+        lines = [f"Goodness-of-fit for {self.title}", "",
                  f"{'':<{width}}  {'obs':>8}  {'min':>8}  {'mean':>9}  {'max':>8}  {'MC p-value':>10}"]
         for r in rows:
             lines.append(
@@ -169,15 +213,18 @@ class GofResult:
             raise ImportError('plotting needs matplotlib: install "ergmx[plot]"') from None
         tables = list(self)
         if axes is None:
-            fig, axes = plt.subplots(1, len(tables), figsize=(4.2 * len(tables), 3.6),
-                                     squeeze=False)
-            axes = axes[0]
+            ncols = len(tables) if len(tables) <= 5 else 4
+            nrows = -(-len(tables) // ncols)
+            fig, axes = plt.subplots(nrows, ncols, figsize=(4.2 * ncols, 3.6 * nrows), squeeze=False)
+            for ax in axes.ravel()[len(tables):]:
+                ax.set_visible(False)
+            axes = axes.ravel()
         else:
             axes = np.ravel(axes)
             fig = axes[0].figure
         for ax, table in zip(axes, tables):
             rows = table._shown()
-            if table.name == "model":
+            if table.kind == "model":
                 # Statistics have different scales: plot them standardized.
                 sd = table.simulated.std(axis=0)
                 sd[sd == 0] = 1.0
@@ -188,22 +235,54 @@ class GofResult:
                 total[total == 0] = 1
                 sim = table.simulated / total
                 obs = table.observed / max(table.observed.sum(), 1)
-                ylabel = f"proportion of {_UNITS[table.name]}"
+                ylabel = f"proportion of {_UNITS[table.kind]}"
             ax.boxplot(sim[:, rows], tick_labels=[table.labels[r] for r in rows], showfliers=False,
                        medianprops={"color": "grey"})
-            ax.plot(np.arange(1, len(rows) + 1), obs[rows] if table.name != "model" else obs,
+            ax.plot(np.arange(1, len(rows) + 1), obs[rows] if table.kind != "model" else obs,
                     color="black", linewidth=2, marker="o", markersize=3)
-            ax.set_title(_TITLES[table.name])
+            ax.set_title(table.title)
             ax.set_ylabel(ylabel)
-            if table.name == "model" or len(rows) > 12:
+            if table.kind == "model" or len(rows) > 12:
                 ax.tick_params(axis="x", labelrotation=90)
         fig.tight_layout()
         return fig
 
 
+def _within(edges: np.ndarray, members: np.ndarray, n: int) -> tuple[int, np.ndarray]:
+    """The ties among some vertices, renumbered among them."""
+    position = np.full(n, -1)
+    position[members] = np.arange(len(members))
+    if not len(edges):
+        return len(members), np.zeros((0, 2), dtype=np.uint32)
+    a, b = position[edges[:, 0].astype(int)], position[edges[:, 1].astype(int)]
+    keep = (a >= 0) & (b >= 0)
+    return len(members), np.column_stack([a[keep], b[keep]]).astype(np.uint32)
+
+
+def _affiliations(network, edges: np.ndarray, members: np.ndarray, others: np.ndarray, first: bool) -> np.ndarray:
+    """The distribution of the members' ties to the other level (in directed
+    networks, arcs from the first level to the second)."""
+    inside = np.zeros(network.n, dtype=bool)
+    inside[members] = True
+    outside = np.zeros(network.n, dtype=bool)
+    outside[others] = True
+    count = np.zeros(network.n, dtype=np.int64)
+    if len(edges):
+        i, j = edges[:, 0].astype(int), edges[:, 1].astype(int)
+        if network.directed:
+            tail, head = (inside, outside) if first else (outside, inside)
+            across = tail[i] & head[j]
+            np.add.at(count, i[across] if first else j[across], 1)
+        else:
+            for a, b in ((i, j), (j, i)):
+                across = inside[a] & outside[b]
+                np.add.at(count, a[across], 1)
+    return np.bincount(count[members], minlength=len(others) + 1)
+
+
 def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=None, seed=None,
         interval: int | None = None, burnin: int | None = None, n_chains: int | None = None,
-        triadic_weight: float | None = None) -> GofResult:
+        triadic_weight: float | None = None, by: str | None = None) -> GofResult:
     """Goodness of fit of an ERGM, like R's ``gof()``.
 
     Simulates ``nsim`` networks from the model and compares their degree,
@@ -231,6 +310,13 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
     interval, burnin : int, optional
         MCMC proposals between and before the simulated networks. Default to
         the interval the fit ended with (1024 otherwise), and 16 times that.
+    by : str, optional
+        A vertex attribute, such as the level of a multilevel network: the
+        distributions are then of the network within each of its values
+        (tables ``"degree.<value>"``, ``"espartners.<value>"``...) and, with
+        two values, of each value's number of ties to the other
+        (``"affiliations.<value>"``; in directed networks, arcs from the first
+        value to the second), with the model statistics.
 
     Notes
     -----
@@ -263,6 +349,9 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
             coef = [coef[name] for name in model.names]
         fitted_interval = None
     network = model.network
+    if by is not None:
+        return _gof_by(model, coef, by, stats, nsim, seed, interval, burnin, n_chains, triadic_weight,
+                       fitted_interval)
     if stats is None and network.bipartite:
         stats = ["b1degree", "b2degree", "dspartners", "distance", "model"]  # as ergm
     if stats is None:
@@ -297,7 +386,7 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
         imputed_edges, imputed_stats = [network.edges], model.observed()[None, :]
 
     def distributions(edge_lists, stat):
-        return np.array([_pooled(network, e, stat) for e in edge_lists])
+        return _pooled_many(network, edge_lists, stat)
 
     tables = {}
     for stat in stats:
@@ -309,4 +398,81 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
         size = max(b.network.n for b in network.blocks) if network.combined else network.n
         tables[stat] = GofTable(stat, _labels(size, stat), observed,
                                 distributions(simulated_edges, stat))
+    return GofResult(tables, nsim)
+
+
+def _simulations(model, coef, nsim, seed, interval, burnin, n_chains, triadic_weight):
+    """Networks simulated from the model, and the observed (or imputed) ones,
+    with their model statistics."""
+    network = model.network
+    chains = max(1, min(n_chains or Control().n_chains, nsim))
+    per_chain = -(-nsim // chains)
+    rng = np.random.default_rng(seed)
+
+    def draw(conditional):
+        sample, _, networks = model.simulate(
+            [network.edges] * chains, coef, burnin, interval, per_chain,
+            int(rng.integers(2**63)), conditional=conditional, keep_networks=True,
+            triadic_weight=model.triadic_weight(triadic_weight),
+        )
+        return [e for chain in networks for e in chain][:nsim], sample.reshape(-1, model.n_stats)[:nsim]
+
+    simulated, stats = draw(conditional=False)
+    if model.has_missing:
+        observed, observed_stats = draw(conditional=True)
+    else:
+        observed, observed_stats = [network.edges], model.observed()[None, :]
+    return simulated, stats, observed, observed_stats
+
+
+def _gof_by(model, coef, by, stats, nsim, seed, interval, burnin, n_chains, triadic_weight, fitted_interval):
+    network = model.network
+    if network.combined:
+        raise ValueError("gof(by=) is not supported for several networks combined")
+    from .terms import _level_name
+
+    values = np.asarray(network.attribute(by), dtype=object)
+    levels = sorted({v for v in values if v is not None}, key=lambda v: (str(type(v)), v))
+    within = ["idegree", "odegree"] if network.directed else ["degree"]
+    stats = stats or [*within, "espartners", "distance", "affiliations", "model"]
+    allowed = {*within, "espartners", "dspartners", "distance", "affiliations", "model"}
+    unknown = [s for s in stats if s not in allowed]
+    if unknown:
+        raise ValueError(f"gof(by=): unknown statistics {unknown}; use {sorted(allowed)}")
+    interval = interval or fitted_interval or Control.interval
+    burnin = 16 * interval if burnin is None else burnin
+    simulated, model_stats, observed, observed_stats = _simulations(
+        model, coef, nsim, seed, interval, burnin, n_chains, triadic_weight)
+
+    tables = {}
+    for level in levels:
+        members = np.flatnonzero(values == level)
+        name = _level_name(level)
+        if len(members) < 2:
+            continue
+        for stat in stats:
+            if stat in ("model", "affiliations"):
+                continue
+
+            def dist(edges, stat=stat, members=members):
+                size, part = _within(edges, members, network.n)
+                return _distribution(size, network.directed, part, stat)
+
+            obs = np.mean([dist(e) for e in observed], axis=0)
+            tables[f"{stat}.{name}"] = GofTable(f"{stat}.{name}", _labels(len(members), stat), obs,
+                                                np.array([dist(e) for e in simulated]), stat=stat, level=name)
+    if "affiliations" in stats and len(levels) == 2:
+        for k, level in enumerate(levels):
+            members, others = np.flatnonzero(values == level), np.flatnonzero(values == levels[1 - k])
+
+            def dist(edges, members=members, others=others, first=k == 0):
+                return _affiliations(network, edges, members, others, first)
+
+            name = _level_name(level)
+            obs = np.mean([dist(e) for e in observed], axis=0)
+            tables[f"affiliations.{name}"] = GofTable(
+                f"affiliations.{name}", [str(d) for d in range(len(others) + 1)], obs,
+                np.array([dist(e) for e in simulated]), stat="affiliations", level=name)
+    if "model" in stats:
+        tables["model"] = GofTable("model", list(model.stat_names), observed_stats.mean(axis=0), model_stats)
     return GofResult(tables, nsim)

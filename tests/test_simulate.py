@@ -1,7 +1,7 @@
 import igraph as ig
 import networkx as nx
 import numpy as np
-from conftest import REFERENCE, load
+from conftest import formula, REFERENCE, load
 
 import ergmx
 
@@ -9,7 +9,7 @@ import ergmx
 def test_simulated_graphs_keep_the_vertex_attributes():
     g = load("faux.mesa.high")
     model = REFERENCE["mesa_gwesp"]
-    networks = ergmx.simulate(g, model["formula"], model["mle"], nsim=3, seed=1)
+    networks = ergmx.simulate(g, formula(model), model["mle"], nsim=3, seed=1)
     assert len(networks) == 3
     for h in networks:
         assert isinstance(h, ig.Graph) and h.vcount() == g.vcount()

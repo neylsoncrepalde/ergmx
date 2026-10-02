@@ -23,6 +23,7 @@ Several networks, and networks over time
    Networks
    NetSeries
    tergm
+   EgmmeFit
    simulate_dynamic
    DynamicSimulation
 
@@ -34,6 +35,7 @@ Results
 
    ErgmFit
    FitSummary
+   load_fit
 
 Interpreting and reporting results
 ----------------------------------
@@ -56,6 +58,10 @@ Checking and comparing models
    gof
    GofResult
    GofTable
+   gofN
+   GofNResult
+   GofNTable
+   GofNSummary
    McmcDiagnostics
    compare
    ModelComparison
@@ -110,6 +116,47 @@ statistics.
    nodeocov
    absdiff
    absdiffcat
+   density
+   meandeg
+   dyadcov
+   hamming
+   attrcov
+   mm
+   diff
+   smalldiff
+   nodecovrange
+   nodeicovrange
+   nodeocovrange
+   nodefactordistinct
+   nodeofactordistinct
+   nodeifactordistinct
+   degrange
+   idegrange
+   odegrange
+   degree1_5
+   idegree1_5
+   odegree1_5
+   concurrentties
+   isolatededges
+   altkstar
+   triadcensus
+   balance
+   intransitive
+   simmelian
+   nearsimmelian
+   simmelianties
+   transitiveties
+   cyclicalties
+   threetrail
+   opentriad
+   localtriangle
+   m2star
+   desp
+   ddsp
+   dnsp
+   dgwesp
+   dgwdsp
+   dgwnsp
 
 Bipartite terms
 ---------------
@@ -138,6 +185,20 @@ about the first mode, ``b2`` terms the second.
    b2dsp
    gwb1dsp
    gwb2dsp
+   b1degrange
+   b2degrange
+   b1mindegree
+   b2mindegree
+   b1sociality
+   b2sociality
+   b1starmix
+   b2starmix
+   b1twostar
+   b2twostar
+   b1covrange
+   b2covrange
+   b1factordistinct
+   b2factordistinct
 
 Operators
 ---------
@@ -155,6 +216,22 @@ Operators
    Cross
    Change
    terms.Curved
+
+Statistics of tie ages
+----------------------
+
+tergm's durational statistics: targets of the EGMME and monitors of dynamic
+simulations (see the :doc:`user guide <user-guide/temporal>`); in formula
+strings, by their R names (``mean.age``...).
+
+.. autosummary::
+   :toctree: generated/
+
+   edge_ages
+   mean_age
+   edges_ageinterval
+   edgecov_ages
+   nodefactor_mean_age
 
 Multilevel terms
 ----------------
@@ -181,6 +258,44 @@ MPNet's configurations of two-level networks; see the
    l3xbx
    l3axb
    c4axb
+   exta
+   extb
+   asaxasb
+   in2starax
+   in2starbx
+   out2starax
+   out2starbx
+   axs1ain
+   axs1bin
+   axs1aout
+   axs1bout
+   aains1x
+   abins1x
+   aaouts1x
+   abouts1x
+   txaxarc
+   txbxarc
+   txaxreciprocity
+   txbxreciprocity
+   atxaxarc
+   atxbxarc
+   atxaxreciprocity
+   atxbxreciprocity
+   l3xaxreciprocity
+   l3xbxreciprocity
+   l3axbin
+   l3axbout
+   l3axbpath
+   l3bxapath
+   c4axbentrainment
+   c4axbexchange
+   c4axbexchangeareciprocity
+   c4axbexchangebreciprocity
+   c4axbreciprocity
+   ainasxainbs
+   aoutasxaoutbs
+   ainasxaoutbs
+   aoutasxainbs
 
 Constraints
 -----------
@@ -198,6 +313,14 @@ in R syntax, ``"bd(maxout=4) + blocks('level', levels2=2)"``. See the
    constraints.Degrees
    constraints.ODegrees
    constraints.IDegrees
+   constraints.Edges
+   constraints.B1Degrees
+   constraints.B2Degrees
+   constraints.Fixedas
+   constraints.Fixallbut
+   constraints.Observed
+   constraints.Blockdiag
+   constraints.DyadsConstraint
 
 Formulas
 --------

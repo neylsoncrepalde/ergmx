@@ -1,10 +1,73 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (2026-10-02)
 
+- **More of ergm's vocabulary**, checked against R: `degrange`,
+  `idegrange`, `odegrange`, `degree1.5` and its in- and out- versions,
+  `concurrentties`, `isolatededges`, `density`, `meandeg`, `dyadcov`,
+  `hamming`, `attrcov`, `mm`, `diff`, `smalldiff`, the covariate ranges
+  (`nodecovrange`...) and distinct neighbour types (`nodefactordistinct`...),
+  `altkstar`, the triad census and `balance`, `intransitive`, `simmelian`,
+  `nearsimmelian`, `simmelianties`, `transitiveties`, `cyclicalties`,
+  `threetrail`, `opentriad`, `localtriangle`, `m2star`, the directed `d*sp`
+  aliases, and for bipartite networks `b1degrange`, `b1mindegree`,
+  `b1sociality`, `b1starmix`, `b1twostar`, `b1covrange`, `b1factordistinct`
+  and their `b2` twins.
+- **Term options**: `levels=` (and the older `keep=`, `base=`) for
+  `nodematch`, `nodefactor` and the bipartite factors; `by=` and
+  `homophily=` for the degree terms and `concurrent`; `attr=` for the star
+  and triangle terms, `mutual(same=, by=)`, `asymmetric`, `sociality` and the
+  geometrically weighted degrees; `nodes=` for `sender`, `receiver` and
+  `sociality`; `b1nodematch(diff=, alpha=, beta=, byb2attr=)`.
+- **Interactions** of dyad-independent terms, `a:b` and `a*b`.
+- **Constraints**: `edges`, `b1degrees`, `b2degrees`, `Dyads(fix=, vary=)`,
+  `fixedas`, `fixallbut`, `observed`, `blockdiag` and `bd(attribs=)`.
+- Attributes with missing values are refused with a clear error, as in ergm.
+- ergm documents `intransitive` as intransitive triads and `dyadcov`'s
+  `utri` as the upper triangle's asymmetric dyads, but computes
+  intransitive triples and swaps `utri` and `ltri`: ergmx follows the
+  documentation and warns (`ErgmDifferenceWarning`).
+- **Multilevel networks**: MPNet's configurations of directed two-level
+  networks (in- and out-stars with affiliations, triangles, alternating
+  triangles and three-paths of arcs and reciprocated pairs, cross-level
+  three-paths, entrainment and exchange four-cycles, alternating stars at
+  both ends), and the undirected EXTA, EXTB and ASAXASB; estimated decays
+  (`fixed=FALSE`) for the configurations with one alternating part;
+  goodness of fit by level, `gof(by="level")`; and `S()` between two sets of
+  a directed network, the arcs from the first to the second, as in ergm.
 - **Datasets**: `labs_sim`, a multilevel network of 120 researchers and 30
   laboratories simulated from a known model, with effects within each level
   and across levels.
+- **tergm's EGMME**: `tergm(network, ..., estimate="EGMME", targets=,
+  target_stats=)` fits a process to a single network and the ages of its
+  ties, with tergm's algorithm (`EgmmeFit`); tergm's statistics of tie ages,
+  `edge.ages`, `mean.age`, `edges.ageinterval`, `edgecov.ages` and
+  `nodefactor.mean.age`, as targets and as monitors of dynamic simulations.
+- **Series of networks**: forward simulation of fits whose coefficients vary
+  over time (`lm=~.Time`); missing dyads in the networks transitioned from,
+  imputed as tergm's `NA.impute` (`na_impute=` of `NetSeries()` and
+  `tergm()`), and in the networks transitioned to, missing.
+- **Samples of networks**: `gofN()`, goodness of fit network by network as
+  ergm.multi's, with its summary and residual plots; `N()`'s `subset`,
+  `offset` (and `offset()` in `lm`) and `label`, also for tergm's operators.
+- ergm.multi's `gofN()` reports `degree0` and `isolates` minus the network
+  size; ergmx reports them, and warns.
+- **Scale**: no array has a row or a cell per dyad any more. The MPLE builds
+  the distinct rows of change statistics with their counts, in parallel
+  (70 s and 6.8 GB on 10,000 vertices before, 0.5 s and 0.45 GB now); the
+  sample spaces of combined and bipartite networks, missing dyads and the
+  constraints `fixedas`, `fixallbut`, `observed` and `blockdiag` are
+  described by groups of vertices and lists of dyads (500 classrooms of 20
+  in 0.27 GB rather than 0.75, and 1,500 in 0.57 GB rather than about 7);
+  goodness of fit's distances and shared partners come from the Rust core
+  (0.1 s and 0.17 GB rather than 5.6 s and 2.3 GB on 10,000 vertices).
+- **Speed**: a shared partner cache, as ergm's, for the shared partner terms
+  on networks that aren't sparse (10% faster on faux.mesa.high and
+  faux.dixon.high), and tabulated geometric weights.
+- **Saving fits**: `fit.save(path)` and `ergmx.load_fit(path)`; fits also
+  pickle.
+- `benchmarks/scale.R` and `scale.py` time ergm and ergmx on networks of
+  1,461 to 10,000 vertices and on 500 classrooms.
 - **Documentation**: a Quick start, with two complete analyses: an ERGM and
   a multilevel ERGM.
 

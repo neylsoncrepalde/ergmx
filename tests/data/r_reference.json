@@ -2,6 +2,1081 @@
   "ergm_version": "4.12.0",
   "r_version": "R version 4.6.1 (2026-06-24)",
   "models": {
+    "mesa_vocab1": {
+      "network": "faux.mesa.high",
+      "formula": "degrange(1:2, 4) + degrange(2, by='Race') + degree(1:2, by='Race') + degree(0:1, by='Sex', homophily=TRUE) + concurrent(by='Sex') + concurrentties + concurrentties(by='Sex') + degree1.5 + isolatededges + density + meandeg + altkstar(2, fixed=TRUE) + degrange(1, 3, by='Race', homophily=TRUE)",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "deg1to4": 109,
+        "deg2to4": 58,
+        "deg2+.RaceBlack": 5,
+        "deg2+.RaceHisp": 46,
+        "deg2+.RaceNatAm": 37,
+        "deg2+.RaceOther": 0,
+        "deg2+.RaceWhite": 9,
+        "deg1.Race.Black": 0,
+        "deg2.Race.Black": 0,
+        "deg1.Race.Hisp": 30,
+        "deg2.Race.Hisp": 18,
+        "deg1.Race.NatAm": 13,
+        "deg2.Race.NatAm": 9,
+        "deg1.Race.Other": 1,
+        "deg2.Race.Other": 0,
+        "deg1.Race.White": 7,
+        "deg2.Race.White": 3,
+        "deg0.homophily.Sex": 83,
+        "deg1.homophily.Sex": 57,
+        "concurrent.SexF": 53,
+        "concurrent.SexM": 44,
+        "concurrentties": 258,
+        "concurrentties.SexF": 159,
+        "concurrentties.SexM": 99,
+        "degree1.5": 795.745754257053,
+        "isolatededges": 4,
+        "density": 0.00970827355332375,
+        "meandeg": 1.98048780487805,
+        "altkstar.2": 372.03564453125,
+        "deg1to3.homophily.Race": 73
+      }
+    },
+    "mesa_vocab2": {
+      "network": "faux.mesa.high",
+      "formula": "triadcensus(0:3) + balance + threetrail + opentriad + transitiveties + transitiveties(attr='Race') + cyclicalties + kstar(2:3, attr='Sex') + triangle(attr='Race') + triangle(attr='Grade', diff=TRUE) + nodecovrange('Grade') + nodefactordistinct('Race') + gwdegree(0.5, fixed=TRUE, attr='Sex')",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "triadcensus.0": 1374298,
+        "triadcensus.1": 40077,
+        "triadcensus.2": 473,
+        "triadcensus.3": 62,
+        "balance": 40139,
+        "threetrail": 2329,
+        "opentriad": 473,
+        "transitiveties": 120,
+        "transitiveties.Race": 40,
+        "cyclicalties": 120,
+        "kstar2.Sex": 330,
+        "kstar3.Sex": 505,
+        "triangle.Race": 18,
+        "triangle.Grade.7": 27,
+        "triangle.Grade.8": 13,
+        "triangle.Grade.9": 6,
+        "triangle.Grade.10": 0,
+        "triangle.Grade.11": 6,
+        "triangle.Grade.12": 0,
+        "nodecovrange.Grade": 89,
+        "nodefactordistinct.Race": 241,
+        "gwdeg0.5.Sex.F": 105.52483639576,
+        "gwdeg0.5.Sex.M": 94.0409020566132
+      }
+    },
+    "mesa_vocab3": {
+      "network": "faux.mesa.high",
+      "formula": "mm('Race') + mm(Race~Sex) + mm(Race~.) + attrcov('Sex', matrix(c(1,2,2,3),2)) + smalldiff('Grade', 2) + diff('Grade', sign.action='abs') + nodematch('Race', diff=TRUE, levels=-1) + nodefactor('Race', levels=c('White','Black')) + sociality(nodes=c(1, 3)) + nodecov('Grade'):nodematch('Sex') + nodefactor('Race'):nodecov('Grade') + dyadcov('asym') + hamming + localtriangle(nbhd_mesa) + nodefactordistinct('Race', levels=c('Hisp','White'))",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": "mm('Race') + mm(Race~Sex) + mm(Race~.) + attrcov('Sex', matrix(c(1,2,2,3),2)) + smalldiff('Grade', 2) + diff('Grade', sign.action='abs') + nodematch('Race', diff=TRUE, levels=-1) + nodefactor('Race', levels=c('White','Black')) + sociality(nodes=c(1, 3)) + nodecov('Grade'):nodematch('Sex') + nodefactor('Race'):nodecov('Grade') + dyadcov('asym') + hamming + localtriangle('nbhd_mesa') + nodefactordistinct('Race', levels=c('Hisp','White'))",
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "mm[Race=Black,Race=Hisp]": 8,
+        "mm[Race=Hisp,Race=Hisp]": 53,
+        "mm[Race=Black,Race=NatAm]": 13,
+        "mm[Race=Hisp,Race=NatAm]": 41,
+        "mm[Race=NatAm,Race=NatAm]": 46,
+        "mm[Race=Black,Race=Other]": 0,
+        "mm[Race=Hisp,Race=Other]": 1,
+        "mm[Race=NatAm,Race=Other]": 0,
+        "mm[Race=Other,Race=Other]": 0,
+        "mm[Race=Black,Race=White]": 5,
+        "mm[Race=Hisp,Race=White]": 22,
+        "mm[Race=NatAm,Race=White]": 10,
+        "mm[Race=Other,Race=White]": 0,
+        "mm[Race=White,Race=White]": 4,
+        "mm[Race=Hisp,Sex=F]": 120,
+        "mm[Race=NatAm,Sex=F]": 74,
+        "mm[Race=Other,Sex=F]": 1,
+        "mm[Race=White,Sex=F]": 25,
+        "mm[Race=Black,Sex=M]": 11,
+        "mm[Race=Hisp,Sex=M]": 58,
+        "mm[Race=NatAm,Sex=M]": 82,
+        "mm[Race=Other,Sex=M]": 0,
+        "mm[Race=White,Sex=M]": 20,
+        "mm[Race=Hisp,.]": 178,
+        "mm[Race=NatAm,.]": 156,
+        "mm[Race=Other,.]": 1,
+        "mm[Race=White,.]": 45,
+        "attrcov.Sex": 374,
+        "smalldiff.Grade2": 193,
+        "diff.abs.Grade": 79,
+        "nodematch.Race.Hisp": 53,
+        "nodematch.Race.NatAm": 46,
+        "nodematch.Race.Other": 0,
+        "nodematch.Race.White": 4,
+        "nodefactor.Race.White": 45,
+        "nodefactor.Race.Black": 26,
+        "sociality1": 13,
+        "sociality3": 0,
+        "nodecov.Grade:nodematch.Sex": 2212,
+        "nodefactor.Race.Hisp:nodecov.Grade": 2986,
+        "nodefactor.Race.NatAm:nodecov.Grade": 2699,
+        "nodefactor.Race.Other:nodecov.Grade": 18,
+        "nodefactor.Race.White:nodecov.Grade": 765,
+        "dyadcov.asym": 105.774,
+        "hamming": 0,
+        "localtriangle.nbhd_mesa": 14,
+        "nodefactordistinct.Race": 137
+      }
+    },
+    "dixon_vocab1": {
+      "network": "faux.dixon.high",
+      "formula": "triadcensus + simmelian + simmelianties + nearsimmelian + m2star + ctriad + ttriad + transitiveties + transitiveties(attr='sex') + cyclicalties + cyclicalties(attr='race') + threetrail + balance + triangle(attr='race')",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "triadcensus.012": 172313,
+        "triadcensus.102": 49433,
+        "triadcensus.021D": 1400,
+        "triadcensus.021U": 1113,
+        "triadcensus.021C": 2576,
+        "triadcensus.111D": 1396,
+        "triadcensus.111U": 1611,
+        "triadcensus.030T": 163,
+        "triadcensus.030C": 22,
+        "triadcensus.201": 386,
+        "triadcensus.120D": 73,
+        "triadcensus.120U": 92,
+        "triadcensus.120C": 98,
+        "triadcensus.210": 135,
+        "triadcensus.300": 43,
+        "simmelian": 43,
+        "simmelianties": 226,
+        "nearsimmelian": 135,
+        "m2star": 8006,
+        "ctriple": 341,
+        "ttriple": 1254,
+        "transitiveties": 827,
+        "transitiveties.sex": 360,
+        "cyclicalties": 641,
+        "cyclicalties.race": 513,
+        "threetrail.RRR": 60841,
+        "threetrail.RRL": 55015,
+        "threetrail.LRR": 61993,
+        "threetrail.LRL": 55894,
+        "balance": 49476,
+        "triangle.race": 1251
+      }
+    },
+    "dixon_vocab2": {
+      "network": "faux.dixon.high",
+      "formula": "idegree(0:2, by='sex') + odegrange(c(0,3), c(3, Inf)) + idegrange(1, 3, by='race', homophily=TRUE) + idegree1.5 + odegree1.5 + nodeicovrange('grade') + nodeocovrange('grade') + nodecovrange('grade') + nodeifactor('race', levels=c('W','B')) + sender(nodes=c(2,5)) + receiver(nodes=-(1:240)) + mutual(same='sex') + mutual(by='race') + mutual(same='race', diff=TRUE) + asymmetric(attr='sex') + asymmetric(attr='race', diff=TRUE) + istar(2, attr='sex') + ostar(2:3, attr='race') + desp(0:2) + dgwesp(0.5, fixed=TRUE) + dnsp(1, type='OSP') + mm(race~sex) + mm(.~sex) + nodefactordistinct('race') + nodeofactordistinct('race') + nodeifactordistinct('race') + ttriple(attr='sex', diff=TRUE) + ctriple(attr='race') + dyadcov('asym') + gwodegree(0.5, fixed=TRUE, attr='race') + nodeifactor('race'):nodeofactor('sex') + density + meandeg",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "ideg0.sex.1": 9,
+        "ideg1.sex.1": 18,
+        "ideg2.sex.1": 13,
+        "ideg0.sex.2": 10,
+        "ideg1.sex.2": 11,
+        "ideg2.sex.2": 17,
+        "odeg0to3": 77,
+        "odeg3+": 171,
+        "ideg1to3.homophily.race": 73,
+        "idegree1.5": 3142.99947354046,
+        "odegree1.5": 3319.21533395913,
+        "nodeicovrange.grade": 341,
+        "nodeocovrange.grade": 370,
+        "nodecovrange.grade": 711,
+        "nodeifactor.race.W": 683,
+        "nodeifactor.race.B": 391,
+        "sender2": 7,
+        "sender5": 0,
+        "receiver241": 5,
+        "receiver242": 8,
+        "receiver243": 7,
+        "receiver244": 0,
+        "receiver245": 0,
+        "receiver246": 6,
+        "receiver247": 8,
+        "receiver248": 8,
+        "mutual.sex": 130,
+        "mutual.by.race.B": 140,
+        "mutual.by.race.H": 24,
+        "mutual.by.race.O": 24,
+        "mutual.by.race.W": 250,
+        "mutual.same.race.B": 66,
+        "mutual.same.race.H": 0,
+        "mutual.same.race.O": 1,
+        "mutual.same.race.W": 113,
+        "asymmetric.sex": 421,
+        "asymmetric.race.B": 198,
+        "asymmetric.race.H": 0,
+        "asymmetric.race.O": 3,
+        "asymmetric.race.W": 351,
+        "istar2.sex": 1300,
+        "ostar2.race": 2766,
+        "ostar3.race": 6705,
+        "esp.OTP0": 370,
+        "esp.OTP1": 516,
+        "esp.OTP2": 222,
+        "gwesp.OTP.fixed.0.5": 964.681672038712,
+        "nsp.OSP1": 4027,
+        "mm[race=H,sex=1]": 20,
+        "mm[race=O,sex=1]": 29,
+        "mm[race=W,sex=1]": 359,
+        "mm[race=B,sex=2]": 245,
+        "mm[race=H,sex=2]": 31,
+        "mm[race=O,sex=2]": 32,
+        "mm[race=W,sex=2]": 315,
+        "mm[.,sex=2]": 623,
+        "nodefactordistinct.race": 498,
+        "nodeofactordistinct.race": 371,
+        "nodeifactordistinct.race": 396,
+        "ttriple.sex.1": 184,
+        "ttriple.sex.2": 293,
+        "ctriple.race": 275,
+        "dyadcov.asym.mutual": 109.292,
+        "dyadcov.asym.utri": 174.438,
+        "dyadcov.asym.ltri": 191.823,
+        "gwodeg0.5.race.B": 111.067669538392,
+        "gwodeg0.5.race.H": 13.0843935796221,
+        "gwodeg0.5.race.O": 15.7187330770801,
+        "gwodeg0.5.race.W": 172.116359496762,
+        "nodeifactor.race.H:nodeofactor.sex.2": 33,
+        "nodeifactor.race.O:nodeofactor.sex.2": 32,
+        "nodeifactor.race.W:nodeofactor.sex.2": 336,
+        "density": 0.0195409429280399,
+        "meandeg": 4.82661290322575
+      }
+    },
+    "samplk_vocab": {
+      "network": "samplk3",
+      "formula": "threetrail + hamming(wave2) + localtriangle(nbhd_samplk) + triadcensus(c('021D','300'))",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": "threetrail + hamming('wave2') + localtriangle('nbhd_samplk') + triadcensus(c('021D','300'))",
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "threetrail.RRR": 492,
+        "threetrail.RRL": 531,
+        "threetrail.LRR": 366,
+        "threetrail.LRL": 363,
+        "hamming.wave2": 33,
+        "localtriangle.nbhd_samplk": 0,
+        "triadcensus.021D": 7,
+        "triadcensus.300": 2
+      }
+    },
+    "bip_vocab1": {
+      "network": "bipartite_sim",
+      "formula": "b1twostar('g') + b2twostar('g') + b1starmix(2, 'g') + b2starmix(2, 'g') + b1sociality + b2sociality(nodes=c(1,2)) + b1nodematch('g', diff=TRUE) + b1nodematch('g', byb2attr='g', diff=TRUE) + b1degrange(1:2, 4) + b1degrange(1, by='g') + b2degrange(0, 2, by='g', homophily=TRUE) + b1mindegree(2:3) + b2mindegree(1) + b1covrange('x') + b2covrange('x') + b1factordistinct('g') + b2factordistinct('g') + b1concurrent(by='g') + b2concurrent(by='g') + b1degree(1:2, by='g') + b2degree(1, by='g', levels=-1) + b1factor('g', levels=TRUE) + b2factor('g', levels=c('c','a')) + density + meandeg + isolatededges + diff('x') + b1star(2, attr='g') + b2star(2, attr='g') + gwb1degree(0.5, fixed=TRUE, attr='g')",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": true,
+      "stats": {
+        "b1twostar.g.a.g.a.a": 7,
+        "b1twostar.g.b.g.a.a": 23,
+        "b1twostar.g.c.g.a.a": 2,
+        "b1twostar.g.a.g.a.b": 7,
+        "b1twostar.g.b.g.a.b": 17,
+        "b1twostar.g.c.g.a.b": 3,
+        "b1twostar.g.a.g.b.b": 2,
+        "b1twostar.g.b.g.b.b": 0,
+        "b1twostar.g.c.g.b.b": 0,
+        "b1twostar.g.a.g.a.c": 4,
+        "b1twostar.g.b.g.a.c": 32,
+        "b1twostar.g.c.g.a.c": 3,
+        "b1twostar.g.a.g.b.c": 6,
+        "b1twostar.g.b.g.b.c": 7,
+        "b1twostar.g.c.g.b.c": 1,
+        "b1twostar.g.a.g.c.c": 0,
+        "b1twostar.g.b.g.c.c": 4,
+        "b1twostar.g.c.g.c.c": 0,
+        "b2twostar.g.a.g.a.a": 7,
+        "b2twostar.g.b.g.a.a": 8,
+        "b2twostar.g.c.g.a.a": 2,
+        "b2twostar.g.a.g.a.b": 28,
+        "b2twostar.g.b.g.a.b": 9,
+        "b2twostar.g.c.g.a.b": 12,
+        "b2twostar.g.a.g.b.b": 15,
+        "b2twostar.g.b.g.b.b": 5,
+        "b2twostar.g.c.g.b.b": 6,
+        "b2twostar.g.a.g.a.c": 9,
+        "b2twostar.g.b.g.a.c": 3,
+        "b2twostar.g.c.g.a.c": 1,
+        "b2twostar.g.a.g.b.c": 14,
+        "b2twostar.g.b.g.b.c": 2,
+        "b2twostar.g.c.g.b.c": 2,
+        "b2twostar.g.a.g.c.c": 2,
+        "b2twostar.g.b.g.c.c": 1,
+        "b2twostar.g.c.g.c.c": 0,
+        "b1starmix.2.g.a.a": 7,
+        "b1starmix.2.g.b.a": 23,
+        "b1starmix.2.g.c.a": 2,
+        "b1starmix.2.g.a.b": 2,
+        "b1starmix.2.g.b.b": 0,
+        "b1starmix.2.g.c.b": 0,
+        "b1starmix.2.g.a.c": 0,
+        "b1starmix.2.g.b.c": 4,
+        "b1starmix.2.g.c.c": 0,
+        "b2starmix.2.g.a.a": 7,
+        "b2starmix.2.g.a.b": 15,
+        "b2starmix.2.g.a.c": 2,
+        "b2starmix.2.g.b.a": 8,
+        "b2starmix.2.g.b.b": 5,
+        "b2starmix.2.g.b.c": 1,
+        "b2starmix.2.g.c.a": 2,
+        "b2starmix.2.g.c.b": 6,
+        "b2starmix.2.g.c.c": 0,
+        "b1sociality2": 3,
+        "b1sociality3": 3,
+        "b1sociality4": 3,
+        "b1sociality5": 4,
+        "b1sociality6": 1,
+        "b1sociality7": 1,
+        "b1sociality8": 2,
+        "b1sociality9": 0,
+        "b1sociality10": 4,
+        "b1sociality11": 1,
+        "b1sociality12": 0,
+        "b1sociality13": 1,
+        "b1sociality14": 1,
+        "b1sociality15": 4,
+        "b1sociality16": 0,
+        "b1sociality17": 4,
+        "b1sociality18": 8,
+        "b1sociality19": 2,
+        "b1sociality20": 4,
+        "b1sociality21": 3,
+        "b1sociality22": 1,
+        "b1sociality23": 1,
+        "b1sociality24": 2,
+        "b1sociality25": 1,
+        "b1sociality26": 4,
+        "b1sociality27": 2,
+        "b1sociality28": 2,
+        "b1sociality29": 2,
+        "b1sociality30": 0,
+        "b1sociality31": 5,
+        "b1sociality32": 1,
+        "b1sociality33": 3,
+        "b1sociality34": 1,
+        "b1sociality35": 4,
+        "b1sociality36": 0,
+        "b1sociality37": 1,
+        "b1sociality38": 2,
+        "b1sociality39": 1,
+        "b1sociality40": 2,
+        "b1sociality41": 0,
+        "b1sociality42": 2,
+        "b1sociality43": 5,
+        "b1sociality44": 0,
+        "b1sociality45": 1,
+        "b1sociality46": 0,
+        "b1sociality47": 0,
+        "b1sociality48": 1,
+        "b1sociality49": 0,
+        "b1sociality50": 0,
+        "b1sociality51": 0,
+        "b1sociality52": 0,
+        "b1sociality53": 1,
+        "b1sociality54": 0,
+        "b1sociality55": 1,
+        "b1sociality56": 2,
+        "b1sociality57": 1,
+        "b1sociality58": 0,
+        "b1sociality59": 1,
+        "b1sociality60": 3,
+        "b2sociality61": 3,
+        "b2sociality62": 2,
+        "b1nodematch.g.a": 17,
+        "b1nodematch.g.b": 26,
+        "b1nodematch.g.c": 3,
+        "b1nodematch.g.a.a": 7,
+        "b1nodematch.g.a.b": 8,
+        "b1nodematch.g.a.c": 2,
+        "b1nodematch.g.b.a": 15,
+        "b1nodematch.g.b.b": 5,
+        "b1nodematch.g.b.c": 6,
+        "b1nodematch.g.c.a": 2,
+        "b1nodematch.g.c.b": 1,
+        "b1nodematch.g.c.c": 0,
+        "b1deg1to4": 35,
+        "b1deg2to4": 16,
+        "b1deg1+.ga": 22,
+        "b1deg1+.gb": 14,
+        "b1deg1+.gc": 9,
+        "b2deg0to2.homophily.g": 32,
+        "b1mindeg2": 26,
+        "b1mindeg3": 16,
+        "b2mindeg1": 35,
+        "b1covrange.x": 139.6,
+        "b2covrange.x": 180.2,
+        "b1factordistinct.g": 77,
+        "b2factordistinct.g": 65,
+        "b1concurrent.ga": 10,
+        "b1concurrent.gb": 12,
+        "b1concurrent.gc": 4,
+        "b2concurrent.ga": 16,
+        "b2concurrent.gb": 8,
+        "b2concurrent.gc": 8,
+        "b1deg1.g.a": 12,
+        "b1deg2.g.a": 5,
+        "b1deg1.g.b": 2,
+        "b1deg2.g.b": 2,
+        "b1deg1.g.c": 5,
+        "b1deg2.g.c": 3,
+        "b2deg1.g.b": 0,
+        "b2deg1.g.c": 1,
+        "b1factor.g.a": 39,
+        "b1factor.g.b": 49,
+        "b1factor.g.c": 15,
+        "b2factor.g.c": 24,
+        "b2factor.g.a": 55,
+        "density": 0.0429166666666667,
+        "meandeg": 2.06,
+        "isolatededges": 1,
+        "diff.t-h.x": 6.29999999999999,
+        "b1star2.g": 7,
+        "b2star2.g": 12,
+        "gwb1deg0.5.g.a": 26.8306163800605,
+        "gwb1deg0.5.g.b": 20.7827343324453,
+        "gwb1deg0.5.g.c": 10.7896116671236
+      }
+    },
+    "bip_vocab2": {
+      "network": "bipartite_sim",
+      "formula": "b1nodematch('g', beta=0.5) + b2nodematch('g', alpha=0.25) + b1starmix(2, 'g', diff=FALSE)",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": true,
+      "stats": {
+        "b1nodematch.g": 39.070703332936,
+        "b2nodematch.g": 38,
+        "b1starmix.2.g.a": 9,
+        "b1starmix.2.g.b": 27,
+        "b1starmix.2.g.c": 2
+      }
+    },
+    "bip_vocab3": {
+      "network": "bipartite_sim",
+      "formula": "b1nodematch('g', alpha=0.5) + b1nodematch('g', levels=c('a','c'), diff=TRUE)",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": true,
+      "stats": {
+        "b1nodematch.g": 44.2426406871193,
+        "b1nodematch.g.a": 17,
+        "b1nodematch.g.c": 3
+      }
+    },
+    "mesa_mm_dyadind": {
+      "network": "faux.mesa.high",
+      "formula": "edges + mm(Sex~Grade) + nodecov('Grade'):nodematch('Sex')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 203,
+        "mm[Sex=M,Grade=7]": 35,
+        "mm[Sex=F,Grade=8]": 24,
+        "mm[Sex=M,Grade=8]": 51,
+        "mm[Sex=F,Grade=9]": 33,
+        "mm[Sex=M,Grade=9]": 32,
+        "mm[Sex=F,Grade=10]": 16,
+        "mm[Sex=M,Grade=10]": 20,
+        "mm[Sex=F,Grade=11]": 29,
+        "mm[Sex=M,Grade=11]": 20,
+        "mm[Sex=F,Grade=12]": 15,
+        "mm[Sex=M,Grade=12]": 13,
+        "nodecov.Grade:nodematch.Sex": 2212
+      },
+      "mple": {
+        "edges": -3.54631147178252,
+        "mm[Sex=M,Grade=7]": -1.18192374425677,
+        "mm[Sex=F,Grade=8]": -1.05371228666779,
+        "mm[Sex=M,Grade=8]": -0.38860162520017,
+        "mm[Sex=F,Grade=9]": -0.908908525194245,
+        "mm[Sex=M,Grade=9]": -0.905368932415602,
+        "mm[Sex=F,Grade=10]": -1.0342419968761,
+        "mm[Sex=M,Grade=10]": -0.888042856310477,
+        "mm[Sex=F,Grade=11]": -0.414819669804321,
+        "mm[Sex=M,Grade=11]": -0.857579410578819,
+        "mm[Sex=F,Grade=12]": -0.528307706163003,
+        "mm[Sex=M,Grade=12]": -0.569485205709047,
+        "nodecov.Grade:nodematch.Sex": 0.022029420508743
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -3.54631147178252,
+        "mm[Sex=M,Grade=7]": -1.18192374425677,
+        "mm[Sex=F,Grade=8]": -1.05371228666779,
+        "mm[Sex=M,Grade=8]": -0.388601625200171,
+        "mm[Sex=F,Grade=9]": -0.908908525194246,
+        "mm[Sex=M,Grade=9]": -0.905368932415603,
+        "mm[Sex=F,Grade=10]": -1.0342419968761,
+        "mm[Sex=M,Grade=10]": -0.888042856310478,
+        "mm[Sex=F,Grade=11]": -0.414819669804322,
+        "mm[Sex=M,Grade=11]": -0.857579410578821,
+        "mm[Sex=F,Grade=12]": -0.528307706163004,
+        "mm[Sex=M,Grade=12]": -0.569485205709049,
+        "nodecov.Grade:nodematch.Sex": 0.022029420508743
+      },
+      "se": {
+        "edges": 0.191788937499895,
+        "mm[Sex=M,Grade=7]": 0.193898494508804,
+        "mm[Sex=F,Grade=8]": 0.226434405571617,
+        "mm[Sex=M,Grade=8]": 0.157711037399601,
+        "mm[Sex=F,Grade=9]": 0.199326420497062,
+        "mm[Sex=M,Grade=9]": 0.197148235696172,
+        "mm[Sex=F,Grade=10]": 0.268635098089344,
+        "mm[Sex=M,Grade=10]": 0.236430408982049,
+        "mm[Sex=F,Grade=11]": 0.210229806451706,
+        "mm[Sex=M,Grade=11]": 0.237028176287151,
+        "mm[Sex=F,Grade=12]": 0.280310803436209,
+        "mm[Sex=M,Grade=12]": 0.293339772155954,
+        "nodecov.Grade:nodematch.Sex": 0.0086975344296588
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "mm[Sex=M,Grade=7]": 0,
+        "mm[Sex=F,Grade=8]": 0,
+        "mm[Sex=M,Grade=8]": 0,
+        "mm[Sex=F,Grade=9]": 0,
+        "mm[Sex=M,Grade=9]": 0,
+        "mm[Sex=F,Grade=10]": 0,
+        "mm[Sex=M,Grade=10]": 0,
+        "mm[Sex=F,Grade=11]": 0,
+        "mm[Sex=M,Grade=11]": 0,
+        "mm[Sex=F,Grade=12]": 0,
+        "mm[Sex=M,Grade=12]": 0,
+        "nodecov.Grade:nodematch.Sex": 0
+      },
+      "loglik": -1099.95761997459,
+      "nobs": 20910,
+      "seconds": 0.0329999999999999
+    },
+    "mesa_attrcov_dyadind": {
+      "network": "faux.mesa.high",
+      "formula": "edges + attrcov('Race', matrix(c(2,1,1,1,0, 1,2,1,1,0, 1,1,2,1,0, 1,1,1,2,0, 0,0,0,0,1), 5)) + smalldiff('Grade', 1) + diff('Grade', sign.action='abs')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 203,
+        "attrcov.Race": 265,
+        "smalldiff.Grade1": 178,
+        "diff.abs.Grade": 79
+      },
+      "mple": {
+        "edges": -1.26729771055017,
+        "attrcov.Race": 0.140253633559446,
+        "smalldiff.Grade1": -2.19429951972203,
+        "diff.abs.Grade": -2.13025741941384
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -1.26729771055017,
+        "attrcov.Race": 0.140253633559446,
+        "smalldiff.Grade1": -2.19429951972203,
+        "diff.abs.Grade": -2.13025741941384
+      },
+      "se": {
+        "edges": 0.482088833467199,
+        "attrcov.Race": 0.103034550428182,
+        "smalldiff.Grade1": 0.441471378308621,
+        "diff.abs.Grade": 0.200683598052277
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "attrcov.Race": 0,
+        "smalldiff.Grade1": 0,
+        "diff.abs.Grade": 0
+      },
+      "loglik": -984.910004804767,
+      "nobs": 20910,
+      "seconds": 0.0250000000000004
+    },
+    "dixon_dyadcov_dyadind": {
+      "network": "faux.dixon.high",
+      "formula": "edges + dyadcov('asym') + nodeifactor('race', levels=c('W','B')) + diff('grade', pow=2, sign.action='posonly')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 1197,
+        "dyadcov.asym.mutual": 109.292,
+        "dyadcov.asym.utri": 174.438,
+        "dyadcov.asym.ltri": 191.823,
+        "nodeifactor.race.W": 683,
+        "nodeifactor.race.B": 391,
+        "diff2.posonly.t-h.grade": 536
+      },
+      "mple": {
+        "edges": -3.16459764819884,
+        "dyadcov.asym.mutual": 3.21480162746016,
+        "dyadcov.asym.utri": -1.18403713771198,
+        "dyadcov.asym.ltri": -1.00825514762733,
+        "nodeifactor.race.W": -0.171109173004346,
+        "nodeifactor.race.B": -0.411775041938389,
+        "diff2.posonly.t-h.grade": -0.255457145879118
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -3.16459764819884,
+        "dyadcov.asym.mutual": 3.21480162746015,
+        "dyadcov.asym.utri": -1.18403713771199,
+        "dyadcov.asym.ltri": -1.00825514762733,
+        "nodeifactor.race.W": -0.171109173004346,
+        "nodeifactor.race.B": -0.41177504193839,
+        "diff2.posonly.t-h.grade": -0.255457145879118
+      },
+      "se": {
+        "edges": 0.112155491442258,
+        "dyadcov.asym.mutual": 0.218544331611665,
+        "dyadcov.asym.utri": 0.133043593495227,
+        "dyadcov.asym.ltri": 0.128948931181794,
+        "nodeifactor.race.W": 0.107478357883057,
+        "nodeifactor.race.B": 0.112843368394326,
+        "diff2.posonly.t-h.grade": 0.0220019542386852
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "dyadcov.asym.mutual": 0,
+        "dyadcov.asym.utri": 0,
+        "dyadcov.asym.ltri": 0,
+        "nodeifactor.race.W": 0,
+        "nodeifactor.race.B": 0,
+        "diff2.posonly.t-h.grade": 0
+      },
+      "loglik": -4974.54154803427,
+      "nobs": 61256,
+      "seconds": 0.101
+    },
+    "mesa_dyads_fix": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodematch('Grade') + nodematch('Race')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": "Dyads(fix=~nodematch('Sex'))",
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 203,
+        "nodematch.Grade": 163,
+        "nodematch.Race": 103
+      },
+      "mple": {
+        "edges": -6.45164438337866,
+        "nodematch.Grade": 2.73247930377001,
+        "nodematch.Race": 0.289373851346819
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -6.45164438337866,
+        "nodematch.Grade": 2.73247930377001,
+        "nodematch.Race": 0.289373851346819
+      },
+      "se": {
+        "edges": 0.281562105545414,
+        "nodematch.Grade": 0.291790680325534,
+        "nodematch.Race": 0.240270106093563
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodematch.Grade": 0,
+        "nodematch.Race": 0
+      },
+      "loglik": -367.004482972522,
+      "nobs": 10494,
+      "seconds": 0.0489999999999999
+    },
+    "mesa_dyads_vary": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodefactor('Sex')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": "Dyads(vary=~nodematch('Grade'))",
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 203,
+        "nodefactor.Sex.M": 171
+      },
+      "mple": {
+        "edges": -2.81499840113974,
+        "nodefactor.Sex.M": -0.429838699996449
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -2.81499840113974,
+        "nodefactor.Sex.M": -0.429838699996449
+      },
+      "se": {
+        "edges": 0.122767812709918,
+        "nodefactor.Sex.M": 0.115516673720121
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodefactor.Sex.M": 0
+      },
+      "loglik": -681.283872711134,
+      "nobs": 4174,
+      "seconds": 0.0420000000000003
+    },
+    "flo_fixedas": {
+      "network": "flomarriage",
+      "formula": "edges + nodecov('wealth')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": "fixedas(present=matrix(c(1, 9, 2, 6, 2, 7), ncol=2, byrow=TRUE), absent=matrix(c(1, 2, 1, 3, 2, 3), ncol=2, byrow=TRUE))",
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 20,
+        "nodecov.wealth": 2168
+      },
+      "mple": {
+        "edges": -2.90349050375536,
+        "nodecov.wealth": 0.0120595428408933
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -2.90349050375536,
+        "nodecov.wealth": 0.0120595428408933
+      },
+      "se": {
+        "edges": 0.590456721245489,
+        "nodecov.wealth": 0.00493212172166923
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodecov.wealth": 0
+      },
+      "loglik": -45.0310259367542,
+      "nobs": 114,
+      "seconds": 0.02
+    },
+    "flo_fixallbut": {
+      "network": "flomarriage",
+      "formula": "edges + nodecov('wealth')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": "fixallbut(matrix(c(1, 9, 2, 6, 2, 7, 2, 9, 3, 5, 3, 9, 4, 7, 4, 11, 5, 16, 11, 16, 1, 11, 10, 11, 3, 16, 8, 10, 3, 12, 2, 4, 3, 10, 9, 11, 2, 13, 14, 15, 2, 8, 1, 15, 1, 6, 9, 12, 1, 8, 6, 10, 4, 6, 11, 12, 6, 16, 7, 10, 6, 15, 2, 3, 7, 11, 5, 13, 2, 5, 11, 13, 14, 16, 8, 14, 15, 16, 7, 9, 8, 13, 5, 12, 1, 10, 1, 14, 4, 16, 6, 7, 7, 14, 4, 5), ncol=2, byrow=TRUE))",
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 20,
+        "nodecov.wealth": 2168
+      },
+      "mple": {
+        "edges": -2.232751874265,
+        "nodecov.wealth": 0.00723026171926149
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -2.232751874265,
+        "nodecov.wealth": 0.00723026171926148
+      },
+      "se": {
+        "edges": 0.904055260943315,
+        "nodecov.wealth": 0.00905239679046531
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodecov.wealth": 0
+      },
+      "loglik": -21.318076865313,
+      "nobs": 48,
+      "seconds": 0.0220000000000002
+    },
+    "mesa_blockdiag": {
+      "network": "faux.mesa.within",
+      "formula": "edges + nodefactor('Sex') + nodematch('Race')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": "blockdiag('Grade')",
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 163,
+        "nodefactor.Sex.M": 130,
+        "nodematch.Race": 78
+      },
+      "mple": {
+        "edges": -2.94696293436495,
+        "nodefactor.Sex.M": -0.429390349718081,
+        "nodematch.Race": 0.297989139818098
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -2.94696293436495,
+        "nodefactor.Sex.M": -0.42939034971808,
+        "nodematch.Race": 0.297989139818097
+      },
+      "se": {
+        "edges": 0.144620251980884,
+        "nodefactor.Sex.M": 0.115655961534952,
+        "nodematch.Race": 0.160340769516389
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodefactor.Sex.M": 0,
+        "nodematch.Race": 0
+      },
+      "loglik": -679.569181876329,
+      "nobs": 4174,
+      "seconds": 0.0259999999999998
+    },
+    "mesa_vocab_mle": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodematch('Grade') + degree(1, by='Sex') + gwesp(0.5, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 203,
+        "nodematch.Grade": 163,
+        "deg1.Sex.F": 23,
+        "deg1.Sex.M": 28,
+        "gwesp.fixed.0.5": 141.925805553864
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -6.208657950045,
+        "nodematch.Grade": 1.97107941068567,
+        "deg1.Sex.F": -0.103750520631827,
+        "deg1.Sex.M": -0.019151263811599,
+        "gwesp.fixed.0.5": 1.25033671737625
+      },
+      "se": {
+        "edges": 0.146874095714431,
+        "nodematch.Grade": 0.17937129628001,
+        "deg1.Sex.F": 0.243982283944976,
+        "deg1.Sex.M": 0.219089216642251,
+        "gwesp.fixed.0.5": 0.08288564019722
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodematch.Grade": 0,
+        "deg1.Sex.F": 0,
+        "deg1.Sex.M": 0,
+        "gwesp.fixed.0.5": 0
+      },
+      "loglik": -871.39795004373,
+      "nobs": 20910,
+      "seconds": 9.781
+    },
+    "mesa_edges_constraint": {
+      "network": "faux.mesa.high",
+      "formula": "nodematch('Grade') + nodematch('Race') + gwesp(0.5, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mle"
+      ],
+      "constraints": "edges",
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "nodematch.Grade": 163,
+        "nodematch.Race": 103,
+        "gwesp.fixed.0.5": 141.925805553864
+      },
+      "dyad_independent": false,
+      "mle": {
+        "nodematch.Grade": 1.97120608300544,
+        "nodematch.Race": 0.258490768740101,
+        "gwesp.fixed.0.5": 1.25064840160843
+      },
+      "se": {
+        "nodematch.Grade": 0.181778281351621,
+        "nodematch.Race": 0.115239837191269,
+        "gwesp.fixed.0.5": 0.0885408886743024
+      },
+      "mcmc_pct": {
+        "nodematch.Grade": 0,
+        "nodematch.Race": 0,
+        "gwesp.fixed.0.5": 0
+      },
+      "loglik": 274.636612227893,
+      "nobs": 20910,
+      "seconds": 9.588
+    },
+    "bip_b1degrees": {
+      "network": "bipartite_sim",
+      "formula": "b2star(2) + b2factor('g')",
+      "checks": [
+        "stats",
+        "mle"
+      ],
+      "constraints": "b1degrees",
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": true,
+      "stats": {
+        "b2star2": 126,
+        "b2factor.g.b": 24,
+        "b2factor.g.c": 24
+      },
+      "dyad_independent": false,
+      "mle": {
+        "b2star2": -0.0348459317866149,
+        "b2factor.g.b": 0.00181891152803192,
+        "b2factor.g.c": -0.245014388526091
+      },
+      "se": {
+        "b2star2": 0.0982819324258809,
+        "b2factor.g.b": 0.237876002508301,
+        "b2factor.g.c": 0.270157403502693
+      },
+      "mcmc_pct": {
+        "b2star2": 0,
+        "b2factor.g.b": 0,
+        "b2factor.g.c": 0
+      },
+      "loglik": 0.555600270611094,
+      "nobs": 2400,
+      "seconds": 0.178999999999998
+    },
+    "dixon_bd_attribs": {
+      "network": "faux.dixon.high",
+      "formula": "edges + mutual + nodematch('race')",
+      "checks": [
+        "stats",
+        "mle"
+      ],
+      "constraints": "bd(attribs=sexmat, maxout=maxsex)",
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": "bd(attribs='sexmat', maxout='maxsex')",
+      "bipartite": false,
+      "stats": {
+        "edges": 1197,
+        "mutual": 219,
+        "nodematch.race": 912
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -4.29601452250538,
+        "mutual": 3.52363397823707,
+        "nodematch.race": 1.25323879654605
+      },
+      "se": {
+        "edges": 0.0691084788721904,
+        "mutual": 0.0996350297790428,
+        "nodematch.race": 0.065162873912037
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "mutual": 0,
+        "nodematch.race": 0
+      },
+      "loglik": 1892.98325402355,
+      "nobs": 61256,
+      "seconds": 6.532
+    },
     "flo_dyadind": {
       "network": "flomarriage",
       "formula": "edges + nodecov('wealth') + absdiff('wealth')",
@@ -12,6 +1087,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 20,
@@ -41,7 +1118,7 @@
       },
       "loglik": -50.7610235284313,
       "nobs": 120,
-      "seconds": 0.022
+      "seconds": 0.0210000000000008
     },
     "flo_edgecov": {
       "network": "flomarriage",
@@ -53,6 +1130,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 20,
@@ -77,7 +1156,7 @@
       },
       "loglik": -47.6790537455384,
       "nobs": 120,
-      "seconds": 0.0190000000000001
+      "seconds": 0.0189999999999984
     },
     "flo_triangle": {
       "network": "flomarriage",
@@ -89,6 +1168,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 20,
@@ -113,7 +1194,7 @@
       },
       "loglik": -54.0320435345241,
       "nobs": 120,
-      "seconds": 0.233
+      "seconds": 0.223999999999997
     },
     "flo_gwdegree": {
       "network": "flomarriage",
@@ -125,6 +1206,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 20,
@@ -149,7 +1232,7 @@
       },
       "loglik": -54.068740079075,
       "nobs": 120,
-      "seconds": 0.209
+      "seconds": 0.210000000000001
     },
     "samplk_mutual": {
       "network": "samplk3",
@@ -161,6 +1244,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 56,
@@ -185,7 +1270,7 @@
       },
       "loglik": -133.98562510637,
       "nobs": 306,
-      "seconds": 0.289
+      "seconds": 0.295000000000002
     },
     "mesa_gwesp": {
       "network": "faux.mesa.high",
@@ -197,6 +1282,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -236,7 +1323,7 @@
       },
       "loglik": -867.557609659408,
       "nobs": 20910,
-      "seconds": 18.738
+      "seconds": 18.645
     },
     "mesa_gwdegree": {
       "network": "faux.mesa.high",
@@ -248,6 +1335,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -287,7 +1376,7 @@
       },
       "loglik": -866.012346547627,
       "nobs": 20910,
-      "seconds": 9.07
+      "seconds": 8.936
     },
     "mesa_terms": {
       "network": "faux.mesa.high",
@@ -297,6 +1386,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -322,6 +1413,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -358,6 +1451,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 1197,
@@ -395,6 +1490,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 1197,
@@ -429,6 +1526,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 1197,
@@ -513,7 +1612,7 @@
       },
       "loglik": -5124.51287371576,
       "nobs": 61256,
-      "seconds": 0.827999999999996
+      "seconds": 0.833999999999996
     },
     "samplk_gwesp": {
       "network": "samplk3",
@@ -525,6 +1624,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 56,
@@ -554,7 +1655,7 @@
       },
       "loglik": -131.36062013783,
       "nobs": 306,
-      "seconds": 1.184
+      "seconds": 1.183
     },
     "dixon_gwesp": {
       "network": "faux.dixon.high",
@@ -566,6 +1667,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 1197,
@@ -605,7 +1708,7 @@
       },
       "loglik": -4206.09836270207,
       "nobs": 61256,
-      "seconds": 130.974
+      "seconds": 130.115
     },
     "mesa_terms2": {
       "network": "faux.mesa.high",
@@ -615,6 +1718,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "mix.Race.Black.Hisp": 8,
@@ -681,6 +1786,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "mix.race.H.B": 12,
@@ -730,6 +1837,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -757,6 +1866,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 1197,
@@ -797,6 +1908,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -826,7 +1939,7 @@
       },
       "loglik": -1126.73397689881,
       "nobs": 20910,
-      "seconds": 0.0240000000000009
+      "seconds": 0.0229999999999961
     },
     "flo_offset": {
       "network": "flomarriage",
@@ -838,6 +1951,8 @@
       ],
       "constraints": {},
       "offset_coef": -2.6,
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "offset(edges)": 20,
@@ -874,6 +1989,8 @@
       ],
       "constraints": {},
       "offset_coef": -6.2,
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "offset(edges)": 203,
@@ -903,7 +2020,7 @@
       },
       "loglik": -871.301000661384,
       "nobs": 20910,
-      "seconds": 12.831
+      "seconds": 12.675
     },
     "mesa_F": {
       "network": "faux.mesa.high",
@@ -915,6 +2032,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -949,7 +2068,7 @@
       },
       "loglik": -894.461634466298,
       "nobs": 20910,
-      "seconds": 13.763
+      "seconds": 13.577
     },
     "mesa_esp": {
       "network": "faux.mesa.high",
@@ -961,6 +2080,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -995,7 +2116,7 @@
       },
       "loglik": -887.866214926062,
       "nobs": 20910,
-      "seconds": 3.56999999999999
+      "seconds": 3.38399999999999
     },
     "samplk_bd": {
       "network": "samplk3",
@@ -1006,6 +2127,8 @@
       ],
       "constraints": "bd(maxout=4)",
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 56,
@@ -1026,7 +2149,7 @@
       },
       "loglik": 17.8427864007292,
       "nobs": 306,
-      "seconds": 0.189999999999998
+      "seconds": 0.168999999999983
     },
     "mesa_blocks_dyadind": {
       "network": "faux.mesa.high",
@@ -1038,6 +2161,8 @@
       ],
       "constraints": "blocks('Grade', levels2=-1)",
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -1062,7 +2187,7 @@
       },
       "loglik": -315.40927899435,
       "nobs": 1891,
-      "seconds": 0.0260000000000105
+      "seconds": 0.0240000000000009
     },
     "mesa_blocks": {
       "network": "faux.mesa.high",
@@ -1074,6 +2199,8 @@
       ],
       "constraints": "blocks('Grade', levels2=-c(1, 3, 6, 10, 15, 21))",
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -1103,7 +2230,7 @@
       },
       "loglik": -598.689896411797,
       "nobs": 4174,
-      "seconds": 8.34299999999999
+      "seconds": 8.34200000000001
     },
     "mesa_degrees": {
       "network": "faux.mesa.high",
@@ -1114,6 +2241,8 @@
       ],
       "constraints": "degrees",
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "nodematch.Grade": 163,
@@ -1134,7 +2263,7 @@
       },
       "loglik": 252.501839209832,
       "nobs": 20910,
-      "seconds": 5.601
+      "seconds": 5.56999999999999
     },
     "samplk_odegrees": {
       "network": "samplk3",
@@ -1145,6 +2274,8 @@
       ],
       "constraints": "odegrees",
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "mutual": 15,
@@ -1165,7 +2296,7 @@
       },
       "loglik": 22.1304939016467,
       "nobs": 306,
-      "seconds": 0.454999999999984
+      "seconds": 0.457000000000022
     },
     "samplk_degrees": {
       "network": "samplk3",
@@ -1176,6 +2307,8 @@
       ],
       "constraints": "degrees",
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "mutual": 15,
@@ -1196,7 +2329,7 @@
       },
       "loglik": 23.572417419548,
       "nobs": 306,
-      "seconds": 0.591999999999985
+      "seconds": 0.585000000000008
     },
     "linked_mix": {
       "network": "linked_sim",
@@ -1208,6 +2341,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "mix.type.FALSE.FALSE": 304,
@@ -1237,7 +2372,7 @@
       },
       "loglik": -2323.55276293794,
       "nobs": 11175,
-      "seconds": 0.0240000000000009
+      "seconds": 0.0249999999999773
     },
     "linked_multilevel": {
       "network": "linked_sim",
@@ -1249,6 +2384,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "mix.level.individual.individual": 304,
@@ -1283,7 +2420,7 @@
       },
       "loglik": -2323.33875872408,
       "nobs": 11175,
-      "seconds": 2.63400000000001
+      "seconds": 2.56200000000001
     },
     "linked_blocks": {
       "network": "linked_sim",
@@ -1295,6 +2432,8 @@
       ],
       "constraints": "blocks('level', levels2=2)",
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "mix.level.individual.individual": 304,
@@ -1324,7 +2463,7 @@
       },
       "loglik": -1461.57097284041,
       "nobs": 6175,
-      "seconds": 1.328
+      "seconds": 1.35500000000002
     },
     "mesa_terms3": {
       "network": "faux.mesa.high",
@@ -1334,6 +2473,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "cycle3": 62,
@@ -1564,6 +2705,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "cycle2": 219,
@@ -1609,6 +2752,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "sender2": 3,
@@ -1656,6 +2801,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -1681,6 +2828,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 1197,
@@ -1711,6 +2860,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -1766,6 +2917,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -1794,7 +2947,7 @@
       },
       "loglik": -868.887405935006,
       "nobs": 20910,
-      "seconds": 8.58799999999999
+      "seconds": 8.536
     },
     "samplk_osp": {
       "network": "samplk3",
@@ -1806,6 +2959,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 56,
@@ -1835,7 +2990,7 @@
       },
       "loglik": -130.72096399524,
       "nobs": 306,
-      "seconds": 0.876000000000005
+      "seconds": 0.853999999999985
     },
     "samplk_twopath": {
       "network": "samplk3",
@@ -1847,6 +3002,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 56,
@@ -1876,7 +3033,7 @@
       },
       "loglik": -130.725977541971,
       "nobs": 306,
-      "seconds": 0.257000000000005
+      "seconds": 0.252999999999986
     },
     "davis_terms": {
       "network": "davis",
@@ -1886,6 +3043,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": true,
       "stats": {
         "edges": 89,
@@ -1919,6 +3078,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": true,
       "stats": {
         "edges": 103,
@@ -1946,6 +3107,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": true,
       "stats": {
         "edges": 103,
@@ -1995,7 +3158,7 @@
       },
       "loglik": -410.790218041907,
       "nobs": 2400,
-      "seconds": 0.0300000000000011
+      "seconds": 0.0289999999999964
     },
     "bipartite_gw": {
       "network": "bipartite_sim",
@@ -2007,6 +3170,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": true,
       "stats": {
         "edges": 103,
@@ -2046,7 +3211,7 @@
       },
       "loglik": -412.775771108326,
       "nobs": 2400,
-      "seconds": 0.247000000000014
+      "seconds": 0.248000000000019
     },
     "bipartite_match": {
       "network": "bipartite_sim",
@@ -2058,6 +3223,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": true,
       "stats": {
         "edges": 103,
@@ -2087,7 +3254,7 @@
       },
       "loglik": -424.900980434804,
       "nobs": 2400,
-      "seconds": 0.24199999999999
+      "seconds": 0.219999999999999
     },
     "bipartite_dsp": {
       "network": "bipartite_sim",
@@ -2099,6 +3266,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": true,
       "stats": {
         "edges": 103,
@@ -2133,7 +3302,7 @@
       },
       "loglik": -424.353599642212,
       "nobs": 2400,
-      "seconds": 0.255000000000024
+      "seconds": 0.254999999999995
     },
     "davis_dsp": {
       "network": "davis",
@@ -2145,6 +3314,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": true,
       "stats": {
         "edges": 89,
@@ -2169,7 +3340,7 @@
       },
       "loglik": -160.751678720953,
       "nobs": 252,
-      "seconds": 0.350999999999999
+      "seconds": 0.343999999999994
     },
     "mesa_curved_mple": {
       "network": "faux.mesa.high",
@@ -2180,6 +3351,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -2231,6 +3404,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 203,
@@ -2291,7 +3466,7 @@
       },
       "loglik": -867.543918475316,
       "nobs": 20910,
-      "seconds": 17.303
+      "seconds": 17.285
     },
     "bipartite_curved": {
       "network": "bipartite_sim",
@@ -2303,6 +3478,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": true,
       "stats": {
         "edges": 103,
@@ -2370,7 +3547,7 @@
       },
       "loglik": -412.979790952134,
       "nobs": 2400,
-      "seconds": 0.227000000000004
+      "seconds": 0.229999999999961
     },
     "flo_curved": {
       "network": "flomarriage",
@@ -2381,6 +3558,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 20,
@@ -2415,6 +3594,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 1197,
@@ -2479,7 +3660,7 @@
       },
       "loglik": -4207.21600557685,
       "nobs": 61256,
-      "seconds": 177.124
+      "seconds": 175.826
     },
     "samplk_missing": {
       "network": "samplk3.nonresponse",
@@ -2490,6 +3671,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 50,
@@ -2510,7 +3693,7 @@
       },
       "loglik": -124.621398261725,
       "nobs": 272,
-      "seconds": 0.393000000000029
+      "seconds": 0.39100000000002
     },
     "mesa_missing_dyadind": {
       "network": "faux.mesa.high.missing",
@@ -2522,6 +3705,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 193,
@@ -2562,6 +3747,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 193,
@@ -2590,7 +3777,7 @@
       },
       "loglik": -824.162129900173,
       "nobs": 19864,
-      "seconds": 15.678
+      "seconds": 16.174
     },
     "linked_S_stats": {
       "network": "linked_sim",
@@ -2600,6 +3787,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "S(level==\"individual\")~edges": 304,
@@ -2635,6 +3824,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "S(level==\"individual\")~edges": 304,
@@ -2664,7 +3855,7 @@
       },
       "loglik": -2323.55276293795,
       "nobs": 11175,
-      "seconds": 0.0640000000000214
+      "seconds": 0.0629999999999882
     },
     "linked_S": {
       "network": "linked_sim",
@@ -2676,6 +3867,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "S(level==\"individual\")~edges": 304,
@@ -2720,7 +3913,7 @@
       },
       "loglik": -2321.9802629761,
       "nobs": 11175,
-      "seconds": 7.16299999999995
+      "seconds": 7.50800000000004
     },
     "samplk_S": {
       "network": "samplk3",
@@ -2731,6 +3924,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "edges": 56,
@@ -2755,6 +3950,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "N(1)~edges": 168,
@@ -2785,6 +3982,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "N(1)~edges": 168,
@@ -2809,7 +4008,7 @@
       },
       "loglik": -403.571006240378,
       "nobs": 918,
-      "seconds": 0.541999999999973
+      "seconds": 0.539000000000044
     },
     "multi_curved": {
       "network": "samplk123.Networks",
@@ -2819,6 +4018,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "N#1~edges": 55,
@@ -2869,6 +4070,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "N(1)~edges": 1300,
@@ -2908,7 +4111,7 @@
       },
       "loglik": -409.670882917116,
       "nobs": 1425,
-      "seconds": 0.989000000000033
+      "seconds": 0.954000000000008
     },
     "goey_weekday": {
       "network": "Goeyvaerts.weekday",
@@ -2920,6 +4123,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "N(1)~edges": 1300,
@@ -2974,7 +4179,140 @@
       },
       "loglik": -327.040260914753,
       "nobs": 1425,
-      "seconds": 22.256
+      "seconds": 23.871
+    },
+    "goey_offset": {
+      "network": "Goeyvaerts.weekday",
+      "formula": "N(~edges + nodematch('gender'), offset=~log(n))",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "N(1)~edges": 1300,
+        "offset1": 1901.73301132092,
+        "N(1)~nodematch.gender": 552,
+        "offset2": 816.004798758991
+      },
+      "mple": {
+        "N(1)~edges": 0.988149796255395,
+        "N(1)~nodematch.gender": -1.65302917560877
+      },
+      "dyad_independent": true,
+      "mle": {
+        "N(1)~edges": 0.988149796255395,
+        "N(1)~nodematch.gender": -1.65302917560878
+      },
+      "se": {
+        "N(1)~edges": 0.128622299196016,
+        "N(1)~nodematch.gender": 0.188869316445044
+      },
+      "mcmc_pct": {
+        "N(1)~edges": 0,
+        "N(1)~nodematch.gender": 0
+      },
+      "loglik": -443.721083953883,
+      "nobs": 1425,
+      "seconds": 0.557999999999993
+    },
+    "goey_subset": {
+      "network": "Goeyvaerts.weekday",
+      "formula": "N(~edges, subset=~n>=4, lm=~I(n>=5)) + N(~nodematch('gender') + absdiff('age'), lm=~1+offset(I(n<=2)))",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "N(1)~edges": 1138,
+        "N(I(n >= 5)TRUE)~edges": 520,
+        "N(1)~nodematch.gender": 552,
+        "offset1": 6,
+        "N(1)~absdiff.age": 27860,
+        "offset2": 298
+      },
+      "mple": {
+        "N(1)~edges": 1.7242443734754,
+        "N(I(n >= 5)TRUE)~edges": -0.501131306179224,
+        "N(1)~nodematch.gender": -0.0644288405872792,
+        "N(1)~absdiff.age": 0.0492082598339076
+      },
+      "dyad_independent": true,
+      "mle": {
+        "N(1)~edges": 1.7242443734754,
+        "N(I(n >= 5)TRUE)~edges": -0.501131306179226,
+        "N(1)~nodematch.gender": -0.064428840587279,
+        "N(1)~absdiff.age": 0.0492082598339075
+      },
+      "se": {
+        "N(1)~edges": 0.173469684627428,
+        "N(I(n >= 5)TRUE)~edges": 0.201203522817292,
+        "N(1)~nodematch.gender": 0.186486749380737,
+        "N(1)~absdiff.age": 0.00574130285782372
+      },
+      "mcmc_pct": {
+        "N(1)~edges": 0,
+        "N(I(n >= 5)TRUE)~edges": 0,
+        "N(1)~nodematch.gender": 0,
+        "N(1)~absdiff.age": 0
+      },
+      "loglik": -450.275599791674,
+      "nobs": 1425,
+      "seconds": 0.906999999999982
+    },
+    "goey_subset_label": {
+      "network": "Goeyvaerts.weekday",
+      "formula": "N(~edges + triangle, subset=~n>=4, label='big') + N(~edges, subset=c(TRUE, FALSE), label='odd')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "N(big,1)~edges": 1138,
+        "N(big,1)~triangle": 886,
+        "N(odd,1)~edges": 622
+      },
+      "mple": {
+        "N(big,1)~edges": -1.03110237167444,
+        "N(big,1)~triangle": 1.67453191698707,
+        "N(odd,1)~edges": 1.15027089698252
+      },
+      "dyad_independent": false,
+      "mle": {
+        "N(big,1)~edges": 0.478043678017769,
+        "N(big,1)~triangle": 0.765572250926667,
+        "N(odd,1)~edges": 0.905307913749373
+      },
+      "se": {
+        "N(big,1)~edges": 0.187218494191128,
+        "N(big,1)~triangle": 0.11078115457468,
+        "N(odd,1)~edges": 0.157362505971046
+      },
+      "mcmc_pct": {
+        "N(big,1)~edges": 0,
+        "N(big,1)~triangle": 0,
+        "N(odd,1)~edges": 0
+      },
+      "loglik": -461.780147964241,
+      "nobs": 1425,
+      "seconds": 4.50700000000001
     },
     "series_stats": {
       "network": "samplk123.NetSeries",
@@ -2984,6 +4322,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "Form(1)~edges": 150,
@@ -3016,6 +4356,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "Form(1)~edges": 150,
@@ -3026,7 +4368,7 @@
       "mple": {
         "Form(1)~edges": -3.22882615561601,
         "Form(1)~nodematch.group": 2.2594255984279,
-        "Diss(1)~edges": 0.0909717782057262,
+        "Diss(1)~edges": 0.0909717782057269,
         "Diss(1)~nodematch.group": -1.44089849515474
       },
       "dyad_independent": true,
@@ -3050,7 +4392,7 @@
       },
       "loglik": -180.05503922944,
       "nobs": 612,
-      "seconds": 0.0470000000000255
+      "seconds": 0.0460000000000491
     },
     "series_gwesp": {
       "network": "samplk123.NetSeries",
@@ -3062,6 +4404,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "Form(1)~edges": 150,
@@ -3101,7 +4445,7 @@
       },
       "loglik": -187.786870006814,
       "nobs": 612,
-      "seconds": 1.26799999999997
+      "seconds": 1.202
     },
     "series_one": {
       "network": "samplk12.NetSeries",
@@ -3113,6 +4457,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "Form(1)~edges": 77,
@@ -3147,7 +4493,7 @@
       },
       "loglik": -102.243341198072,
       "nobs": 306,
-      "seconds": 0.316000000000031
+      "seconds": 0.317000000000007
     },
     "series_curved": {
       "network": "samplk123.NetSeries",
@@ -3157,6 +4503,8 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
       "bipartite": false,
       "stats": {
         "N#1~edges": 77,
@@ -3185,7 +4533,229 @@
         "N#2~esp.OTP#10": 0,
         "Persist(1)~edges": 75
       }
+    },
+    "series_na_next_dyadind": {
+      "network": "samplk123.na.next",
+      "formula": "Form(~edges + nodematch('group')) + Persist(~edges)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "Form(1)~edges": 145,
+        "Form(1)~nodematch.group": 87,
+        "Persist(1)~edges": 74
+      },
+      "mple": {
+        "Form(1)~edges": -3.23737040740907,
+        "Form(1)~nodematch.group": 2.15745025175311,
+        "Persist(1)~edges": 0.838329190404444
+      },
+      "dyad_independent": true,
+      "mle": {
+        "Form(1)~edges": -3.23737040740907,
+        "Form(1)~nodematch.group": 2.15745025175311,
+        "Persist(1)~edges": 0.838329190404444
+      },
+      "se": {
+        "Form(1)~edges": 0.263217681877864,
+        "Form(1)~nodematch.group": 0.379087098352099,
+        "Persist(1)~edges": 0.211573896106097
+      },
+      "mcmc_pct": {
+        "Form(1)~edges": 0,
+        "Form(1)~nodematch.group": 0,
+        "Persist(1)~edges": 0
+      },
+      "loglik": -168.969564327289,
+      "nobs": 574,
+      "seconds": 0.0489999999999782
+    },
+    "series_na_next": {
+      "network": "samplk123.na.next",
+      "formula": "Form(~edges + mutual) + Persist(~edges + mutual)",
+      "checks": [
+        "stats",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "Form(1)~edges": 145,
+        "Form(1)~mutual": 41,
+        "Persist(1)~edges": 74,
+        "Persist(1)~mutual": 15
+      },
+      "dyad_independent": false,
+      "mle": {
+        "Form(1)~edges": -3.02285443337751,
+        "Form(1)~mutual": 1.6945746747265,
+        "Persist(1)~edges": 0.56587929347529,
+        "Persist(1)~mutual": 0.809071272097861
+      },
+      "se": {
+        "Form(1)~edges": 0.24280621032396,
+        "Form(1)~mutual": 0.456616502592856,
+        "Persist(1)~edges": 0.266701333441309,
+        "Persist(1)~mutual": 0.513456121739979
+      },
+      "mcmc_pct": {
+        "Form(1)~edges": 0,
+        "Form(1)~mutual": 0,
+        "Persist(1)~edges": 0,
+        "Persist(1)~mutual": 0
+      },
+      "loglik": -176.905560297276,
+      "nobs": 574,
+      "seconds": 2.5
+    },
+    "series_na_previous": {
+      "network": "samplk123.na.previous",
+      "formula": "Form(~edges + nodematch('group')) + Diss(~edges)",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "Form(1)~edges": 145,
+        "Form(1)~nodematch.group": 87,
+        "Diss(1)~edges": -72
+      },
+      "mple": {
+        "Form(1)~edges": -3.17283188630994,
+        "Form(1)~nodematch.group": 2.14697895192425,
+        "Diss(1)~edges": -0.810930216216328
+      },
+      "dyad_independent": true,
+      "mle": {
+        "Form(1)~edges": -3.17283188630994,
+        "Form(1)~nodematch.group": 2.14697895192425,
+        "Diss(1)~edges": -0.810930216216328
+      },
+      "se": {
+        "Form(1)~edges": 0.255180593212088,
+        "Form(1)~nodematch.group": 0.369616880874972,
+        "Diss(1)~edges": 0.212459146399699
+      },
+      "mcmc_pct": {
+        "Form(1)~edges": 0,
+        "Form(1)~nodematch.group": 0,
+        "Diss(1)~edges": 0
+      },
+      "loglik": -172.839098658345,
+      "nobs": 574,
+      "seconds": 0.0520000000000209
     }
+  },
+  "gofn": {
+    "network": "Goeyvaerts.weekday",
+    "formula": "N(~edges, ~I(n<=3) + I(n>=5)) + N(~nodematch('gender') + absdiff('age'))",
+    "coef": {
+      "N(1)~edges": 2.21282014983924,
+      "N(I(n <= 3)TRUE)~edges": 0.671483466488399,
+      "N(I(n >= 5)TRUE)~edges": -0.513758276258595,
+      "N(1)~nodematch.gender": -0.240718530889902,
+      "N(1)~absdiff.age": 0.0225026484517103
+    },
+    "nsim": 2000,
+    "default": {
+      "N(1)~edges": {
+        "observed": [10, 6, 3, 3, 6, 6, 6, 3, 6, 6, 5, 3, 6, 6, 6, 9, 6, 6, 3, 3, 3, 4, 3, 1, 6, 6, 6, 6, 6, 5, 8, 6, 6, 4, 6, 9, 2, 6, 5, 3, 3, 3, 3, 3, 3, 3, 9, 6, 10, 6, 6, 3, 6, 10, 5, 10, 6, 6, 1, 10, 6, 1, 6, 5, 10, 18, 5, 6, 3, 3, 6, 6, 6, 10, 3, 15, 3, 6, 6, 3, 6, 10, 10, 6, 6, 3, 5, 10, 3, 6, 6, 6, 6, 6, 3, 6, 5, 3, 6, 3, 3, 15, 2, 6, 3, 6, 6, 6, 1, 10, 10, 10, 8, 10, 6, 3, 6, 6, 6, 6, 10, 6, 6, 15, 10, 6, 1, 10, 6, 6, 6, 3, 6, 1, 3, 5, 2, 3, 15, 6, 3, 1, 3, 6, 2, 3, 6, 3, 6, 2, 10, 6, 4, 6, 6, 1, 10, 10, 3, 6, 1, 5, 3, 3, 15, 6, 3, 4, 3, 9, 6, 6, 6, 6, 6, 3, 6, 9, 6, 10, 2, 6, 1, 6, 3, 6, 3, 5, 5, 6, 6, 3, 3, 9, 6, 10, 3, 5, 3, 10, 14, 6, 9, 6, 3, 15, 8, 3, 5, 6, 6, 10, 10, 6, 10, 3, 10, 6, 6, 3, 3, 1, 5, 10, 4],
+        "fitted": [8.892, 5.562, 2.847, 5.57549999999999, 5.548, 5.62349999999999, 5.5345, 5.6, 5.5145, 5.579, 5.5895, 2.9165, 5.529, 8.849, 5.523, 13.0065, 5.61550000000001, 5.537, 2.9125, 2.853, 2.9005, 8.77950000000004, 2.8885, 0.9695, 5.59100000000001, 5.6045, 5.6025, 5.51649999999999, 5.58800000000001, 5.5525, 8.90499999999998, 5.4385, 5.5745, 5.5215, 5.5795, 8.75949999999998, 2.8905, 5.5125, 5.5, 2.9265, 2.896, 2.8725, 2.9015, 2.90350000000001, 2.892, 2.892, 8.728, 5.54699999999999, 8.86499999999998, 5.51, 5.5795, 2.8675, 5.5755, 8.80499999999998, 5.52000000000001, 8.91900000000001, 5.572, 5.51500000000001, 0.9645, 8.7725, 5.601, 0.9575, 5.62499999999999, 5.4915, 8.795, 18.659, 5.4775, 5.599, 2.89549999999999, 2.892, 5.557, 5.6085, 5.5455, 8.68099999999998, 5.52449999999999, 13.032, 2.8815, 5.6325, 5.5405, 2.846, 5.5645, 8.71450000000001, 8.83700000000001, 5.56749999999999, 5.54099999999999, 2.8965, 5.6095, 8.92599999999998, 2.882, 5.54700000000002, 5.545, 5.58299999999999, 5.57850000000001, 5.637, 2.8955, 5.5935, 5.57800000000002, 2.8875, 5.61149999999999, 2.878, 2.8645, 13.257, 2.89749999999999, 5.5315, 5.5655, 5.533, 5.6215, 5.563, 0.963, 8.7845, 8.7545, 8.71749999999999, 8.82500000000001, 8.81049999999997, 5.56949999999998, 2.87200000000001, 5.6195, 5.53400000000001, 8.82800000000002, 5.5195, 8.7875, 5.58350000000001, 5.62899999999999, 13.259, 8.8165, 5.6085, 0.9755, 8.83250000000001, 8.8545, 5.594, 5.584, 2.902, 5.581, 0.9875, 2.90300000000001, 5.528, 5.53550000000001, 2.896, 13.272, 5.60249999999999, 2.874, 0.955, 2.906, 5.58249999999999, 2.8855, 2.8905, 5.553, 2.893, 5.556, 5.51799999999999, 8.872, 5.537, 5.55649999999999, 5.5305, 5.5295, 5.5555, 13.0365, 13.2955, 2.916, 5.52449999999998, 0.986, 8.87050000000001, 2.8995, 2.8875, 13.0905, 5.59350000000001, 2.88699999999999, 8.83999999999998, 2.889, 8.75600000000001, 5.57100000000001, 5.61550000000001, 5.6275, 5.587, 5.61100000000001, 2.873, 5.563, 8.7045, 5.5855, 13.3015, 2.89500000000001, 5.59649999999999, 2.8965, 5.56300000000001, 2.8965, 5.57750000000001, 2.883, 5.59499999999999, 5.56949999999999, 5.5475, 5.6045, 2.908, 2.92, 8.82300000000001, 5.569, 8.70399999999998, 2.8845, 5.5305, 2.9155, 8.76800000000001, 13.082, 5.538, 13.1965, 5.502, 2.8845, 13.2425, 8.89149999999999, 2.905, 5.57749999999999, 5.56149999999999, 5.5475, 8.6485, 8.79299999999998, 5.60350000000001, 8.73250000000002, 2.8995, 8.7905, 5.589, 5.6045, 5.51150000000001, 2.8865, 0.967000000000001, 5.6035, 8.75650000000002, 5.5435],
+        "var": [0.949810905452729, 0.400356178089045, 0.142662331165582, 0.369484492246123, 0.442917458729365, 0.363929714857428, 0.416017758879439, 0.351175587793897, 0.432005752876439, 0.374946473236617, 0.392185842921461, 0.0845700350175087, 0.408363181590795, 1.01670735367684, 0.445693846923463, 1.65828689344672, 0.348834167083541, 0.439850925462731, 0.081884692346173, 0.144463231615808, 0.0956475737868936, 1.08642296148074, 0.103119309654827, 0.0295845422711356, 0.372905452726364, 0.375267383691846, 0.386687093546773, 0.426941220610306, 0.389450725362681, 0.369428464232116, 0.929439719859933, 0.519477488744371, 0.379639569784893, 0.423749624812406, 0.36986468234117, 1.12222086043021, 0.105562531265633, 0.454070785392697, 0.492246123061531, 0.0741348174087043, 0.111239619809905, 0.1213044022011, 0.0948451725862935, 0.0962358679339668, 0.096384192096048, 0.105388694347174, 1.13558379189595, 0.430006003001501, 0.940245122561282, 0.457128564282141, 0.380870185092545, 0.124005752876438, 0.381490495247624, 1.08751875937969, 0.493846923461731, 0.940909454727364, 0.383007503751876, 0.441995997999, 0.0342568784392196, 1.15532141070535, 0.343970985492747, 0.0407141070535269, 0.346548274137069, 0.467161330665332, 1.06650825412707, 2.22483141570785, 0.47673211605803, 0.352375187593797, 0.097628564282141, 0.099385692846423, 0.393947973986994, 0.368411955977989, 0.42714332166083, 1.12179989994998, 0.428614057028514, 1.49172186093047, 0.110513006503252, 0.329608554277138, 0.401560530265133, 0.14535667833917, 0.371025262631316, 1.07352651325663, 1.08897548774387, 0.404646073036518, 0.431534767383693, 0.0998376688344173, 0.35018484242121, 0.908978489244623, 0.108130065032516, 0.435008504252127, 0.410180090045022, 0.383302651325663, 0.382028764382191, 0.3404012006003, 0.100630065032516, 0.370442971485743, 0.378105052526262, 0.103895697848924, 0.34674112056028, 0.119175587793897, 0.123201350675338, 1.49669934967484, 0.0940407703851927, 0.461238369184592, 0.394907203601801, 0.436129064532266, 0.358416958479239, 0.427244622311156, 0.0356488244122062, 1.10261105552777, 1.05475712856428, 1.10524637318659, 0.986868434217109, 1.03710830415208, 0.403371435717861, 0.12567883941971, 0.354897198599301, 0.46407603801901, 1.03193196598299, 0.426833166583292, 1.02985867933967, 0.398226863431716, 0.338528264132067, 1.52568184092046, 1.05635592796398, 0.373414457228613, 0.0239117058529265, 0.972930215107555, 1.04085017508754, 0.351339669834917, 0.395141570785393, 0.0954437218609304, 0.360619309654827, 0.0123499249624812, 0.101641820910455, 0.431431715857929, 0.408944222111055, 0.0982331165582793, 1.47775487743872, 0.387687593796898, 0.115181590795398, 0.0429964982491246, 0.091209604802401, 0.375381440720361, 0.105442471235618, 0.104562031015507, 0.430406203101551, 0.111606803401701, 0.431079539769886, 0.425888944472237, 0.959095547773886, 0.39983091545773, 0.394004752376189, 0.415277388694347, 0.370314907453726, 0.429134317158579, 1.69601575787894, 1.50493221610805, 0.0809844922461231, 0.448624062031015, 0.0138109054527264, 1.06426188094047, 0.103451475737869, 0.111899699849925, 1.74418184092046, 0.396455977988994, 0.109285642821411, 0.981890945472736, 0.101729864932466, 1.10101450725363, 0.415166583291645, 0.394857178589295, 0.326907203601801, 0.361611805902952, 0.378868434217108, 0.120931465732867, 0.373217608804402, 1.0797196098049, 0.376878189094547, 1.35927738869435, 0.103026513256628, 0.356866183091546, 0.095835667833917, 0.410236118059029, 0.109842671335668, 0.38218484242121, 0.113367683841921, 0.383166583291646, 0.393366433216608, 0.406947223611806, 0.357258379189595, 0.0905812906453226, 0.0806403201600799, 1.03118659329665, 0.404441220610304, 1.19298049024512, 0.103211355677839, 0.430284892446224, 0.0834014507253625, 1.08671935967984, 1.66510855427714, 0.449780890445222, 1.61469509754878, 0.448220110055028, 0.112215857928964, 1.48443596798399, 0.956205852926462, 0.0910205102551274, 0.417202351175588, 0.394414957478739, 0.392940220110056, 1.18654102051025, 1.12271235617809, 0.382478989494748, 1.09949349674837, 0.0974484742371187, 1.06514232116058, 0.39127463731866, 0.36426188094047, 0.411073286643323, 0.107671585792896, 0.0319269634817409, 0.373474487243622, 1.12276913456728, 0.406310905452726],
+        "var.obs": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "pearson": [1.13689716766515, 0.692230679403712, 0.405076242376508, -4.23704861094922, 0.679167718179802, 0.624102930668406, 0.721711707258249, -4.38743998587213, 0.738659808565456, 0.687539191889122, -0.941321229048614, 0.287129768154761, 0.73705113233661, -2.82549450397778, 0.714496424502213, -3.11125288953438, 0.651008765491074, 0.69811703575498, 0.305778321378622, 0.38675743552297, 0.32172595721678, -4.58546093635405, 0.347220108875569, 0.177323956239478, 0.66976730142341, 0.645618665991862, 0.639230214448967, 0.739967140759356, 0.6601930642881, -0.909006743579158, -0.938724094325409, 0.779051905930286, 0.69057973224202, -2.33731525367921, 0.69142418818445, 0.227026164517257, -2.74081060493305, 0.723457194254791, -0.712654205249761, 0.269945584407393, 0.311819730143978, 0.36607654486858, 0.319836934986409, 0.311070501673499, 0.347873101959997, 0.33268003877949, 0.255246215399355, 0.690813701582042, 1.17051050821047, 0.724731103106539, 0.6813613765586, 0.376265987016801, 0.687283366845906, 1.14590740713885, -0.739958166060946, 1.11442739048746, 0.691576341286433, 0.729512218204411, 0.191802586647537, 1.14201048131083, 0.680318044768723, 0.210628178943399, 0.637014616627598, -0.719101308086818, 1.16682287971944, -0.441811341705242, -0.691570040408923, 0.675525445547905, 0.334447411573949, 0.342579854563642, 0.705804284829256, 0.645007713795595, 0.69541984082409, 1.2453375893721, -3.85604567858316, 1.61131765990456, 0.356460698127291, 0.640115150316614, 0.725120204280531, 0.403927317915784, 0.714967694364403, 1.24069688989512, 1.11447585163603, 0.679905331578942, 0.698722598907902, 0.327561713184988, -1.0299710976257, 1.12649035701824, 0.358846549992311, 0.686830113749234, 0.710434606649345, 0.673542715200375, 0.681945310218227, 0.622172889738784, 0.329421859067911, 0.667882201944888, -0.939986460363279, 0.349022753320238, 0.659763596458239, 0.35339970233261, 0.386039336635345, 1.42472190674515, -2.92668760418136, 0.689837630360239, -4.08248399733764, 0.707146450212647, 0.632224918024193, 0.668564226188461, 0.195965273376888, 1.15756074817114, 1.21273942766743, 1.21991009319141, -0.830470709471651, 1.16802567820113, 0.677829686320785, 0.361059593502032, 0.638709499558676, 0.684055508218504, -2.78390154651792, 0.735468899825379, 1.19479371813795, 0.660008804670367, 0.637641305768542, 1.40950552489263, 1.15149783397062, 0.640672676134052, 0.158438530072007, 1.18363021696676, -2.79792415439736, 0.684955629126132, 0.661785076839454, 0.317214033699346, 0.697733434207687, 0.112480659378296, 0.304253453054505, -0.803855316471373, -5.52864626011516, 0.331821389747633, 1.42148583855059, 0.638404855122922, 0.371260725434242, 0.21701810670712, 0.311248714635638, 0.681428167224809, -2.72697262091235, 0.338631312563028, 0.681346865341802, 0.320286359387031, 0.676245307997081, -5.39073088831539, 1.15180288544539, 0.732222053975617, -2.47969573424017, 0.728561896560957, 0.773168283012834, -6.95407592634282, -2.33162307106732, -2.68635155159342, 0.295174172402938, 0.709919719223244, 0.119128852802248, -3.75182711876259, 0.312462365752163, 0.336308668541963, 1.44585180796479, 0.645599320391706, 0.341819541981489, -4.88442824604977, 0.348015626413709, 0.232537664149512, 0.665803535855206, 0.611894183798939, 0.651499417527334, 0.686797572099196, 0.631982990700491, 0.36520276972882, 0.715320010008048, 0.284381925668336, 0.675186939118724, -2.83176529773366, -2.78835801111604, 0.675446321961461, -6.12617304716791, 0.682282905151038, 0.312287647905832, 0.683423619038908, 0.347489130861079, -0.961220783487325, -0.908019299771162, 0.709331977215632, 0.661691073770934, 0.305681091294464, 0.281717525667082, 0.174302909841408, 0.677718848000839, 1.18655624891735, 0.359516016432592, -0.808737049421268, 0.2925970252291, 1.18182182469473, 0.711412358242616, 0.688876668001025, -3.302493443701, 0.74384709935498, 0.3447901633342, 1.44249593939674, -0.911686761850189, 0.314886449739805, -0.894084600857374, 0.698221004480745, 0.72186392985092, 1.24072253847422, 1.13912929016378, 0.641120110600837, 1.20879216262183, 0.321942668808747, 1.17193102672422, 0.657053863183156, 0.655299180619651, -3.91718023790888, 0.345895814453555, 0.184686491953894, -0.987522056805832, 1.17354718766231, -2.42146052945845]
+      },
+      "N(I(n <= 3)TRUE)~edges": {
+        "observed": ["NA", "NA", 3, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 3, "NA", "NA", "NA", "NA", "NA", "NA", 3, 3, 3, "NA", 3, 1, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 2, "NA", "NA", 3, 3, 3, 3, 3, 3, 3, "NA", "NA", "NA", "NA", "NA", 3, "NA", "NA", "NA", "NA", "NA", "NA", 1, "NA", "NA", 1, "NA", "NA", "NA", "NA", "NA", "NA", 3, 3, "NA", "NA", "NA", "NA", "NA", "NA", 3, "NA", "NA", 3, "NA", "NA", "NA", "NA", "NA", 3, "NA", "NA", 3, "NA", "NA", "NA", "NA", "NA", 3, "NA", "NA", 3, "NA", 3, 3, "NA", 2, "NA", "NA", "NA", "NA", "NA", 1, "NA", "NA", "NA", "NA", "NA", "NA", 3, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1, "NA", "NA", "NA", "NA", 3, "NA", 1, 3, "NA", "NA", 3, "NA", "NA", 3, 1, 3, "NA", 2, 3, "NA", 3, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 3, "NA", 1, "NA", 3, 3, "NA", "NA", 3, "NA", 3, "NA", "NA", "NA", "NA", "NA", "NA", 3, "NA", "NA", "NA", "NA", 2, "NA", 1, "NA", 3, "NA", 3, "NA", "NA", "NA", "NA", 3, 3, "NA", "NA", "NA", 3, "NA", 3, "NA", "NA", "NA", "NA", "NA", 3, "NA", "NA", 3, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 3, "NA", "NA", "NA", "NA", 3, 1, "NA", "NA", "NA"],
+        "fitted": ["NA", "NA", 2.847, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 2.9165, "NA", "NA", "NA", "NA", "NA", "NA", 2.9125, 2.853, 2.9005, "NA", 2.8885, 0.9695, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 2.8905, "NA", "NA", 2.9265, 2.896, 2.8725, 2.9015, 2.90350000000001, 2.892, 2.892, "NA", "NA", "NA", "NA", "NA", 2.8675, "NA", "NA", "NA", "NA", "NA", "NA", 0.9645, "NA", "NA", 0.9575, "NA", "NA", "NA", "NA", "NA", "NA", 2.89549999999999, 2.892, "NA", "NA", "NA", "NA", "NA", "NA", 2.8815, "NA", "NA", 2.846, "NA", "NA", "NA", "NA", "NA", 2.8965, "NA", "NA", 2.882, "NA", "NA", "NA", "NA", "NA", 2.8955, "NA", "NA", 2.8875, "NA", 2.878, 2.8645, "NA", 2.89749999999999, "NA", "NA", "NA", "NA", "NA", 0.963, "NA", "NA", "NA", "NA", "NA", "NA", 2.87200000000001, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.9755, "NA", "NA", "NA", "NA", 2.902, "NA", 0.9875, 2.90300000000001, "NA", "NA", 2.896, "NA", "NA", 2.874, 0.955, 2.906, "NA", 2.8855, 2.8905, "NA", 2.893, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 2.916, "NA", 0.986, "NA", 2.8995, 2.8875, "NA", "NA", 2.88699999999999, "NA", 2.889, "NA", "NA", "NA", "NA", "NA", "NA", 2.873, "NA", "NA", "NA", "NA", 2.89500000000001, "NA", 2.8965, "NA", 2.8965, "NA", 2.883, "NA", "NA", "NA", "NA", 2.908, 2.92, "NA", "NA", "NA", 2.8845, "NA", 2.9155, "NA", "NA", "NA", "NA", "NA", 2.8845, "NA", "NA", 2.905, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 2.8995, "NA", "NA", "NA", "NA", 2.8865, 0.967000000000001, "NA", "NA", "NA"],
+        "var": ["NA", "NA", 0.142662331165582, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.0845700350175087, "NA", "NA", "NA", "NA", "NA", "NA", 0.081884692346173, 0.144463231615808, 0.0956475737868936, "NA", 0.103119309654827, 0.0295845422711356, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.105562531265633, "NA", "NA", 0.0741348174087043, 0.111239619809905, 0.1213044022011, 0.0948451725862935, 0.0962358679339668, 0.096384192096048, 0.105388694347174, "NA", "NA", "NA", "NA", "NA", 0.124005752876438, "NA", "NA", "NA", "NA", "NA", "NA", 0.0342568784392196, "NA", "NA", 0.0407141070535269, "NA", "NA", "NA", "NA", "NA", "NA", 0.097628564282141, 0.099385692846423, "NA", "NA", "NA", "NA", "NA", "NA", 0.110513006503252, "NA", "NA", 0.14535667833917, "NA", "NA", "NA", "NA", "NA", 0.0998376688344173, "NA", "NA", 0.108130065032516, "NA", "NA", "NA", "NA", "NA", 0.100630065032516, "NA", "NA", 0.103895697848924, "NA", 0.119175587793897, 0.123201350675338, "NA", 0.0940407703851927, "NA", "NA", "NA", "NA", "NA", 0.0356488244122062, "NA", "NA", "NA", "NA", "NA", "NA", 0.12567883941971, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.0239117058529265, "NA", "NA", "NA", "NA", 0.0954437218609304, "NA", 0.0123499249624812, 0.101641820910455, "NA", "NA", 0.0982331165582793, "NA", "NA", 0.115181590795398, 0.0429964982491246, 0.091209604802401, "NA", 0.105442471235618, 0.104562031015507, "NA", 0.111606803401701, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.0809844922461231, "NA", 0.0138109054527264, "NA", 0.103451475737869, 0.111899699849925, "NA", "NA", 0.109285642821411, "NA", 0.101729864932466, "NA", "NA", "NA", "NA", "NA", "NA", 0.120931465732867, "NA", "NA", "NA", "NA", 0.103026513256628, "NA", 0.095835667833917, "NA", 0.109842671335668, "NA", 0.113367683841921, "NA", "NA", "NA", "NA", 0.0905812906453226, 0.0806403201600799, "NA", "NA", "NA", 0.103211355677839, "NA", 0.0834014507253625, "NA", "NA", "NA", "NA", "NA", 0.112215857928964, "NA", "NA", 0.0910205102551274, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.0974484742371187, "NA", "NA", "NA", "NA", 0.107671585792896, 0.0319269634817409, "NA", "NA", "NA"],
+        "var.obs": ["NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", 0, 0, 0, "NA", 0, 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", 0, 0, 0, 0, 0, 0, 0, "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", 0, 0, "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", 0, "NA", 0, 0, "NA", 0, "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", 0, "NA", 0, 0, "NA", "NA", 0, "NA", "NA", 0, 0, 0, "NA", 0, 0, "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", 0, "NA", 0, 0, "NA", "NA", 0, "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", 0, "NA", 0, "NA", 0, "NA", 0, "NA", "NA", "NA", "NA", 0, 0, "NA", "NA", "NA", 0, "NA", 0, "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", 0, 0, "NA", "NA", "NA"],
+        "pearson": ["NA", "NA", 0.405076242376508, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.287129768154761, "NA", "NA", "NA", "NA", "NA", "NA", 0.305778321378622, 0.38675743552297, 0.32172595721678, "NA", 0.347220108875569, 0.177323956239478, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", -2.74081060493305, "NA", "NA", 0.269945584407393, 0.311819730143978, 0.36607654486858, 0.319836934986409, 0.311070501673499, 0.347873101959997, 0.33268003877949, "NA", "NA", "NA", "NA", "NA", 0.376265987016801, "NA", "NA", "NA", "NA", "NA", "NA", 0.191802586647537, "NA", "NA", 0.210628178943399, "NA", "NA", "NA", "NA", "NA", "NA", 0.334447411573949, 0.342579854563642, "NA", "NA", "NA", "NA", "NA", "NA", 0.356460698127291, "NA", "NA", 0.403927317915784, "NA", "NA", "NA", "NA", "NA", 0.327561713184988, "NA", "NA", 0.358846549992311, "NA", "NA", "NA", "NA", "NA", 0.329421859067911, "NA", "NA", 0.349022753320238, "NA", 0.35339970233261, 0.386039336635345, "NA", -2.92668760418136, "NA", "NA", "NA", "NA", "NA", 0.195965273376888, "NA", "NA", "NA", "NA", "NA", "NA", 0.361059593502032, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.158438530072007, "NA", "NA", "NA", "NA", 0.317214033699346, "NA", 0.112480659378296, 0.304253453054505, "NA", "NA", 0.331821389747633, "NA", "NA", 0.371260725434242, 0.21701810670712, 0.311248714635638, "NA", -2.72697262091235, 0.338631312563028, "NA", 0.320286359387031, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.295174172402938, "NA", 0.119128852802248, "NA", 0.312462365752163, 0.336308668541963, "NA", "NA", 0.341819541981489, "NA", 0.348015626413709, "NA", "NA", "NA", "NA", "NA", "NA", 0.36520276972882, "NA", "NA", "NA", "NA", -2.78835801111604, "NA", -6.12617304716791, "NA", 0.312287647905832, "NA", 0.347489130861079, "NA", "NA", "NA", "NA", 0.305681091294464, 0.281717525667082, "NA", "NA", "NA", 0.359516016432592, "NA", 0.2925970252291, "NA", "NA", "NA", "NA", "NA", 0.3447901633342, "NA", "NA", 0.314886449739805, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.321942668808747, "NA", "NA", "NA", "NA", 0.345895814453555, 0.184686491953894, "NA", "NA", "NA"]
+      },
+      "N(I(n >= 5)TRUE)~edges": {
+        "observed": [10, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 6, "NA", 9, "NA", "NA", "NA", "NA", "NA", 4, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 8, "NA", "NA", "NA", "NA", 9, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 9, "NA", 10, "NA", "NA", "NA", "NA", 10, "NA", 10, "NA", "NA", "NA", 10, "NA", "NA", "NA", "NA", 10, 18, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 10, "NA", 15, "NA", "NA", "NA", "NA", "NA", 10, 10, "NA", "NA", "NA", "NA", 10, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 15, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 10, 10, 10, 8, 10, "NA", "NA", "NA", "NA", 6, "NA", 10, "NA", "NA", 15, 10, "NA", "NA", 10, 6, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 15, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 10, "NA", "NA", "NA", "NA", "NA", 10, 10, "NA", "NA", "NA", 5, "NA", "NA", 15, "NA", "NA", 4, "NA", 9, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 9, "NA", 10, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 9, "NA", 10, "NA", "NA", "NA", 10, 14, "NA", 9, "NA", "NA", 15, 8, "NA", "NA", "NA", "NA", 10, 10, "NA", 10, "NA", 10, "NA", "NA", "NA", "NA", "NA", "NA", 10, "NA"],
+        "fitted": [8.892, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 8.849, "NA", 13.0065, "NA", "NA", "NA", "NA", "NA", 8.77950000000004, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 8.90499999999998, "NA", "NA", "NA", "NA", 8.75949999999998, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 8.728, "NA", 8.86499999999998, "NA", "NA", "NA", "NA", 8.80499999999998, "NA", 8.91900000000001, "NA", "NA", "NA", 8.7725, "NA", "NA", "NA", "NA", 8.795, 18.659, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 8.68099999999998, "NA", 13.032, "NA", "NA", "NA", "NA", "NA", 8.71450000000001, 8.83700000000001, "NA", "NA", "NA", "NA", 8.92599999999998, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 13.257, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 8.7845, 8.7545, 8.71749999999999, 8.82500000000001, 8.81049999999997, "NA", "NA", "NA", "NA", 8.82800000000002, "NA", 8.7875, "NA", "NA", 13.259, 8.8165, "NA", "NA", 8.83250000000001, 8.8545, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 13.272, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 8.872, "NA", "NA", "NA", "NA", "NA", 13.0365, 13.2955, "NA", "NA", "NA", 8.87050000000001, "NA", "NA", 13.0905, "NA", "NA", 8.83999999999998, "NA", 8.75600000000001, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 8.7045, "NA", 13.3015, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 8.82300000000001, "NA", 8.70399999999998, "NA", "NA", "NA", 8.76800000000001, 13.082, "NA", 13.1965, "NA", "NA", 13.2425, 8.89149999999999, "NA", "NA", "NA", "NA", 8.6485, 8.79299999999998, "NA", 8.73250000000002, "NA", 8.7905, "NA", "NA", "NA", "NA", "NA", "NA", 8.75650000000002, "NA"],
+        "var": [0.949810905452729, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.01670735367684, "NA", 1.65828689344672, "NA", "NA", "NA", "NA", "NA", 1.08642296148074, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.929439719859933, "NA", "NA", "NA", "NA", 1.12222086043021, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.13558379189595, "NA", 0.940245122561282, "NA", "NA", "NA", "NA", 1.08751875937969, "NA", 0.940909454727364, "NA", "NA", "NA", 1.15532141070535, "NA", "NA", "NA", "NA", 1.06650825412707, 2.22483141570785, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.12179989994998, "NA", 1.49172186093047, "NA", "NA", "NA", "NA", "NA", 1.07352651325663, 1.08897548774387, "NA", "NA", "NA", "NA", 0.908978489244623, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.49669934967484, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.10261105552777, 1.05475712856428, 1.10524637318659, 0.986868434217109, 1.03710830415208, "NA", "NA", "NA", "NA", 1.03193196598299, "NA", 1.02985867933967, "NA", "NA", 1.52568184092046, 1.05635592796398, "NA", "NA", 0.972930215107555, 1.04085017508754, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.47775487743872, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.959095547773886, "NA", "NA", "NA", "NA", "NA", 1.69601575787894, 1.50493221610805, "NA", "NA", "NA", 1.06426188094047, "NA", "NA", 1.74418184092046, "NA", "NA", 0.981890945472736, "NA", 1.10101450725363, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.0797196098049, "NA", 1.35927738869435, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.03118659329665, "NA", 1.19298049024512, "NA", "NA", "NA", 1.08671935967984, 1.66510855427714, "NA", 1.61469509754878, "NA", "NA", 1.48443596798399, 0.956205852926462, "NA", "NA", "NA", "NA", 1.18654102051025, 1.12271235617809, "NA", 1.09949349674837, "NA", 1.06514232116058, "NA", "NA", "NA", "NA", "NA", "NA", 1.12276913456728, "NA"],
+        "var.obs": [0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", 0, "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", 0, "NA", "NA", "NA", "NA", 0, "NA", 0, "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", 0, 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", 0, "NA", "NA", "NA", "NA", "NA", 0, 0, "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, 0, 0, 0, 0, "NA", "NA", "NA", "NA", 0, "NA", 0, "NA", "NA", 0, 0, "NA", "NA", 0, 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", "NA", "NA", "NA", "NA", 0, 0, "NA", "NA", "NA", 0, "NA", "NA", 0, "NA", "NA", 0, "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA", 0, "NA", "NA", "NA", 0, 0, "NA", 0, "NA", "NA", 0, 0, "NA", "NA", "NA", "NA", 0, 0, "NA", 0, "NA", 0, "NA", "NA", "NA", "NA", "NA", "NA", 0, "NA"],
+        "pearson": [1.13689716766515, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", -2.82549450397778, "NA", -3.11125288953438, "NA", "NA", "NA", "NA", "NA", -4.58546093635405, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", -0.938724094325409, "NA", "NA", "NA", "NA", 0.227026164517257, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.255246215399355, "NA", 1.17051050821047, "NA", "NA", "NA", "NA", 1.14590740713885, "NA", 1.11442739048746, "NA", "NA", "NA", 1.14201048131083, "NA", "NA", "NA", "NA", 1.16682287971944, -0.441811341705242, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.2453375893721, "NA", 1.61131765990456, "NA", "NA", "NA", "NA", "NA", 1.24069688989512, 1.11447585163603, "NA", "NA", "NA", "NA", 1.12649035701824, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.42472190674515, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.15756074817114, 1.21273942766743, 1.21991009319141, -0.830470709471651, 1.16802567820113, "NA", "NA", "NA", "NA", -2.78390154651792, "NA", 1.19479371813795, "NA", "NA", 1.40950552489263, 1.15149783397062, "NA", "NA", 1.18363021696676, -2.79792415439736, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.42148583855059, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 1.15180288544539, "NA", "NA", "NA", "NA", "NA", -2.33162307106732, -2.68635155159342, "NA", "NA", "NA", -3.75182711876259, "NA", "NA", 1.44585180796479, "NA", "NA", -4.88442824604977, "NA", 0.232537664149512, "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.284381925668336, "NA", -2.83176529773366, "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", "NA", 0.174302909841408, "NA", 1.18655624891735, "NA", "NA", "NA", 1.18182182469473, 0.711412358242616, "NA", -3.302493443701, "NA", "NA", 1.44249593939674, -0.911686761850189, "NA", "NA", "NA", "NA", 1.24072253847422, 1.13912929016378, "NA", 1.20879216262183, "NA", 1.17193102672422, "NA", "NA", "NA", "NA", "NA", "NA", 1.17354718766231, "NA"]
+      },
+      "N(1)~nodematch.gender": {
+        "observed": [4, 3, 1, 2, 3, 2, 3, 1, 3, 3, 2, 1, 3, 2, 2, 6, 2, 3, 1, 1, 1, 1, 1, 1, 2, 3, 3, 3, 2, 2, 3, 3, 2, 2, 2, 3, 1, 3, 2, 1, 1, 1, 1, 1, 1, 1, 3, 3, 4, 2, 3, 1, 2, 6, 3, 4, 2, 3, 1, 6, 2, "NA", 2, 2, 6, 7, 2, 2, 1, 1, 2, 2, 3, 6, 1, 7, 1, 2, 2, 1, 3, 4, 4, 2, 3, 1, 2, 4, 1, 3, 2, 2, 3, 2, 1, 2, 2, 1, 2, 1, 1, 6, 1, 2, 1, 2, 3, 2, 1, 4, 6, 6, 4, 4, 2, 1, 2, 3, 2, 2, 4, 2, 3, 7, 4, 2, "NA", 4, 2, 2, 3, 1, 2, "NA", 1, 3, 0, 1, 7, 2, 1, 1, 1, 2, 0, 1, 2, 1, 3, 1, 4, 2, 2, 3, 3, 0, 4, 4, 1, 2, 1, 2, 1, 1, 7, 2, 1, 1, 1, 5, 2, 2, 2, 2, 3, 1, 2, 5, 2, 6, 1, 2, 1, 2, 1, 3, 1, 2, 2, 3, 3, 1, 1, 4, 2, 6, 1, 2, 1, 6, 9, 2, 4, 3, 1, 6, 4, 1, 2, 3, 3, 6, 6, 2, 4, 1, 4, 3, 3, 1, 1, 1, 2, 6, 2],
+        "fitted": [3.5615, 2.7645, 0.941, 2.791, 2.771, 1.884, 2.7335, 1.8975, 2.75400000000001, 2.757, 1.8325, 0.977499999999999, 2.761, 3.5295, 1.841, 8.50249999999998, 1.8885, 2.748, 0.9705, 0.955499999999998, 0.974, 3.44, 0.976500000000001, 0.9695, 1.8505, 2.7465, 2.7595, 2.7105, 1.875, 2.737, 3.5325, 2.707, 1.8595, 2.7365, 1.8655, 3.537, 0.960999999999999, 2.7295, 2.722, 0.978499999999999, 0.98, 0.966, 0.9755, 0.9735, 0.9575, 0.960000000000001, 3.4735, 2.7555, 3.5365, 1.844, 2.772, 0.96, 1.8685, 5.222, 2.75100000000001, 3.553, 1.8685, 2.7345, 0.9645, 5.14349999999999, 1.8785, "NA", 1.9035, 2.735, 5.21600000000001, 7.95400000000001, 2.71, 1.876, 0.9605, 0.965, 1.868, 1.889, 2.733, 5.0935, 1.836, 5.9695, 0.951500000000001, 1.9065, 1.866, 0.951000000000001, 2.7455, 3.459, 3.511, 1.875, 2.765, 0.974000000000001, 2.784, 3.5295, 0.963, 2.775, 1.864, 1.8755, 2.7375, 1.8955, 0.9675, 1.87, 1.8495, 0.961999999999999, 1.887, 0.948500000000001, 0.9735, 5.2475, 0.962999999999999, 1.8385, 1.871, 1.8415, 2.769, 1.864, 0.963, 3.4895, 5.11550000000001, 5.15100000000001, 3.50749999999999, 3.529, 1.858, 0.959499999999999, 1.8795, 2.7135, 3.4815, 1.8225, 3.5035, 1.8825, 2.7755, 6.131, 3.5325, 1.8915, "NA", 3.5285, 3.502, 1.878, 2.7785, 0.977999999999999, 1.8535, "NA", 0.965, 2.74599999999999, 1.845, 0.963499999999999, 6.12300000000001, 1.8925, 0.952500000000001, 0.955, 0.975500000000001, 1.864, 0.928, 0.970499999999999, 1.862, 0.960999999999999, 2.7555, 2.71900000000001, 3.535, 1.864, 2.74700000000001, 2.7715, 2.74, 2.755, 6.0015, 6.12200000000001, 0.977999999999998, 1.863, 0.986, 3.495, 0.969499999999999, 0.968, 6.039, 1.8785, 0.962500000000001, 3.518, 0.954000000000002, 5.14749999999999, 1.867, 1.8855, 1.8815, 1.8595, 2.778, 0.958499999999999, 1.859, 5.12750000000001, 1.8645, 6.17350000000001, 0.9635, 1.8735, 0.973500000000001, 1.8555, 0.960499999999999, 2.7695, 0.962000000000001, 2.754, 2.73399999999999, 2.7555, 2.7505, 0.967500000000001, 0.977500000000001, 3.508, 1.8915, 5.0995, 0.965000000000001, 2.736, 0.9725, 5.16150000000001, 8.60100000000002, 1.8625, 5.2645, 2.728, 0.951499999999998, 5.24849999999999, 3.535, 0.971, 2.7495, 2.75149999999999, 2.7515, 5.05, 5.15299999999999, 1.865, 3.472, 0.965499999999999, 3.506, 2.7655, 2.7885, 1.84, 0.963500000000001, 0.967000000000001, 1.8795, 5.167, 1.828],
+        "var": [0.365400450225111, 0.208143821910956, 0.0555467733866934, 0.187412706353177, 0.211664832416208, 0.108598299149575, 0.225590545272636, 0.0920397698849425, 0.222595297648824, 0.226064032016008, 0.156522011005503, 0.0220047523761881, 0.217987993996999, 0.417338419209605, 0.143790895447724, 1.24661705852926, 0.103119309654827, 0.222607303651826, 0.028644072036018, 0.0425410205102551, 0.0253366683341671, 0.505652826413206, 0.0229592296148074, 0.0295845422711356, 0.144221860930465, 0.246360930465233, 0.221770635317659, 0.24881415707854, 0.113431715857929, 0.217939969984993, 0.448167833916959, 0.250276138069035, 0.123821660830415, 0.234184842421211, 0.124471985992997, 0.409835917958978, 0.0374977488744372, 0.226442971485743, 0.258845422711356, 0.0210482741370685, 0.0196098049024512, 0.0328604302151075, 0.0239117058529264, 0.0258106553276638, 0.0407141070535267, 0.0384192096048024, 0.454525012506253, 0.229834667333667, 0.420878189094547, 0.144736368184092, 0.220126063031516, 0.0384192096048024, 0.123269384692346, 0.725078539269635, 0.251124562281141, 0.372377188594297, 0.122268884442221, 0.235127313656828, 0.0342568784392196, 0.796305902951475, 0.110793146573287, "NA", 0.094234867433717, 0.244897448724362, 0.69369084542271, 0.999383691845921, 0.27103551775888, 0.11968384192096, 0.0379587293646824, 0.0337918959479739, 0.12063631815908, 0.103730865432716, 0.243832916458229, 0.76514032016008, 0.155181590795398, 0.805972736368185, 0.0461708354177089, 0.0878016508254125, 0.128108054027014, 0.0466223111555779, 0.226843171585794, 0.468553276638319, 0.441099549774887, 0.121435717858929, 0.217883941970986, 0.0253366683341671, 0.207447723861931, 0.406332916458229, 0.0356488244122061, 0.211480740370185, 0.124566283141571, 0.120059779889945, 0.246717108554277, 0.0996295647823912, 0.0314594797398699, 0.12616308154077, 0.131915707853927, 0.0365742871435719, 0.104283141570785, 0.0488721860930466, 0.0258106553276638, 0.648568034017006, 0.0356488244122061, 0.145490495247624, 0.113415707853927, 0.144449974987494, 0.224751375687844, 0.134571285642821, 0.0356488244122062, 0.445112306153076, 0.713516508254127, 0.752575287643823, 0.417152326163082, 0.405361680840421, 0.130901450725363, 0.0388791895947974, 0.118038769384692, 0.269552526263131, 0.445880690345172, 0.166076788394197, 0.427201350675337, 0.110749124562281, 0.198198849424712, 0.714196098049026, 0.399143321660831, 0.100778139069535, "NA", 0.418396948474237, 0.438215107553777, 0.110171085542771, 0.20554052026013, 0.0215267633816908, 0.138106803401701, "NA", 0.033791895947974, 0.237602801400701, 0.152051025512756, 0.0351853426713357, 0.774258129064532, 0.0979927463731865, 0.0452663831915958, 0.0429964982491246, 0.0239117058529265, 0.126567283641821, 0.0668494247123561, 0.028644072036018, 0.124018009004502, 0.0374977488744372, 0.227833666833417, 0.257167583791896, 0.432991495747875, 0.121564782391196, 0.224103051525762, 0.203389444722362, 0.211505752876438, 0.228089044522261, 0.8229092046023, 0.757494747373688, 0.0215267633816908, 0.129295647823912, 0.0138109054527264, 0.422186093046523, 0.0295845422711355, 0.0309914957478739, 0.800879439719858, 0.114795147573787, 0.0361118059029515, 0.424888444222109, 0.0439059529764883, 0.754120810405203, 0.121371685842921, 0.110444972486243, 0.110513006503252, 0.134827163581791, 0.209820910455228, 0.0397976488244122, 0.134186093046523, 0.74361555777889, 0.124201850925463, 0.68874212106053, 0.0351853426713356, 0.115555527763882, 0.0258106553276638, 0.131685592796398, 0.0379587293646823, 0.204471985992996, 0.0365742871435718, 0.228598299149574, 0.243365682841421, 0.216828164082041, 0.232365932966483, 0.0314594797398699, 0.0220047523761881, 0.403137568784393, 0.10377963981991, 0.793996748374187, 0.033791895947974, 0.243425712856428, 0.0267571285642821, 0.740788144072037, 1.22241020510255, 0.119653576788394, 0.645862681340669, 0.236134067033517, 0.0461708354177087, 0.609052276138068, 0.391970985492747, 0.0281730865432716, 0.234867183591796, 0.230863181590795, 0.212854177088544, 0.828914457228614, 0.757969984992497, 0.126838419209605, 0.454443221610806, 0.0333264132066033, 0.405166583291646, 0.202611055527764, 0.188862181090546, 0.141470735367684, 0.0351853426713356, 0.0319269634817409, 0.111035267633817, 0.776499249624812, 0.154493246623312],
+        "var.obs": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "pearson": [0.725412539671175, 0.516189479711738, 0.250335587726684, -1.82716163350544, 0.497749839666084, 0.352003091317626, 0.561095475079723, -2.95833052788142, 0.52140730848844, 0.511081945064277, 0.423376844594562, 0.151678587354625, 0.511895855688162, -2.3675834635659, 0.419306341075765, -2.24133902780085, 0.347220108875558, 0.534110156102921, 0.174302909841419, 0.215752610427627, 0.163342273009623, -3.43133884486833, 0.155091932170804, 0.177323956239478, 0.393663949345636, 0.510730796157346, 0.510696710395661, 0.580378110714106, 0.371144271897453, -1.57869794805296, -0.795425062281283, 0.585676634039405, 0.399280418234317, -1.52192538238208, 0.381229478387413, -0.838820966255688, 0.201401179151416, 0.568444209429456, -1.41911291604397, 0.14819386134941, 0.14282142410603, 0.187560894183503, 0.158438530072011, 0.164947735726546, 0.210628178943401, 0.204073107815144, -0.70232978966392, 0.510001079319105, 0.714449486458978, 0.410049005505309, 0.485958422794026, 0.20407310781515, 0.374539941861337, 0.913665174218551, 0.496883700604007, 0.73251410003459, 0.376069210117956, 0.547536385123809, 0.191802586647537, 0.959814705905251, 0.365022663372881, "NA", 0.314355817149133, -1.48523511538498, 0.941310885731778, -0.954294114945566, -1.36378291493002, 0.358429646760122, 0.202740849757351, 0.190397729337269, 0.380044887141029, 0.344642616022832, 0.540710863012303, 1.03632807630674, -2.1221993522706, 1.14785708851872, 0.22571367518036, 0.315544249616696, 0.374383397559741, 0.226933797560627, 0.534348914302069, 0.790346938718543, 0.736275843409123, 0.358704471735793, 0.503448730753951, 0.16334227300962, -1.72132043917605, 0.738105812048148, 0.195965273376888, 0.489268332193123, 0.385335175304558, 0.35931105548337, 0.528481360572864, 0.331071787670597, 0.183234645742877, 0.365996732563873, 0.414369941285896, 0.198698990891476, 0.34992211485924, 0.232957311796949, 0.16494773572655, 0.934391188653461, 0.195965273376894, 0.423404252478811, -2.58631578939385, 0.417033104496981, 0.487260044506021, 0.370734248093979, 0.195965273376888, 0.765175305617773, 1.04711848039917, 0.978661972908841, 0.762533450689114, 0.739774847420596, 0.392478720048353, 0.205398099709455, 0.350731449720672, 0.551826970910815, -2.21866801955185, 0.435555887411881, 0.75963146280585, 0.353075607991403, 0.504273075744588, 1.02827917368296, 0.739975228727209, 0.341779941333332, "NA", 0.728932716299249, -2.26895697008717, 0.367558115623421, 0.488567984782653, 0.149945457022882, 0.394212224911781, "NA", 0.190397729337271, 0.521084239923943, -4.73153104195535, 0.194586170868077, 0.996682209913625, 0.343408862900881, 0.223257322435336, 0.21701810670712, 0.158438530072001, 0.382277008364037, -3.58921223173616, 0.174302909841424, 0.391865210605764, 0.201401179151421, 0.512235783028803, -3.38975074178984, 0.706664491781967, 0.390063236433756, -1.5779626404386, 0.506666276843904, 0.565343307927452, -5.76858624710363, -2.20637655674302, -2.4381227491348, 0.149945457022888, 0.381003191782733, 0.119128852802248, -2.30085489769873, 0.177323956239483, 0.181772721589487, 1.07384058901945, 0.35860349058101, 0.197336155940965, -3.86294269778785, 0.219531137507704, -0.169852349054811, 0.381762221176343, 0.344534336939516, 0.356460698127301, 0.382637583513056, 0.484650417122722, 0.208026848112772, 0.384915463390348, -0.147854978024173, 0.384481334816047, -0.209060101668184, 0.194586170868069, 0.372130411174287, 0.164947735726539, 0.398197670968153, 0.202740849757356, 0.509746229560529, 0.198698990891465, -1.5770114569699, -1.4878748091153, 0.525074608423785, 0.517588146237324, 0.183234645742872, 0.151678587354612, 0.774887163493808, 0.336801222061645, 1.01058850777804, 0.19039772933726, -1.49174499394242, 0.168117506952607, 0.974217788948353, 0.360881327999171, 0.39750249180393, -1.57343475191939, 0.559744171979679, 0.22571367518037, 0.962945481509607, 0.742721494180993, 0.172774952889694, -1.54653754301939, 0.517188732583427, 0.538623508424867, 1.04344304379141, 0.972875812596139, 0.379060348989313, 0.783238645254199, 0.188983900245623, 0.776086518611779, 0.520968275366641, 0.486673693065167, -2.23329441865511, 0.194586170868067, 0.184686491953894, 0.36162344157539, 0.945310498664345, 0.437596356160892]
+      },
+      "N(1)~absdiff.age": {
+        "observed": [210, 124, 58, 62, 108, 144, 118, 61, 127, 131, 115, 78, 116, 142, 119, 176, 155, 118, 64, 54, 60, 79, 44, 35, 140, 179, 113, 115, 138, 96, 178, 119, 118, 79, 127, 198, 59, 114, 111, 72, 58, 74, 72, 78, 66, 70, 174, 132, 236, 109, 121, 60, 127, 186, 88, 226, 125, 114, 24, 196, 123, 33, 138, 99, 192, 446, 90, 141, 56, 64, 104, 128, 114, 196, 58, 261, 72, 144, 126, 62, 134, 182, 214, 139, 112, 58, 140, 204, 68, 130, 139, 135, 112, 183, 64, 120, 105, 68, 105, 62, 68, 294, 28, 113, 62, 138, 118, 109, 37, 174, 192, 176, 179, 216, 130, 56, 138, 127, 150, 127, 192, 121, 129, 332, 186, 154, 43, 176, 141, 140, 149, 94, 121, 33, 104, 94, 34, 88, 325, 143, 64, 26, 92, 118, 69, 88, 140, 80, 125, 3, 198, 130, 111, 125, 129, 36, 144, 203, 72, 117, 43, 137, 70, 52, 247, 120, 60, 77, 64, 204, 143, 140, 134, 124, 142, 72, 120, 184, 134, 224, 79, 152, 35, 120, 78, 128, 68, 90, 121, 116, 118, 78, 108, 178, 142, 186, 68, 120, 74, 196, 300, 132, 206, 123, 68, 332, 243, 66, 113, 166, 140, 152, 226, 122, 188, 72, 216, 143, 136, 49, 84, 24, 147, 172, 82],
+        "fitted": [191.273, 116.7465, 55.2874999999999, 122.663, 101.358, 136.09, 110.463, 118.3205, 117.777, 123.944, 108.982, 76.059, 108.2775, 190.4575, 110.3265, 240.8565, 146.9, 110.766, 62.398, 51.6325000000001, 58.3395, 154.5775, 42.668, 33.9325, 131.2205, 170.312, 107.123, 107.05, 130.2745, 121.0805, 193.687, 109.322, 110.165, 136.8155, 119.3665, 180.225, 59.892, 106.334, 105.337, 70.5449999999999, 56.347, 71.8325, 69.8560000000001, 75.7629999999999, 63.664, 67.3874999999999, 156.941, 123.1275, 215.524, 100.698, 114.274, 57.435, 119.531, 167.6945, 108.019, 204.865, 117.381, 106.1795, 23.1480000000001, 177.398000000001, 116.381, 31.5975, 131.2675, 96.0685, 173.581, 445.081999999999, 108.7625, 132.4215, 54.44, 62.1920000000001, 96.9215, 120.3075, 106.3905, 175.653, 117.406, 234.7695, 68.949, 137.298, 117.744, 59.5495, 126.411, 162.66, 193.1, 130.3935, 104.7565, 56.1585000000001, 137.974, 184.8585, 65.741, 121.307, 129.938, 127.326, 105.1555, 174.1515, 61.8380000000001, 112.896, 101.0705, 66.0095000000001, 98.6790000000001, 59.6345, 65.756, 266.6645, 54.3534999999999, 105.0515, 111.597, 128.2385, 111.5995, 101.4545, 35.631, 156.4015, 174.3735, 156.731, 168.8145, 197.075, 121.533, 53.8945, 130.239, 119.112, 199.0335, 117.9885, 172.158, 113.7975, 122.9595, 302.348, 168.0945, 145.077, 41.9465, 158.698, 189.0805, 131.775, 140.2725, 91.675, 113.465, 32.5874999999999, 100.733, 113.637, 121.5805, 84.7495000000001, 296.211, 135.1165, 61.566, 24.83, 89.8109999999998, 110.4195, 68.4705000000001, 85.3580000000002, 131.2, 77.7000000000001, 117.1965, 108.9665, 179.6475, 121.0955, 134.0185, 116.445, 121.29, 103.147, 230.079, 270.227499999999, 70.5540000000001, 108.6385, 42.3980000000001, 194.3935, 68.4140000000001, 50.1865, 220.2895, 113.26, 58.0429999999999, 173.1085, 61.744, 185.9355, 134.213, 132.792, 126.0695, 115.663, 134.374, 69.5745, 112.1645, 167.609, 125.6365, 276.052, 81.1965000000001, 143.386, 67.81, 112.1855, 75.342, 120.823, 65.7325, 110.088, 114.5545, 109.297, 111.3415, 75.966, 105.5655, 185.9975, 133.921, 166.8085, 66.1749999999999, 117.552, 72.225, 175.118, 273.7085, 123.3825, 263.876, 115.285, 65.6319999999999, 299.942, 233.0275, 64.3020000000001, 144.198, 156.3405, 131.163, 135.689, 205.327, 114.8145, 168.7235, 69.7130000000001, 194.8175, 134.618, 128.297000000001, 99.1385000000001, 80.6785, 23.208, 143.1805, 154.394, 106.391],
+        "var": [516.385663831915, 193.312894197099, 67.1033954477238, 195.781321660831, 165.438555277639, 263.64672336168, 185.094178089044, 187.796678089045, 241.283912956478, 198.784256128064, 213.780566283142, 60.7568974487243, 189.102044772386, 521.142765132567, 216.878336918459, 669.817816658328, 259.273636818409, 180.455471735868, 47.9475697848924, 57.1950412706353, 43.0877836418209, 480.869428464232, 24.5820670335167, 36.2410642821411, 245.054406953476, 314.6900010005, 145.232487243622, 207.900450225113, 244.556427963982, 215.173606553277, 530.097079539769, 236.680656328163, 176.276913456729, 269.262090795398, 210.421388444222, 572.333541770886, 57.2599659829915, 197.255071535768, 197.089975987994, 49.9079289644823, 45.2272046023011, 65.7853364182091, 55.1448364182092, 65.0813716858429, 59.7399739869935, 83.5391133066533, 447.556297148574, 243.15482116058, 616.865856928465, 200.758175087544, 182.358103051526, 70.4059779889945, 192.516297148574, 417.571955727864, 176.589933966983, 503.308429214608, 206.494086043021, 200.074316908454, 19.7319619809904, 505.174183091545, 156.810244122061, 44.3376625812907, 201.721804652326, 145.805710605302, 458.330604302151, 1252.28942071036, 218.450318909454, 238.04085817909, 36.8568284142071, 57.687979989995, 139.132904202101, 207.959923711856, 162.01901925963, 500.439810905452, 268.521424712356, 571.788263881941, 100.775786893447, 198.478435217609, 223.448188094047, 72.7049022011004, 200.976567283642, 446.626713356678, 557.707853926963, 257.784550025012, 180.807611555778, 49.9393474237118, 240.695671835919, 446.92994272136, 63.1705042521262, 242.907204602301, 253.246779389695, 213.309378689344, 147.230935217608, 338.739917708854, 62.5270195097547, 187.845106553277, 160.439749624812, 61.421120310155, 137.747832916458, 66.1219707353676, 77.079003501751, 704.014947223612, 37.4652703851926, 214.737216358179, 187.572377188594, 269.755495497749, 154.458328914457, 166.170014757379, 48.8032406203101, 433.396996248124, 430.352173836918, 390.851064532266, 395.172676088044, 579.760255127563, 235.065443721861, 54.7587491245622, 228.520139069535, 243.792352176088, 577.790272886443, 205.94534042021, 493.289680840419, 191.584285892946, 152.992355927964, 837.714753376689, 453.964552026012, 282.024083041521, 44.212744122061, 411.498545272636, 503.570805152576, 217.721235617808, 291.039763631815, 94.5096298149076, 197.748649324662, 13.4490682841421, 148.691056528264, 209.470966483242, 255.391215357679, 113.213356428214, 776.231594797397, 243.980918209104, 58.1607243621811, 29.0656328164082, 88.2824202101052, 178.339689594797, 49.0416505752877, 97.0043381690846, 230.687343671836, 81.1505752876438, 210.540157828914, 191.372063781892, 489.595041270635, 232.459609554777, 233.441878689345, 222.143046523262, 190.029914957479, 170.283532766383, 579.711614807405, 708.364926213107, 43.6028854427214, 223.092363931966, 25.5363641820911, 565.537426463232, 45.8175127563781, 40.7430892946473, 575.61749849925, 178.354577288644, 50.6214617308655, 387.127291395698, 69.1850565282642, 534.15841895948, 277.267264632317, 231.000236118058, 220.720029764882, 220.362612306153, 204.250249124563, 78.4006500750375, 199.995437468734, 419.084661330664, 228.6677016008, 692.735663831918, 111.256516008004, 260.689348674338, 55.4036018009004, 186.381280390195, 112.475273636819, 200.304823411706, 64.5922398699351, 148.670591295648, 186.469264382191, 165.37247723862, 155.063409454728, 71.3475177588794, 111.376397948975, 538.263625562781, 227.229373686843, 477.378517008504, 53.5301400700351, 217.550071035518, 55.5161330665332, 476.768460230115, 679.612333916961, 240.560473986994, 747.932590295147, 195.962756378189, 64.8890205102553, 818.073672836419, 618.499993746873, 46.9642781390695, 309.064328164082, 317.767443471735, 259.435148574287, 314.938748374187, 656.927534767382, 197.254717108555, 430.326210855428, 68.0406513256627, 615.521954727364, 227.663907953977, 218.269925962981, 153.101868684342, 113.214745122561, 18.3899309654828, 249.901870685343, 362.348938469234, 202.48135967984],
+        "var.obs": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "pearson": [0.824102292297467, 0.521695636072816, 0.331129214423244, -4.33549066961924, 0.516393190601526, 0.487152902415887, 0.553990268492388, -4.18278957692699, 0.5937560187536, 0.500457935068885, 0.411593086970938, 0.24901628007529, 0.561577636234891, -2.1226708110761, 0.588960672060045, -2.50596592008966, 0.503043844478879, 0.538509633440927, 0.23135517151469, 0.313047902913671, 0.25296579537543, -3.44650520117567, 0.268655060490442, 0.177323956239479, 0.56083941111943, 0.48975439313798, 0.487667488339291, 0.55136527879306, 0.494011496328652, -1.70978574005578, -0.681337340159402, 0.629077620382167, 0.590121288523397, -3.52335723697431, 0.526233835848051, 0.742993492644651, -0.117879778611611, 0.545826636980552, 0.403379936555983, 0.205957788170055, 0.24579496408396, 0.267235749913718, 0.288716998822072, 0.277292188387375, 0.302231915647372, 0.285832342463357, 0.806361405506986, 0.568989910640577, 0.82442234510407, 0.585930505501631, 0.498074525667847, 0.3056909641369, 0.538305366588107, 0.895810057296864, -1.50646625365701, 0.942074286841833, 0.530205421922403, 0.552890145051967, 0.191802586647526, 0.82763541502128, 0.528573231766992, 0.210628178943399, 0.474023573196165, 0.242774255853435, 0.860352884532513, 0.0259412157301924, -1.26944638654409, 0.556013840009467, 0.256960055829438, 0.238043189233965, 0.600103709236884, 0.533430299106417, 0.597823691424403, 0.909545562635997, -3.62527402641057, 1.09695534987185, 0.303923378740369, 0.475716001436312, 0.552307913150843, 0.287390798833914, 0.535317992651951, 0.915132801251367, 0.884999256549133, 0.536041150474729, 0.538691483814386, 0.260585527307093, 0.13058861040547, 0.905432839020191, 0.284222895259834, 0.557762717734429, 0.569445404296276, 0.52543236383033, 0.564081936294368, 0.480769010854562, 0.273414678192897, 0.518326018542919, 0.310228223090677, 0.253982220094623, 0.538571543358715, 0.290904244435981, 0.255596443723884, 1.03023448312836, -4.30550270358809, 0.542414785177954, -3.62135388294693, 0.594335139326684, 0.515001194047154, 0.585344705165546, 0.195965273376884, 0.84534250020118, 0.849677435011875, 0.974660862130819, 0.512376141786961, 0.785980313656191, 0.552249288533081, 0.284530276789326, 0.513399502621394, 0.505192463560986, -2.03989484795442, 0.627944270020747, 0.893376306091659, 0.520359304656358, 0.488357680644386, 1.02448572032359, 0.840379562018695, 0.531334229769938, 0.158438530072012, 0.85292757551368, -2.14258817408757, 0.557423804933211, 0.511580159495555, 0.239158007315975, 0.535829344290327, 0.112480659378316, 0.267920972413279, -1.35679183647935, -5.48030138511512, 0.305493052032676, 1.0333106887374, 0.504709107012271, 0.31915795266244, 0.21701810670712, 0.232974638368585, 0.567641120786486, 0.0756107289650521, 0.268248458404788, 0.579389723601903, 0.255318353182982, 0.537801442336948, -7.66000970611807, 0.829424247582344, 0.584030847281402, -1.50656417006864, 0.573989109009965, 0.559298160618594, -5.14565053793545, -3.57512484504252, -2.52591328233452, 0.2189831395938, 0.559811533044506, 0.119128852802232, -2.41341514817581, 0.234308167926464, 0.284112657261082, 1.11330721562578, 0.504681943419813, 0.275057495888665, -4.88466635348784, 0.271227015567025, 0.781611438642645, 0.527705143750595, 0.474251339347635, 0.533801385208455, 0.561617776084836, 0.533599609988894, 0.273931166626853, 0.554059838223097, 0.80067186390761, 0.553077063004972, -1.97766918983481, -0.208242073588186, 0.533510810494236, -4.4079557971243, 0.572400560117358, 0.250626187317759, 0.507104240879627, 0.28213510251043, -1.64749522807948, 0.472011939233583, 0.521239840666514, 0.534714227341253, 0.240802790006152, 0.230681727373888, -0.344712262251189, 0.535951353972337, 0.878369980708077, 0.249438610666508, 0.165970842574365, 0.238225777681492, 0.956353237876658, 1.00852051855051, 0.555608852443939, -2.11625150130223, 0.551123792911425, 0.293965313490414, 1.12083121201722, 0.400990602920441, 0.24777293208067, -1.77460749997541, 0.54187603812248, 0.548643764612786, 0.919110101234656, 0.806575028021688, 0.511615030469585, 0.929242967233175, 0.277256625718589, 0.85379860521864, 0.555521105321847, 0.521390300057252, -4.0521087390845, 0.312163959136064, 0.184686491953906, 0.241613813910312, 0.924905156768094, -1.71410365891066]
+      }
+    },
+    "gof_formula": "edges + triangle + degree(0:2) + isolates",
+    "gof": {
+      "edges": {
+        "observed": [10, 6, 3, 3, 6, 6, 6, 3, 6, 6, 5, 3, 6, 6, 6, 9, 6, 6, 3, 3, 3, 4, 3, 1, 6, 6, 6, 6, 6, 5, 8, 6, 6, 4, 6, 9, 2, 6, 5, 3, 3, 3, 3, 3, 3, 3, 9, 6, 10, 6, 6, 3, 6, 10, 5, 10, 6, 6, 1, 10, 6, 1, 6, 5, 10, 18, 5, 6, 3, 3, 6, 6, 6, 10, 3, 15, 3, 6, 6, 3, 6, 10, 10, 6, 6, 3, 5, 10, 3, 6, 6, 6, 6, 6, 3, 6, 5, 3, 6, 3, 3, 15, 2, 6, 3, 6, 6, 6, 1, 10, 10, 10, 8, 10, 6, 3, 6, 6, 6, 6, 10, 6, 6, 15, 10, 6, 1, 10, 6, 6, 6, 3, 6, 1, 3, 5, 2, 3, 15, 6, 3, 1, 3, 6, 2, 3, 6, 3, 6, 2, 10, 6, 4, 6, 6, 1, 10, 10, 3, 6, 1, 5, 3, 3, 15, 6, 3, 4, 3, 9, 6, 6, 6, 6, 6, 3, 6, 9, 6, 10, 2, 6, 1, 6, 3, 6, 3, 5, 5, 6, 6, 3, 3, 9, 6, 10, 3, 5, 3, 10, 14, 6, 9, 6, 3, 15, 8, 3, 5, 6, 6, 10, 10, 6, 10, 3, 10, 6, 6, 3, 3, 1, 5, 10, 4],
+        "fitted": [8.86649999999999, 5.56749999999999, 2.86350000000001, 5.56199999999998, 5.5595, 5.6245, 5.6035, 5.4975, 5.5715, 5.561, 5.5505, 2.872, 5.524, 8.79699999999999, 5.5875, 12.9855, 5.60449999999999, 5.488, 2.88649999999999, 2.90149999999999, 2.873, 8.77550000000002, 2.8485, 0.975500000000001, 5.60449999999999, 5.6535, 5.56600000000001, 5.5975, 5.6275, 5.51299999999999, 8.81099999999999, 5.5555, 5.556, 5.531, 5.577, 8.7495, 2.8755, 5.529, 5.54300000000001, 2.888, 2.9005, 2.901, 2.8925, 2.898, 2.90749999999999, 2.9065, 8.72900000000003, 5.5295, 8.93449999999998, 5.5535, 5.55199999999999, 2.91, 5.6215, 8.73049999999999, 5.5545, 8.88949999999998, 5.5435, 5.552, 0.975, 8.8135, 5.61299999999999, 0.980999999999998, 5.6125, 5.53, 8.6885, 18.634, 5.50049999999999, 5.5605, 2.886, 2.90249999999999, 5.53549999999999, 5.5685, 5.55400000000001, 8.633, 5.56749999999999, 13.1195, 2.8885, 5.556, 5.51149999999999, 2.877, 5.5815, 8.8455, 8.87750000000002, 5.56250000000001, 5.43099999999999, 2.827, 5.65300000000001, 8.85900000000001, 2.881, 5.57400000000001, 5.587, 5.5915, 5.558, 5.63249999999999, 2.908, 5.50949999999999, 5.54399999999999, 2.9, 5.63450000000001, 2.8735, 2.8935, 13.2395, 2.8785, 5.498, 5.5695, 5.601, 5.55750000000001, 5.552, 0.9695, 8.78549999999997, 8.73899999999999, 8.707, 8.842, 8.83049999999999, 5.59950000000001, 2.8995, 5.54949999999999, 5.47699999999999, 8.88600000000001, 5.55300000000001, 8.86400000000002, 5.612, 5.555, 13.224, 8.7895, 5.59149999999999, 0.986499999999999, 8.71300000000001, 8.8205, 5.5415, 5.56599999999999, 2.8945, 5.56899999999999, 0.977, 2.94099999999999, 5.54700000000001, 5.56749999999999, 2.884, 13.1935, 5.604, 2.891, 0.959999999999999, 2.9225, 5.56999999999999, 2.89549999999999, 2.9085, 5.59350000000001, 2.9055, 5.5385, 5.49999999999999, 8.85349999999999, 5.5545, 5.56949999999999, 5.5765, 5.5255, 5.5445, 13.057, 13.235, 2.8875, 5.5945, 0.978, 8.8735, 2.8595, 2.8785, 13.1125, 5.56550000000001, 2.86, 8.8475, 2.875, 8.69800000000001, 5.57100000000001, 5.63050000000001, 5.54999999999999, 5.5295, 5.6035, 2.91999999999999, 5.59500000000001, 8.71700000000001, 5.5555, 13.3375, 2.8935, 5.60149999999999, 2.904, 5.554, 2.8755, 5.58249999999999, 2.9045, 5.54449999999999, 5.55399999999999, 5.531, 5.57099999999999, 2.903, 2.916, 8.77599999999999, 5.58550000000001, 8.86450000000001, 2.9105, 5.527, 2.883, 8.73, 13.048, 5.5785, 13.3195, 5.59350000000001, 2.902, 13.314, 8.9365, 2.9135, 5.56150000000001, 5.598, 5.631, 8.7405, 8.74849999999998, 5.61850000000001, 8.78650000000001, 2.9025, 8.83500000000002, 5.54650000000002, 5.573, 5.52499999999999, 2.889, 0.972, 5.62500000000001, 8.668, 5.53049999999999],
+        "var": [1.04019784892446, 0.416652076038019, 0.132934217108555, 0.392352176088044, 0.388654077038519, 0.349674587293647, 0.348461980990495, 0.462224862431216, 0.394084792396198, 0.379468734367184, 0.397648574287144, 0.114673336668334, 0.41863331665833, 1.05231715857929, 0.355521510755377, 1.68513231615808, 0.349254377188595, 0.463087543771886, 0.104670085042521, 0.093844672336168, 0.127934967483742, 1.08964457228614, 0.157626563281641, 0.0239117058529265, 0.336247873936968, 0.314595047523762, 0.384836418209105, 0.353670585292647, 0.344916208104052, 0.447054527263633, 0.999778889444721, 0.392115807903951, 0.393060530265133, 0.413245622811405, 0.412277138569284, 1.0812903951976, 0.11505727863932, 0.452385192596299, 0.407354677338669, 0.112512256128064, 0.0916455727863933, 0.096247123561781, 0.103995747873937, 0.0946433216608304, 0.088988244122061, 0.0848001500750375, 1.13712756378189, 0.457358429214608, 0.936678089044522, 0.422348924462231, 0.404498249124563, 0.087943971985993, 0.347411455727863, 1.13643796898449, 0.420239869934968, 0.957768634317159, 0.414314907453726, 0.394493246623311, 0.0243871935967984, 1.00221885942972, 0.349405702851425, 0.018648324162081, 0.386537018509255, 0.415307653826913, 1.10802176088044, 2.03906353176588, 0.465232366183092, 0.426553026513257, 0.112060030015007, 0.0900387693846924, 0.415947723861931, 0.398507003501751, 0.405286643321661, 1.11286743371686, 0.406647073536768, 1.69506728364182, 0.108121810905453, 0.413070535267634, 0.444089794897448, 0.123932966483242, 0.388552026013007, 0.955107303651825, 0.947967733866935, 0.384285892946473, 0.481479739869934, 0.169155577788894, 0.310746373186593, 1.0116248124062, 0.118898449224612, 0.379713856928464, 0.390626313156578, 0.358807153576788, 0.386829414707354, 0.330609054527264, 0.0895807903951976, 0.477148324162081, 0.434281140570284, 0.095047523761881, 0.334076788394197, 0.127561530765383, 0.103209354677339, 1.55391670835418, 0.120798149074537, 0.470231115557779, 0.40737343671836, 0.381989994997499, 0.389888694347173, 0.426509254627314, 0.0295845422711356, 1.03100525262631, 1.1204392196098, 1.07869034517259, 1.0975847923962, 1.04629289644822, 0.378288894447225, 0.0974484742371187, 0.436768134067034, 0.482712356178089, 0.961484742371185, 0.428405202601301, 1.000004002001, 0.353632816408204, 0.371160580290145, 1.59762281140571, 1.02170060030015, 0.371813656828415, 0.0133244122061031, 1.10018109054527, 1.04880415207604, 0.435495497748875, 0.382835417708854, 0.103421460730365, 0.39743771885943, 0.0224822411205603, 0.0585482741370684, 0.436009004502251, 0.389638569284642, 0.11159979989995, 1.54282916458229, 0.393380690345172, 0.105171585792897, 0.0384192096048024, 0.0775325162581291, 0.393296648324162, 0.0996295647823909, 0.0861708354177088, 0.353434467233618, 0.0886140570285144, 0.436736118059028, 0.487243621810906, 0.966521010505251, 0.38322136068034, 0.418378939469735, 0.398346923461731, 0.471585542771385, 0.428233866933467, 1.63156678339169, 1.48151575787894, 0.104896198099049, 0.403271385692846, 0.0215267633816909, 0.972984242121059, 0.12282116058029, 0.107791645822911, 1.70969859929965, 0.416918209104552, 0.144472236118059, 0.979733616808404, 0.12343671835918, 1.09334267133567, 0.376147073536768, 0.348143821910956, 0.411705852926464, 0.421340420210104, 0.359467483741871, 0.0756378189094546, 0.377163581790896, 1.09846023011506, 0.418128814407204, 1.39429089544773, 0.095205352676338, 0.40490020010005, 0.0938309154577289, 0.401284642321161, 0.118058779389695, 0.393390445222611, 0.0884239619809903, 0.454246873436719, 0.449308654327163, 0.382230115057528, 0.403160580290146, 0.10264232116058, 0.082985492746373, 1.02433616808404, 0.372876188094047, 1.00764357178589, 0.0815305152576289, 0.486514257128563, 0.108365182591296, 1.03461730865433, 1.78358779389695, 0.408041770885443, 1.50217083541771, 0.40145847923962, 0.09144172086043, 1.52416608304152, 0.990963231615807, 0.0790572786393199, 0.452443971985993, 0.350571285642821, 0.331004502251126, 1.0076635817909, 1.10179864932467, 0.350132816408204, 1.01142346173087, 0.0900387693846923, 1.07231115557779, 0.451063281640821, 0.437889944972486, 0.429589794897448, 0.107732866433216, 0.0272296148074037, 0.344547273636819, 1.12433816908454, 0.419279389694847],
+        "var.obs": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "pearson": [1.11138248658177, 0.670037850524746, 0.374381396782429, -4.09016749091452, 0.706584813211514, 0.635006112602101, 0.671684754470806, -3.67348986485228, 0.682583818080783, 0.712650379654724, -0.872986662223573, 0.377988637481214, 0.735681878477184, -2.72658562333255, 0.691816652400194, -3.0701939379369, 0.669230243171087, 0.75238202484208, 0.350820184819941, 0.321537343497233, 0.355066001463938, -4.57484536975552, 0.381590829836754, 0.158438530072005, 0.682050786911324, 0.61777068821976, 0.699602974938208, 0.676809450303156, 0.634263143442343, -0.767250387545792, -0.811089675201531, 0.709846736182635, 0.708195645805336, -2.38161227284183, 0.658788092569883, 0.240899865520237, -2.58106594991859, 0.700271927203503, -0.850772563481894, 0.333901296970626, 0.328675502657101, 0.319110662112284, 0.333350163926805, 0.331554696938566, 0.31008118421681, 0.321080034114028, 0.254135126585836, 0.695714866810653, 1.1009263677581, 0.687045923210283, 0.704400557382046, 0.303486565704543, 0.642160837446048, 1.1908576134464, -0.855367852034695, 1.13471881933593, 0.709211063587803, 0.713277012113163, 0.160088116761378, 1.18518584817801, 0.654705471592803, 0.139134136174907, 0.623269909887406, -0.822414771494263, 1.24593145444339, -0.44399070598002, -0.733785492791122, 0.672933835670349, 0.340548901798125, 0.324930022329553, 0.720221932040407, 0.683538248009724, 0.700573512021788, 1.29582632275284, -4.02625824018372, 1.44437468104955, 0.339092521608061, 0.690829478912889, 0.73304252821885, 0.349390979966221, 0.671383824092918, 1.18132080916588, 1.15289451224749, 0.705749918081244, 0.820017758718536, 0.420632612770799, -1.17141329023061, 1.1344253114535, 0.345111050981519, 0.691323589160186, 0.660798889303457, 0.681964101966723, 0.71066106767238, 0.639145847418642, 0.307383380374386, 0.710088223778799, -0.825493037872033, 0.324361721409591, 0.632359766337151, 0.354185407649198, 0.331504994912496, 1.41228439753163, -2.52761908507624, 0.732062289032106, -4.02580067716694, 0.645575293907194, 0.708668214442672, 0.685983681164798, 0.177323956239477, 1.19609887032052, 1.19129943384738, 1.24494489615969, -0.803698302377617, 1.14333523520944, 0.651164513134188, 0.321942668808748, 0.681662373828153, 0.752761642121843, -2.9432362806592, 0.682936233420752, 1.13599772687024, 0.652462334478528, 0.730430817986116, 1.405095474402, 1.197575684404, 0.669929947305714, 0.116952561633259, 1.22700535693868, -2.75409492573788, 0.69478031503915, 0.701428931144817, 0.328055350885259, 0.683664027949962, 0.153393880914952, 0.243834392832555, -0.828399059401794, -5.71522077820234, 0.347237228552018, 1.45438385878426, 0.631376868616368, 0.336106790495727, 0.204073107815154, 0.278329835588687, 0.685659239880354, -2.83707929051691, 0.311702971418933, 0.68376379273836, 0.317453776806948, 0.698332333188522, -5.01412276522251, 1.16618757352669, 0.71965252595456, -2.42647830506037, 0.671000248481524, 0.690964882563706, -6.94457387934717, -2.39327724273328, -2.65779296436744, 0.347354275270118, 0.638545950096689, 0.149945457022881, -3.92690736917692, 0.40090338740595, 0.370069869033932, 1.44353454826227, 0.672921414266202, 0.368328935852391, -4.89738010686376, 0.355785159949831, 0.288821017630983, 0.699485068875171, 0.626231769880441, 0.701324471682555, 0.724841525546594, 0.661322632474658, 0.29088443858992, 0.659462565068272, 0.270018963969104, 0.68741137882218, -2.82647129113966, -2.89576872795838, 0.626259504483736, -6.21575613487559, 0.704058245732368, 0.362343276444356, 0.66564791513371, 0.321157735071493, -0.807889401398004, -0.826489561479593, 0.758595727078912, 0.675644524226873, 0.302766975137046, 0.291593740883133, 0.221323110205647, 0.67880058793483, 1.13118508245899, 0.313446151421175, -0.755549338003572, 0.355419276269386, 1.24857274673035, 0.712836128129375, 0.659850069995372, -3.52430767269915, 0.641564363289531, 0.324081231452276, 1.3656563352091, -0.940760363578557, 0.307641681974703, -0.834771008014128, 0.678950140344725, 0.641371142553775, 1.25470142253857, 1.19228405544561, 0.644730378285056, 1.20662763848102, 0.324930022329525, 1.12503365213416, 0.675240610385841, 0.6452758158799, -3.85242688023276, 0.338180740829233, 0.16968258917744, -1.0647695148633, 1.25619120271378, -2.36364133726733]
+      },
+      "triangle": {
+        "observed": [10, 4, 1, 0, 4, 4, 4, 0, 4, 4, 2, 1, 4, 4, 4, 7, 4, 4, 1, 1, 1, 0, 1, "NA", 4, 4, 4, 4, 4, 2, 5, 4, 4, 1, 4, 7, 0, 4, 2, 1, 1, 1, 1, 1, 1, 1, 7, 4, 10, 4, 4, 1, 4, 10, 2, 10, 4, 4, "NA", 10, 4, "NA", 4, 2, 10, 23, 2, 4, 1, 1, 4, 4, 4, 10, 1, 20, 1, 4, 4, 1, 4, 10, 10, 4, 4, 1, 2, 10, 1, 4, 4, 4, 4, 4, 1, 4, 2, 1, 4, 1, 1, 20, 0, 4, 1, 4, 4, 4, "NA", 10, 10, 10, 5, 10, 4, 1, 4, 4, 4, 4, 10, 4, 4, 20, 10, 4, "NA", 10, 4, 4, 4, 1, 4, "NA", 1, 2, 0, 1, 20, 4, 1, "NA", 1, 4, 0, 1, 4, 1, 4, 0, 10, 4, 1, 4, 4, 0, 10, 7, 1, 4, "NA", 1, 1, 1, 20, 4, 1, 1, 1, 7, 4, 4, 4, 4, 4, 1, 4, 7, 4, 7, 0, 4, 0, 4, 1, 4, 1, 2, 2, 4, 4, 1, 1, 7, 4, 10, 1, 2, 1, 10, 16, 4, 5, 4, 1, 20, 5, 1, 2, 4, 4, 10, 10, 4, 10, 1, 10, 4, 4, 0, 1, "NA", 2, 10, 1],
+        "fitted": [6.99300000000001, 3.19300000000001, 0.871000000000001, 3.185, 3.176, 3.296, 3.2515, 3.068, 3.202, 3.17699999999999, 3.158, 0.8735, 3.117, 6.81249999999998, 3.217, 12.957, 3.2475, 3.066, 0.888499999999999, 0.903999999999999, 0.8815, 6.75999999999999, 0.8615, "NA", 3.2465, 3.3345, 3.1855, 3.23849999999999, 3.30099999999999, 3.101, 6.82249999999999, 3.1645, 3.1635, 3.1285, 3.2155, 6.69449999999999, 0.8785, 3.138, 3.1475, 0.8945, 0.901500000000002, 0.9045, 0.896500000000001, 0.899500000000001, 0.91, 0.906500000000002, 6.64300000000001, 3.1345, 7.14949999999999, 3.175, 3.1635, 0.913, 3.2875, 6.68049999999999, 3.179, 6.99500000000001, 3.154, 3.158, "NA", 6.83849999999999, 3.276, "NA", 3.274, 3.1195, 6.53200000000001, 24.4535, 3.082, 3.1895, 0.891499999999999, 0.9035, 3.1365, 3.192, 3.17049999999999, 6.413, 3.1985, 13.428, 0.892499999999999, 3.1735, 3.097, 0.885, 3.22299999999999, 6.9165, 6.9805, 3.179, 2.95299999999999, 0.839499999999999, 3.3365, 6.962, 0.888000000000001, 3.2005, 3.232, 3.22649999999999, 3.17, 3.30250000000001, 0.911000000000001, 3.1085, 3.1655, 0.902500000000002, 3.3065, 0.882000000000001, 0.8975, 13.7465, 0.885500000000001, 3.078, 3.2015, 3.263, 3.17, 3.167, "NA", 6.777, 6.70000000000001, 6.5905, 6.931, 6.86749999999999, 3.2525, 0.903, 3.171, 3.0435, 6.99499999999999, 3.177, 6.93850000000001, 3.2665, 3.156, 13.715, 6.771, 3.234, "NA", 6.5995, 6.86950000000001, 3.16100000000001, 3.18, 0.899000000000001, 3.191, "NA", 0.942500000000001, 3.1555, 3.1895, 0.8885, 13.596, 3.2695, 0.895, "NA", 0.9255, 3.196, 0.8985, 0.91, 3.224, 0.907, 3.15, 3.0935, 6.916, 3.16050000000001, 3.201, 3.212, 3.127, 3.16, 13.19, 13.7205, 0.89, 3.24149999999999, "NA", 6.9855, 0.8605, 0.879000000000001, 13.3565, 3.193, 0.870499999999998, 6.90899999999999, 0.882, 6.579, 3.19400000000001, 3.3075, 3.1625, 3.1275, 3.2515, 0.921, 3.24, 6.617, 3.1775, 14.044, 0.8935, 3.2635, 0.907500000000001, 3.1725, 0.880000000000001, 3.2235, 0.9055, 3.1685, 3.185, 3.1135, 3.198, 0.910499999999999, 0.919, 6.75599999999999, 3.221, 6.9525, 0.910499999999999, 3.139, 0.8855, 6.635, 13.226, 3.2255, 13.992, 3.25, 0.9035, 14.0065, 7.14200000000001, 0.9135, 3.2025, 3.2395, 3.302, 6.63450000000001, 6.69450000000001, 3.28449999999999, 6.75750000000001, 0.9035, 6.88100000000001, 3.169, 3.2225, 3.122, 0.893499999999998, "NA", 3.2925, 6.51300000000001, 3.131],
+        "var": [5.8989004502251, 1.30340270135068, 0.112415207603802, 1.20937968984492, 1.23464132066033, 1.11994397198599, 1.14482016008004, 1.40407803901951, 1.1927923961981, 1.18926563281641, 1.25666433216608, 0.110553026513257, 1.27294747373687, 5.92630690345172, 1.17749974987494, 16.0521770885443, 1.15682216108054, 1.30529664832416, 0.0991173086543272, 0.0868274137068535, 0.104510005002501, 5.95737868934466, 0.11937743871936, "NA", 1.12229889944972, 1.07914932466233, 1.2277036018009, 1.16319934967484, 1.11195497748874, 1.31745772886443, 5.90394572286143, 1.25506728364182, 1.27340445222611, 1.26862206103052, 1.2476835917959, 6.06720335167585, 0.106791145572786, 1.31161180590295, 1.25837293646823, 0.0944169584792395, 0.0888421710855428, 0.0864229614807404, 0.092834167083542, 0.0904449724862431, 0.0819409704852425, 0.0848001500750375, 6.27068634317158, 1.35608779389695, 5.41485717858929, 1.27601300650325, 1.25939744872436, 0.079470735367684, 1.12540645322661, 6.12948449224612, 1.27459629814907, 5.81788394197098, 1.27892346173086, 1.26666933466733, "NA", 5.68125837918959, 1.10437618809405, "NA", 1.21753276638319, 1.31387668834417, 6.22909054527265, 32.7942348674337, 1.36795997998999, 1.28523236618309, 0.0967761380690345, 0.0872313656828414, 1.28350950475238, 1.26776988494247, 1.26106028014007, 5.95540870435219, 1.24872211105552, 16.1899109554778, 0.0959917458729363, 1.26603076538269, 1.32825512756378, 0.101825912956478, 1.21587893946973, 5.62834192096047, 5.66695322661331, 1.2355767883942, 1.40249224612306, 0.134807153576788, 1.07080315157579, 5.85848524262131, 0.0995057528764383, 1.22591270635318, 1.2247883941971, 1.19079314657329, 1.25572786393197, 1.09254002001001, 0.0811195597798898, 1.38041795897949, 1.27274612306153, 0.0880377688844422, 1.09610580290145, 0.104128064032016, 0.0920397698849424, 15.6970862931466, 0.101440470235118, 1.37860530265132, 1.2485220110055, 1.14640420210105, 1.24172086043021, 1.33377788894447, "NA", 5.90522361180589, 6.11305652826413, 6.02482216108054, 6.14030915457728, 6.13301025512756, 1.1653264132066, 0.0876348174087046, 1.29840820410205, 1.39030290145073, 5.75785392696347, 1.28431315657829, 5.94268909454729, 1.16906228114057, 1.23628214107053, 15.6195847923962, 5.87149474737368, 1.18383591795898, "NA", 6.02911430715359, 6.19156553276639, 1.28171985992996, 1.25222611305653, 0.0908444222111056, 1.27615707853927, "NA", 0.0542208604302152, 1.34799374687344, 1.23120535267634, 0.0991173086543271, 15.4755217608804, 1.20247098549274, 0.0940220110055029, "NA", 0.0689842421210606, 1.20618709354677, 0.0912433716858428, 0.0819409704852425, 1.19242021010505, 0.0843931965982994, 1.31115557778889, 1.38444997498749, 5.71380090045023, 1.24336143071536, 1.27123461730865, 1.24267733866933, 1.40557378689344, 1.30105052526263, 15.671735867934, 15.0579087043522, 0.0979489744872435, 1.26681115557779, "NA", 5.70514232116059, 0.12009979989995, 0.106412206103051, 16.4776465732867, 1.26338269134568, 0.112786143071536, 5.80562181090546, 0.104128064032016, 6.06879339669835, 1.1959619809905, 1.1125, 1.2517196098049, 1.29689219609805, 1.17383466733367, 0.0727953976988495, 1.19399699849925, 6.07835017508754, 1.28363556778389, 14.6934107053527, 0.0952053526763381, 1.2396875937969, 0.0839857428714357, 1.23436093046523, 0.105652826413207, 1.20915232616308, 0.0856125562781392, 1.30776163081541, 1.2764132066033, 1.24724137068534, 1.26742971485743, 0.0815305152576289, 0.0744762381190596, 5.82137468734368, 1.20376088044022, 5.96522636318159, 0.0815305152576287, 1.41838819409705, 0.101440470235118, 5.73564282141071, 16.5211845922961, 1.2212603801901, 15.4856788394197, 1.19209604802401, 0.0872313656828416, 15.3901528264132, 5.90979089544771, 0.0790572786393198, 1.30714732366183, 1.15371660830415, 1.08333766883442, 5.82782366183092, 6.22928439219609, 1.11711830915458, 5.74156453226612, 0.0872313656828414, 6.04085942971486, 1.34411105552777, 1.23761255627814, 1.29076138069034, 0.0952053526763383, "NA", 1.13050900450225, 6.07586893446723, 1.26146973486743],
+        "var.obs": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0],
+        "pearson": [1.23807768094072, 0.706861334592579, 0.384748713974076, -2.89619701269735, 0.741577949605804, 0.665234111876724, 0.699557102610199, -2.58916502561446, 0.730668627194841, 0.754675759962413, -1.03299665459839, 0.380456674344442, 0.782628144650894, -1.15531513275395, 0.72157478773531, -1.48682765019339, 0.699637701582187, 0.817508477212079, 0.354160495714612, 0.325793788953008, 0.366555226365928, -2.76961302009314, 0.400856236794315, "NA", 0.711260987059782, 0.640630023352292, 0.735096447029323, 0.706061989863689, 0.662877951926213, -0.959221653922292, -0.750060610223162, 0.745783807728342, 0.74128082007585, -1.8897637971766, 0.702329185535697, 0.124027199899634, -2.68827778485774, 0.75267000179675, -1.02293493197468, 0.343342414238782, 0.33046589744369, 0.324854434382334, 0.339692866757011, 0.334174915005281, 0.314406819823693, 0.321080034114034, 0.142564264235779, 0.743229892866627, 1.22497589347788, 0.730342204293267, 0.745391679697677, 0.308614009388427, 0.671630125869762, 1.34078980079608, -1.0443052917601, 1.24583907919222, 0.74808007197522, 0.74813584470478, "NA", 1.3263890124184, 0.688937855983189, "NA", 0.657955151770122, -0.976667630744471, 1.38952628624308, -0.253814415707866, -0.925104012574054, 0.714927811971083, 0.348775198503882, 0.326731478084748, 0.762189211765494, 0.717614400496103, 0.738666608157208, 1.46985871254661, -1.96740408613887, 1.6333352114629, 0.346969674729759, 0.734548926166704, 0.7835144308356, 0.360386641086273, 0.704653885179339, 1.29973171484405, 1.26841164311286, 0.738598270894352, 0.88408993684611, 0.437138006456209, -1.29155868078346, 1.25514846525699, 0.35505360590066, 0.722085617590288, 0.693954008630089, 0.708830105719549, 0.740679503565362, 0.667306776021181, 0.312483589031214, 0.75878030042114, -1.03309768046411, 0.328601923878615, 0.66239985228716, 0.36567739149218, 0.337859475329074, 1.57838749427106, -2.7802441694789, 0.785255430968975, -1.97024660662308, 0.688333019427275, 0.744845337899775, 0.721278928150528, "NA", 1.32630110579217, 1.33470329919811, 1.38905223870594, -0.779268560304916, 1.26489429624259, 0.69244837730368, 0.327667517790272, 0.727526647487699, 0.811204329374348, -1.24814920737043, 0.726213586038796, 1.2558644267191, 0.678392899855176, 0.759073183249243, 1.59026880375629, 1.33258127579166, 0.7040167846554, "NA", 1.3848923627491, -1.15320360700741, 0.741080530964068, 0.732778088120933, 0.335098312072993, 0.71613756416881, "NA", 0.246936132594845, -0.995235848644135, -2.87446721101898, 0.354160495714609, 1.62790356073274, 0.666166696376584, 0.342432148806611, "NA", 0.283649043923746, 0.73206342635764, -2.97452359889682, 0.314406819823693, 0.710635758794784, 0.320132104760433, 0.742321112016928, -2.62912652326581, 1.29018449326458, 0.752873489412241, -1.95212303965264, 0.706882171237889, 0.73635530345823, -2.77038419837079, -0.80580903278627, -1.73188581672887, 0.351473623285119, 0.67390650044418, "NA", -2.50591995052471, 0.402534460469157, 0.370928024749997, 1.63662562822041, 0.717969628924167, 0.385604324408941, -2.45239046639438, 0.365677391492181, 0.170895615039411, 0.737015047512415, 0.656552966448866, 0.748568051441092, 0.766149455311178, 0.690857280813811, 0.292802735490922, 0.695523766575199, 0.155348089230799, 0.72596391737585, -1.83762985621573, -2.89576872795837, 0.661479856741019, -3.13143823273036, 0.744812435149967, 0.369182142777049, 0.70615648564093, 0.322970663832337, -1.02179652444252, -1.04887251659759, 0.793786093249215, 0.712381160740394, 0.31344615142118, 0.296808376207884, 0.101129311323802, 0.710014707374238, 1.24775767531942, 0.313446151421179, -0.956370497130152, 0.359500798876718, 1.40505724711288, 0.682473613542828, 0.700837429496509, -2.28502614812448, 0.686919174402016, 0.326731478084748, 1.52777374883032, -0.881116652488701, 0.307641681974716, -1.05177493296704, 0.708026717406856, 0.670615366235362, 1.39410791751527, 1.32439667630001, 0.676955394213918, 1.3532089438556, 0.326731478084747, 1.26901282094589, 0.716775986563316, 0.698888741247741, -2.74795690292246, 0.345158779549603, "NA", -1.21560797005527, 1.41464591206134, -1.89733942917924]
+      },
+      "degree0": {
+        "observed": [-5, "NA", -3, -4, "NA", -4, "NA", -4, -4, -4, -4, -3, -4, -4, -4, "NA", -4, -4, -3, -3, -3, -5, -3, -2, -4, "NA", -4, "NA", -4, -4, -5, -4, "NA", -4, -4, "NA", -3, -4, -4, -3, -3, -3, -3, -3, -3, "NA", -5, -4, -5, -4, -4, -3, "NA", "NA", -4, "NA", -4, -4, -2, -5, -4, -2, -4, -4, "NA", "NA", -4, -4, -3, -3, -4, "NA", -4, -5, -3, "NA", -3, -4, -4, -3, -4, -5, -5, -4, -4, -3, "NA", "NA", -3, -4, "NA", -4, -4, "NA", -3, "NA", -4, -3, -4, -3, -3, "NA", -3, -4, -3, -4, "NA", -4, -2, "NA", -5, -5, -5, "NA", -4, -3, -4, -4, -4, -4, "NA", "NA", "NA", -6, "NA", -4, -2, -5, -4, -4, "NA", -3, -4, -2, -3, -4, -3, -3, -6, -4, -3, -2, -3, -4, -3, -3, -4, -3, -4, -4, -5, -4, -4, -4, -4, -2, "NA", "NA", -3, -4, -2, "NA", -3, -3, "NA", -4, -3, "NA", -3, -5, "NA", -4, -4, "NA", "NA", -3, -4, -5, -4, "NA", "NA", -4, -2, -4, -3, -4, -3, -4, -4, "NA", -4, -3, -3, -5, "NA", -5, "NA", -4, -3, "NA", -6, -4, "NA", -4, -3, "NA", -5, "NA", -4, -4, -4, -5, -5, -4, "NA", -3, -5, -4, -4, -4, -3, -2, "NA", -5, -4],
+        "fitted": [-4.99800000000001, "NA", -2.9925, -3.9995, "NA", -3.9985, "NA", -3.9955, -3.9955, -3.999, -3.999, -2.9985, -3.998, -4.9995, -3.9995, "NA", -3.9995, -3.995, -2.998, -2.9975, -2.9915, -4.999, -2.98549999999999, -1.951, -3.9995, "NA", -3.9995, "NA", -3.999, -3.996, -4.999, -3.9985, "NA", -3.9985, -3.9975, "NA", -2.997, -3.996, -3.999, -2.9935, -2.999, -2.9965, -2.996, -2.9985, -2.99749999999999, "NA", -4.99899999999999, -3.998, -4.99900000000001, -3.997, -3.999, -2.997, "NA", "NA", -3.9985, "NA", -3.9995, -3.9995, -1.95, -4.99850000000001, -3.9995, -1.962, -3.9985, -3.999, "NA", "NA", -3.997, -3.9955, -2.9945, -2.999, -3.9995, "NA", -3.9975, -4.99850000000001, -3.9985, "NA", -2.9955, -3.995, -3.9985, -2.992, -3.9995, -4.9985, -4.998, -3.9995, -3.999, -2.987, "NA", "NA", -2.993, -3.9985, "NA", -3.999, -3.9995, "NA", -2.997, "NA", -3.997, -2.9975, -3.998, -2.9915, -2.996, "NA", -2.993, -3.997, -3.999, -3.99700000000001, "NA", -3.999, -1.939, "NA", -4.9995, -4.9995, -4.99800000000001, "NA", -3.9985, -2.9965, -3.9965, -3.997, -4.9995, -3.999, "NA", "NA", "NA", -5.9995, "NA", -3.9995, -1.973, -4.997, -4.9995, -3.9995, "NA", -2.9955, -3.9985, -1.954, -2.9985, -3.997, -3.998, -2.9955, -5.9995, -3.9975, -2.996, -1.92, -2.997, -3.9995, -2.997, -2.9985, -3.999, -2.9985, -3.9975, -3.996, -4.99900000000001, -3.999, -3.996, -3.9995, -3.99900000000001, -3.999, "NA", "NA", -2.99749999999999, -3.9985, -1.956, "NA", -2.999, -2.9995, "NA", -3.9985, -2.988, "NA", -2.99300000000001, -4.99899999999999, "NA", -3.998, -3.9955, "NA", "NA", -2.999, -3.9985, -4.999, -3.998, "NA", "NA", -3.999, -2.9965, -3.9985, -2.9955, -3.9985, -2.99900000000001, -3.998, -3.99249999999999, "NA", -3.9995, -2.9925, -2.997, -4.99900000000001, "NA", -4.9995, "NA", -3.9985, -2.9975, "NA", -5.999, -3.997, "NA", -3.99749999999999, -2.9985, "NA", -4.9995, "NA", -3.99749999999999, -3.9995, -3.9985, -4.9985, -4.9995, -3.9985, "NA", -2.999, -4.9985, -3.9985, -3.994, -3.9965, -2.9955, -1.944, "NA", -4.99800000000001, -3.99800000000001],
+        "var": [0.00199699849924962, "NA", 0.0074474737368684, 0.000500000000000002, "NA", 0.00149849924962481, "NA", 0.00448199099549775, 0.00448199099549774, 0.000999499749874933, 0.000999499749874934, 0.00149849924962481, 0.00199699849924962, 0.0005, 0.000500000000000001, "NA", 0.000500000000000001, 0.00497748874437217, 0.00199699849924962, 0.00249499749874938, 0.0084319659829915, 0.000999499749874938, 0.0233014007003501, 0.0956468234117058, 0.000500000000000002, "NA", 0.000499999999999997, "NA", 0.000999499749874934, 0.00398599299649825, 0.000999499749874939, 0.00149849924962481, "NA", 0.00149849924962482, 0.00249499749874938, "NA", 0.00299249624812406, 0.00398599299649826, 0.000999499749874942, 0.00646098049024514, 0.000999499749874935, 0.00348949474737368, 0.00398599299649824, 0.00149849924962481, 0.00249499749874937, "NA", 0.000999499749874945, 0.00199699849924963, 0.000999499749874943, 0.00299249624812407, 0.000999499749874934, 0.00299249624812407, "NA", "NA", 0.00149849924962482, "NA", 0.0005, 0.000500000000000002, 0.0975487743871937, 0.00149849924962482, 0.000499999999999996, 0.0745932966483241, 0.00149849924962482, 0.000999499749874932, "NA", "NA", 0.00299249624812406, 0.00448199099549775, 0.00547248624312155, 0.000999499749874934, 0.0005, "NA", 0.00249499749874938, 0.00149849924962481, 0.00149849924962482, "NA", 0.00748349174587293, 0.00497748874437217, 0.00149849924962481, 0.00793996998499247, 0.0005, 0.00149849924962482, 0.00199699849924962, 0.0005, 0.000999499749874936, 0.0158389194597299, "NA", "NA", 0.00695447723861933, 0.0014984992496248, "NA", 0.000999499749874939, 0.0005, "NA", 0.00299249624812406, "NA", 0.00299249624812405, 0.00249499749874937, 0.00199699849924963, 0.0084319659829915, 0.00398599299649825, "NA", 0.0069544772386193, 0.00299249624812407, 0.000999499749874938, 0.00299249624812408, "NA", 0.000999499749874936, 0.118338169084542, "NA", 0.000499999999999998, 0.0005, 0.00199699849924963, "NA", 0.00149849924962481, 0.00348949474737369, 0.00448999499749873, 0.00299249624812406, 0.0005, 0.000999499749874936, "NA", "NA", "NA", 0.000499999999999998, "NA", 0.000500000000000001, 0.0532976488244123, 0.00299249624812405, 0.0005, 0.0005, "NA", 0.00448199099549777, 0.00149849924962481, 0.0899289644822412, 0.00149849924962481, 0.00399299649824913, 0.00199699849924963, 0.00448199099549773, 0.000499999999999994, 0.00249499749874938, 0.00398599299649824, 0.15367683841921, 0.00299249624812406, 0.000500000000000001, 0.00299249624812406, 0.00149849924962481, 0.000999499749874939, 0.00149849924962481, 0.00249499749874937, 0.00398599299649823, 0.000999499749874941, 0.000999499749874935, 0.00398599299649824, 0.000500000000000001, 0.000999499749874932, 0.000999499749874935, "NA", "NA", 0.00249499749874937, 0.00149849924962481, 0.0861070535267635, "NA", 0.000999499749874938, 0.000500000000000001, "NA", 0.00149849924962482, 0.0208664332166082, "NA", 0.00695447723861931, 0.00099949974987494, "NA", 0.00199699849924963, 0.00448199099549775, "NA", "NA", 0.000999499749874931, 0.00149849924962481, 0.00099949974987494, 0.00199699849924963, "NA", "NA", 0.000999499749874933, 0.00348949474737369, 0.00149849924962482, 0.00448199099549774, 0.00149849924962481, 0.000999499749874933, 0.00199699849924963, 0.00844797398699351, "NA", 0.000500000000000001, 0.00744747373686845, 0.00299249624812406, 0.000999499749874938, "NA", 0.0005, "NA", 0.00149849924962481, 0.00249499749874938, "NA", 0.000999499749874936, 0.00299249624812406, "NA", 0.00249499749874938, 0.00149849924962481, "NA", 0.000499999999999999, "NA", 0.00249499749874938, 0.000500000000000001, 0.00149849924962482, 0.00149849924962481, 0.0005, 0.00149849924962482, "NA", 0.000999499749874935, 0.00149849924962481, 0.00149849924962482, 0.00596698349174585, 0.00348949474737368, 0.00448199099549775, 0.108918459229615, "NA", 0.00199699849924962, 0.00199699849924963],
+        "var.obs": [0, "NA", 0, 0, "NA", 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, "NA", 0, 0, 0, 0, "NA", 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, "NA", "NA", 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, "NA", "NA", 0, 0, 0, 0, 0, "NA", 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", "NA", 0, 0, "NA", 0, 0, "NA", 0, "NA", 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, "NA", 0, 0, "NA", 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, "NA", "NA", "NA", 0, "NA", 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", "NA", 0, 0, 0, "NA", 0, 0, "NA", 0, 0, "NA", 0, 0, "NA", 0, 0, "NA", "NA", 0, 0, 0, 0, "NA", "NA", 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, "NA", 0, "NA", 0, 0, "NA", 0, 0, "NA", 0, 0, "NA", 0, "NA", 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0],
+        "pearson": [-0.0447549551670829, "NA", -0.0869074031682592, -0.0223606797751642, "NA", -0.038749222616589, "NA", -0.0672166747626377, -0.0672166747626445, -0.0316306892193687, -0.0316306892195372, -0.0387492226164971, -0.044754955167222, 44.6989988702207, -0.0223606797751046, "NA", -0.0223606797750848, -0.070870396254874, -0.044754955167222, -0.0500501002130665, -0.0925666406170012, -0.0316306892195091, -0.0949898032460984, -0.158438530072005, -0.0223606797751841, "NA", -0.0223606797750849, "NA", -0.0316306892193827, -0.0633565799652941, -0.0316306892195091, -0.0387492226164742, "NA", -0.0387492226165544, -0.0500501002130576, "NA", -0.0548408840894153, -0.0633565799652871, -0.0316306892193826, -0.0808656611828154, -0.0316306892195232, -0.0592497837892877, -0.0633565799652591, -0.0387492226164742, -0.0500501002130843, "NA", -0.0316306892197056, -0.0447549551672319, -0.0316306892192281, -0.0548408840893665, -0.0316306892193687, -0.0548408840893665, "NA", "NA", -0.0387492226165085, "NA", -0.0223606797749855, -0.0223606797751642, -0.160088116761378, -0.0387492226161873, -0.0223606797750849, -0.139134136174907, -0.0387492226165659, -0.0316306892193687, "NA", "NA", -0.0548408840893422, -0.0672166747625847, -0.0743481814604243, -0.0316306892196075, -0.0223606797751047, "NA", -0.0500501002130576, -0.0387492226162792, 25.7940658550242, "NA", -0.0520188050748756, -0.0708703962549181, -0.0387492226165545, -0.0897801975436096, -0.0223606797751047, -0.0387492226163479, -0.0447549551673612, -0.0223606797750252, -0.0316306892195512, -0.103295303754098, "NA", "NA", -0.0839393873292643, -0.0387492226165431, "NA", -0.0316306892193826, -0.0223606797749259, "NA", -0.0548408840894559, "NA", -0.0548408840894235, -0.0500501002129776, -0.0447549551672319, -0.0925666406170544, -0.063356579965259, "NA", -0.0839393873292805, -0.0548408840893746, 31.5990585302791, -0.054840884089269, "NA", -0.0316306892196215, -0.177323956239477, "NA", -0.0223606797749458, -0.0223606797750252, -0.0447549551671225, "NA", -0.0387492226163939, -0.0592497837892501, -0.0522330175047942, -0.0548408840893909, 44.6989988702207, -0.0316306892194248, "NA", "NA", "NA", -0.0223606797749458, "NA", -0.0223606797750649, -0.116952561633259, -0.0548408840894316, 44.6989988702208, -0.0223606797750054, "NA", -0.0672166747625911, -0.0387492226165085, -0.153393880914952, -0.0387492226164053, -0.0474757451689988, 22.332722628466, -0.067216674762618, -0.022360679774787, -0.0500501002130576, -0.0633565799652942, -0.204073107815154, -0.0548408840893665, -0.0223606797751245, -0.0548408840893747, -0.0387492226165085, -0.0316306892193827, -0.0387492226164742, -0.0500501002130666, -0.0633565799653014, -0.0316306892192843, -0.0316306892196075, -0.0633565799652942, -0.0223606797750848, -0.0316306892193266, 63.2297477497775, "NA", "NA", -0.0500501002130843, -0.0387492226164283, -0.149945457022881, "NA", -0.0316306892193827, -0.0223606797751046, "NA", -0.03874922261652, -0.0830724724152717, "NA", -0.0839393873292272, -0.0316306892196776, "NA", -0.0447549551673611, -0.0672166747626444, "NA", "NA", -0.0316306892196075, -0.0387492226164512, -0.0316306892196214, -0.0447549551672716, "NA", "NA", -0.0316306892193546, 16.8692598702915, -0.0387492226165544, -0.0672166747626511, -0.038749222616543, -0.0316306892193125, -0.0447549551672716, -0.0815990268588998, "NA", -0.0223606797750848, -0.086907403168259, -0.0548408840893585, -0.0316306892192562, "NA", -0.0223606797750252, "NA", -0.0387492226165316, -0.0500501002130665, "NA", -0.0316306892196496, -0.0548408840893341, "NA", -0.0500501002130754, -0.0387492226165086, "NA", -0.0223606797749458, "NA", -0.0500501002130932, -0.0223606797750252, -0.0387492226165429, -0.0387492226164627, -0.0223606797750252, -0.0387492226165544, "NA", -0.0316306892193687, -0.0387492226165316, -0.0387492226165543, -0.0776736711838099, -0.0592497837892952, -0.0672166747626842, -0.16968258917744, "NA", -0.0447549551670034, -0.0447549551671424]
+      },
+      "degree1": {
+        "observed": [0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 4, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 2, 2, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 2, 0, 0, 1],
+        "fitted": [0.0275, 0.0604999999999999, 0.258, 0.0595000000000001, 0.0590000000000001, 0.0435, 0.0455000000000001, 0.0629999999999999, 0.048, 0.0529999999999999, 0.0555000000000001, 0.253, 0.0629999999999999, 0.0335, 0.042, 0.0035, 0.0375, 0.0795000000000001, 0.223000000000001, 0.192, 0.237, 0.036, 0.274, 1.951, 0.037, 0.0274999999999999, 0.053, 0.0445, 0.0435, 0.0650000000000002, 0.0245, 0.0495, 0.0535, 0.0635, 0.0555000000000001, 0.0365, 0.243, 0.0694999999999998, 0.0625, 0.211, 0.197, 0.191, 0.207, 0.201, 0.18, 0.187, 0.0329999999999999, 0.0730000000000001, 0.0265, 0.0610000000000001, 0.0590000000000001, 0.174, 0.0455, 0.0470000000000001, 0.0675000000000002, 0.0175, 0.0664999999999999, 0.0535000000000001, 1.95, 0.0295, 0.0505, 1.962, 0.046, 0.0569999999999999, 0.0355, 0.001, 0.0745000000000002, 0.0555, 0.217, 0.193, 0.0655000000000001, 0.0570000000000001, 0.055, 0.039, 0.0615, 0.0075, 0.214, 0.0469999999999999, 0.0715, 0.23, 0.06, 0.026, 0.0190000000000001, 0.0524999999999999, 0.0915, 0.32, 0.0305, 0.026, 0.224, 0.048, 0.059, 0.0405, 0.0530000000000001, 0.0385, 0.178, 0.094, 0.0715, 0.195, 0.0325, 0.236, 0.205, 0.00500000000000001, 0.229, 0.0770000000000001, 0.062, 0.0545, 0.055, 0.062, 1.939, 0.032, 0.0420000000000001, 0.0335000000000001, 0.032, 0.0265, 0.053, 0.194, 0.0645, 0.0844999999999999, 0.023, 0.0695, 0.0225, 0.0425, 0.0460000000000001, 0.00600000000000001, 0.0280000000000001, 0.0499999999999999, 1.973, 0.0285, 0.027, 0.0774999999999999, 0.048, 0.202000000000001, 0.0495, 1.954, 0.115, 0.057, 0.051, 0.223, 0.002, 0.0545, 0.21, 1.92, 0.149, 0.0549999999999999, 0.203, 0.18, 0.034, 0.186, 0.0670000000000002, 0.0845000000000001, 0.022, 0.05, 0.053, 0.058, 0.0765000000000001, 0.0684999999999999, 0.007, 0.001, 0.22, 0.0504999999999999, 1.956, 0.026, 0.279, 0.242, 0.0055, 0.0619999999999998, 0.256, 0.0225, 0.236, 0.0335, 0.0524999999999999, 0.0410000000000001, 0.0519999999999999, 0.071, 0.0449999999999999, 0.158, 0.0465000000000001, 0.0345, 0.0619999999999999, 0.003, 0.213, 0.0585000000000001, 0.185, 0.0615000000000001, 0.24, 0.0559999999999999, 0.189, 0.078, 0.058, 0.0535, 0.0575, 0.179, 0.162, 0.033, 0.0505, 0.025, 0.179, 0.085, 0.229, 0.025, 0.00649999999999999, 0.0605000000000002, 0.00650000000000001, 0.0564999999999999, 0.193, 0.00649999999999999, 0.022, 0.173, 0.0740000000000001, 0.0425000000000001, 0.0359999999999999, 0.0285, 0.028, 0.0435, 0.0315, 0.193, 0.0275, 0.0725000000000001, 0.0615, 0.0640000000000001, 0.213, 1.944, 0.043, 0.0395000000000001, 0.067],
+        "var": [0.0307591295647824, 0.0848821910955479, 0.449660830415207, 0.0669932466233118, 0.0695537768884442, 0.0486320660330166, 0.0494544772386193, 0.0790705352676338, 0.0527223611805904, 0.0612216108054027, 0.0644519759879939, 0.442212106053027, 0.0700660330165084, 0.036395947973987, 0.0512616308154078, 0.00348949474737369, 0.0471173086543272, 0.102230865432716, 0.396469234617309, 0.347309654827414, 0.418040020010005, 0.0397238619309655, 0.473160580290146, 0.0956468234117058, 0.0446533266633316, 0.0347611305652827, 0.0622221110555277, 0.0515455227613807, 0.0456305652826413, 0.0788144072036018, 0.0249122061030515, 0.053076288144072, 0.0676715857928964, 0.0755055027513757, 0.0704549774887443, 0.039187343671836, 0.427164582291146, 0.0867131065532767, 0.085636568284142, 0.377667833916958, 0.355368684342171, 0.345691845922962, 0.371336668334168, 0.361779889944972, 0.32776388194097, 0.33920060030015, 0.033927963981991, 0.10472336168084, 0.0298126563281641, 0.0773176588294149, 0.0785582791395699, 0.317882941470736, 0.0534564782391196, 0.0508164082041021, 0.0799837418709353, 0.0172023511755878, 0.0741148074037019, 0.0626690845422711, 0.0975487743871937, 0.0306450725362682, 0.0609802401200599, 0.0745932966483241, 0.0599139569784892, 0.0667843921960982, 0.0412603801900951, 0.000999499749874938, 0.0899947473736868, 0.0644519759879941, 0.387104552276138, 0.348925462731365, 0.0792493746873437, 0.0727873936968483, 0.0570035017508754, 0.0425002501250627, 0.0777566283141572, 0.00744747373686843, 0.382395197598799, 0.0538179089544772, 0.0904329664832416, 0.407303651825913, 0.0664332166083041, 0.0253366683341671, 0.0186483241620811, 0.0537706353176588, 0.126190845422711, 0.537868934467234, 0.0295845422711355, 0.0263371685842922, 0.398023011505753, 0.0467193596798399, 0.0675527763881942, 0.0398796898449225, 0.0532176088044022, 0.0480417708854427, 0.324478239119559, 0.126227113556778, 0.0914334667333667, 0.352151075537768, 0.0384629814907453, 0.416512256128064, 0.36815907953977, 0.00497748874437218, 0.40576188094047, 0.10312256128064, 0.0751935967983994, 0.0715655327663832, 0.0610055027513758, 0.0741930965482742, 0.118338169084542, 0.0329924962481241, 0.0422571285642821, 0.0353954477238618, 0.0359939969984993, 0.028812156078039, 0.0752286143071536, 0.350539269634818, 0.080379939969985, 0.108413956978489, 0.0254837418709355, 0.0867131065532766, 0.0260067533766884, 0.0447161080540269, 0.0459069534767384, 0.00596698349174587, 0.0282301150575288, 0.0575287643821911, 0.0532976488244123, 0.0337046023011506, 0.0272846423211606, 0.0915395197598799, 0.0537228614307153, 0.363377688844422, 0.0550772886443221, 0.0899289644822412, 0.216883441720861, 0.0787903951975989, 0.0634307153576789, 0.396469234617308, 0.00199699849924963, 0.0565580290145073, 0.376088044022012, 0.15367683841921, 0.275936968484242, 0.0890195097548773, 0.364973486743372, 0.32776388194097, 0.0378629314657329, 0.337572786393197, 0.0815517758879439, 0.113416458229115, 0.023527763881941, 0.0575287643821911, 0.0612216108054027, 0.0636678339169585, 0.1117036018009, 0.0768461730865432, 0.0069544772386193, 0.000999499749874938, 0.391795897948974, 0.0719857428714356, 0.0861070535267635, 0.0273376688344172, 0.480399199599799, 0.425648824412206, 0.00547248624312156, 0.0912016008004003, 0.446687343671836, 0.0240057528764382, 0.416512256128064, 0.0353954477238619, 0.0647761380690345, 0.0443411705852927, 0.0643281640820411, 0.0870025012506252, 0.0520010005002503, 0.291181590795398, 0.0563659329664832, 0.0353274137068534, 0.0691905952976488, 0.00299249624812407, 0.380821410705352, 0.0701128064032017, 0.335942971485743, 0.0707531265632817, 0.422611305652827, 0.0708994497248624, 0.342450225112556, 0.108970485242621, 0.0726723361680841, 0.0636695847923962, 0.0772323661830916, 0.326122061030515, 0.297904952476238, 0.0329274637318659, 0.0559777388694347, 0.0273886943471736, 0.326122061030515, 0.114832416208104, 0.40576188094047, 0.0253876938469235, 0.00646098049024512, 0.0688741870935469, 0.00646098049024511, 0.0693424212106053, 0.348925462731366, 0.00646098049024511, 0.023527763881941, 0.316229114557279, 0.0945712856428215, 0.0457166083041521, 0.0397238619309655, 0.0317036018009004, 0.0312316158079039, 0.0476315657828915, 0.0345250125062531, 0.348925462731365, 0.0387631315657828, 0.0882878939469733, 0.0787571285642823, 0.0779429714857429, 0.380821410705353, 0.108918459229615, 0.0471745872936469, 0.0429612306153076, 0.0845532766383193],
+        "var.obs": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "pearson": [-0.156799860909946, -0.207657243050892, -0.384748713974078, 11.3607151605714, -0.223713221984153, -0.197254943883086, -0.204601394268886, 10.4447153138984, -0.209046938361067, -0.214201986193366, -0.218612436600358, -0.380456674344444, -0.238005385789193, -0.17559748412587, -0.185503915616444, -0.0592497837892829, -0.172759138610544, -0.248642927214373, -0.354160495714609, -0.325793788953003, -0.366555226365928, 19.888769472199, -0.398332997991038, 0.158438530072005, -0.175095431333075, -0.147497869525837, -0.212472877123289, -0.196003820520583, -0.203639176669024, -0.231531747660117, -0.1552244001559, -0.214859681373536, -0.205660366384213, 3.40814826678054, -0.209091868152827, -0.184382607176376, 2.68827778485774, -0.236016535965673, -0.213574987493737, -0.343342414238784, -0.330465897443695, -0.324854434382334, -0.339692866757016, -0.334174915005284, -0.314406819823693, -0.321080034114041, -0.179157519427515, -0.22558024950929, -0.153477790046814, -0.219376694018631, -0.210501905221875, -0.308614009388426, -0.196793715260717, -0.208495110872893, -0.238672792214391, -0.133427129858167, -0.244269449194216, -0.213711113286996, 0.160088116761378, -0.168516212347591, -0.204501648413784, 0.139134136174907, -0.187929011790926, -0.220565390302694, -0.174767929188048, -0.0316306892194986, -0.248340580329445, -0.218612436600357, -0.348775198503877, -0.326731478084748, -0.232671600849609, -0.211274348543718, -0.230362573595917, -0.189177230847197, -0.220549666578333, -0.0869074031682043, -0.346064904682748, -0.202597670802525, -0.237762113804592, -0.360386641086274, -0.232786939144241, -0.163342273009624, -0.139134136174893, -0.22640536792845, -0.257577052448068, -0.436326657884838, -0.17732395623948, -0.160209699612323, -0.355053605900663, -0.222071484862963, -0.227002379771242, -0.202805223781386, -0.229746122940487, -0.175651242278988, -0.312483589031218, -0.264576658969595, -0.236457693255381, -0.328601923878622, -0.16571502550984, -0.365677391492181, -0.337859475329075, -0.0708703962549008, 2.7802441694789, -0.239780510005769, -0.226100363131759, -0.203725103878298, -0.222678447221343, -0.227619749385146, 0.177323956239477, -0.176174233373128, -0.204314551674958, -0.178061940495423, -0.168668871899315, -0.156119802993077, -0.193234353486979, -0.327667517790274, -0.227502344127778, -0.256633951479741, -0.144077524292181, -0.236016535965674, -0.139520957635834, -0.200981892611947, -0.214693351351729, -0.0776736711838127, -0.166648614465129, -0.208462278935855, 0.116952561633259, -0.155238792679641, -0.163457416964542, -0.256151785621604, -0.207091211702098, -0.335098312072997, -0.210920563360996, 0.153393880914952, -0.246936132594851, -0.203066468561619, 7.7385935040936, -0.354160495714609, -0.0447549551672667, -0.2291655697959, -0.34243214880661, 0.204073107815154, -0.283649043923746, -0.18434021529801, 2.97452359889682, -0.314406819823694, -0.174731739063904, -0.320132104760435, -0.234616251283649, 11.6265051361618, -0.143427475475277, -0.208462278935856, 3.82734492311543, -0.229862410233695, -0.22889054157438, 6.96760609116837, -0.0839393873292897, 31.599058530279, -0.351473623285118, -0.188221024385396, 0.149945457022881, 11.9389575829987, -0.402534460469156, -0.370928024750001, -0.0743481814604474, -0.205300713568643, -0.383034719484116, 6.30897927229059, -0.365677391492181, -0.178061940495422, -0.206277461115796, -0.19470642360798, -0.205023085521157, -0.240709083616315, -0.197336155940969, -0.292802735490921, -0.195859482635833, -0.183553712553016, -0.235704652988306, 18.2254538123654, 2.89576872795836, -0.220931270786593, 3.13143823273036, -0.231207702296954, -0.369182142777051, -0.210313230684921, -0.322970663832337, -0.236287180600609, -0.215151031621607, -0.21202534237049, -0.206903660594068, -0.313446151421176, -0.296808376207882, -0.181859000489578, -0.213443877661159, -0.15106169171301, -0.313446151421175, -0.250834156177876, -0.359500798876718, -0.156901964936661, -0.080865661182794, -0.230529830867558, 12.3600052900163, -0.214560092113161, -0.326731478084748, -0.080865661182794, -0.143427475475277, -0.307641681974716, -0.240631275552417, -0.198770499304576, -0.180624546165278, -0.160062854515104, -0.158438530072009, -0.199315846233701, -0.169528856057183, -0.326731478084748, -0.139676474984657, -0.243998652550274, -0.219144299962612, 10.5164115110638, -0.345158779549598, 0.16968258917744, -0.197976845865373, -0.190571845214171, 3.20860623174196]
+      },
+      "degree2": {
+        "observed": [0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 3, 3, 3, 0, 3, "NA", 0, 0, 0, 0, 0, 2, 1, 0, 0, 2, 0, 0, 1, 0, 2, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 3, 0, 0, 2, 0, 0, 0, "NA", 0, 0, "NA", 0, 2, 0, 0, 2, 0, 3, 3, 0, 0, 0, 0, 3, 0, 3, 0, 0, 3, 0, 0, 0, 0, 0, 3, 2, 0, 3, 0, 0, 0, 0, 0, 3, 0, 2, 3, 0, 3, 3, 0, 1, 0, 3, 0, 0, 0, "NA", 0, 0, 0, 1, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 3, 0, "NA", 3, 2, 1, 3, 0, 0, 3, "NA", 3, 0, 1, 3, 0, 3, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 3, 0, "NA", 2, 3, 3, 0, 0, 3, 2, 3, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 3, 0, 3, 2, 2, 0, 0, 3, 3, 0, 0, 0, 3, 2, 3, 0, 0, 0, 1, 0, 3, 0, 1, 3, 2, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, "NA", 2, 0, 2],
+        "fitted": [0.317, 0.744000000000001, 2.7345, 0.755499999999998, 0.763, 0.659500000000002, 0.702000000000001, 0.8655, 0.7475, 0.769000000000002, 0.785000000000002, 2.74550000000001, 0.820000000000001, 0.337, 0.739500000000001, 0.1045, 0.714499999999999, 0.85, 2.775, 2.8055, 2.7545, 0.341, 2.7115, "NA", 0.715500000000001, 0.638, 0.760500000000001, 0.716, 0.655, 0.832000000000001, 0.322000000000001, 0.7855, 0.781000000000001, 0.8065, 0.7275, 0.3605, 2.754, 0.791, 0.786, 2.7825, 2.802, 2.80549999999999, 2.789, 2.7975, 2.8175, 2.813, 0.378000000000001, 0.789, 0.2745, 0.762, 0.775, 2.82300000000001, 0.665999999999998, 0.3715, 0.751500000000002, 0.285, 0.778500000000001, 0.787499999999999, "NA", 0.3165, 0.6715, "NA", 0.678500000000001, 0.823, 0.378, 0.0165, 0.840999999999998, 0.754500000000002, 2.7775, 2.806, 0.796499999999999, 0.748999999999999, 0.774500000000001, 0.4155, 0.737499999999999, 0.102, 2.7815, 0.779, 0.8295, 2.762, 0.7155, 0.305, 0.2885, 0.768500000000001, 0.951999999999999, 2.667, 0.633, 0.3235, 2.769, 0.751499999999998, 0.707999999999999, 0.733000000000001, 0.776499999999999, 0.658000000000001, 2.81899999999999, 0.793000000000002, 0.759999999999999, 2.8025, 0.660000000000001, 2.7555, 2.791, 0.0730000000000001, 2.764, 0.841000000000001, 0.734, 0.679999999999999, 0.775000000000001, 0.769, "NA", 0.3415, 0.3805, 0.387, 0.3185, 0.313000000000001, 0.6905, 2.8025, 0.7615, 0.868, 0.277999999999999, 0.752, 0.289000000000001, 0.691000000000001, 0.798, 0.0820000000000001, 0.336, 0.7155, "NA", 0.378999999999999, 0.3385, 0.760500000000001, 0.772, 2.7935, 0.7585, "NA", 2.8835, 0.783, 0.756999999999999, 2.7725, 0.0830000000000001, 0.675499999999999, 2.78599999999999, "NA", 2.848, 0.748499999999999, 2.794, 2.8185, 0.742, 2.8125, 0.7815, 0.819, 0.301000000000001, 0.788, 0.743, 0.7295, 0.793, 0.771, 0.0995, 0.0715000000000001, 2.7775, 0.7055, "NA", 0.301000000000001, 2.72, 2.7575, 0.098, 0.740500000000001, 2.732, 0.31, 2.757, 0.4035, 0.752999999999999, 0.651, 0.7825, 0.799000000000001, 0.703000000000001, 2.841, 0.712500000000001, 0.378999999999999, 0.759, 0.0545, 2.787, 0.676999999999998, 2.8115, 0.764499999999999, 2.7555, 0.718500000000001, 2.81, 0.748999999999998, 0.753500000000001, 0.830999999999999, 0.7415, 2.8135, 2.835, 0.3375, 0.728000000000001, 0.297500000000001, 2.821, 0.7715, 2.7685, 0.392, 0.1165, 0.713, 0.066, 0.692500000000001, 2.8055, 0.0685000000000002, 0.2755, 2.827, 0.7215, 0.717500000000001, 0.661500000000001, 0.335500000000001, 0.3865, 0.6715, 0.3265, 2.806, 0.2985, 0.7575, 0.712999999999998, 0.811499999999999, 2.7825, "NA", 0.664, 0.3985, 0.799],
+        "var": [0.397709854927464, 1.08300550275137, 0.483251375687844, 0.994216858429213, 1.0323471735868, 0.961040270135067, 0.98368784392196, 1.19400675337669, 1.01625187593797, 1.00013906953477, 1.06330665332666, 0.448954227113557, 1.05412706353177, 0.404633316658329, 1.03015482741371, 0.121640570285142, 1.0164979989995, 1.03901950975488, 0.405577788894447, 0.358849174587294, 0.456457978989494, 0.456947473736868, 0.528532016008004, "NA", 0.98905427713857, 0.969440720360179, 1.04066008004002, 1.00384592296148, 0.952451225612806, 1.09232216108054, 0.40751975987994, 1.08103026513257, 1.08858329164582, 1.05158354177088, 1.03776263131566, 0.463771635817909, 0.440704352176088, 1.06285042521261, 1.04372586293147, 0.407397448724362, 0.359975987993997, 0.36185067533767, 0.389673836918459, 0.368678089044523, 0.339363431715858, 0.33920060030015, 0.526379189594797, 1.09802801400701, 0.340319909954978, 1.06088644322161, 1.05290145072536, 0.33183691845923, 0.956922461230614, 0.459717608804402, 1.03926738369185, 0.381965982991495, 1.04896223111556, 1.08088419209605, "NA", 0.379517508754378, 0.922048774387194, "NA", 1.03765657828914, 1.11622911455728, 0.461346673336668, 0.016235867933967, 1.11027413706854, 1.08577263631816, 0.412199849924963, 0.353540770385191, 1.05661605802901, 1.06553176588294, 1.06918434217109, 0.533126313156577, 1.03210980490245, 0.115653826913457, 0.399957728864432, 1.09670735367684, 1.08397173586793, 0.443577788894447, 1.00506228114057, 0.366158079039519, 0.370452976488244, 1.05243396698349, 1.11725462731366, 0.591406703351676, 0.957789894947474, 0.424059779889945, 0.429853926963482, 1.05927738869435, 1.0112416208104, 1.04823511755878, 1.07608579289645, 0.947509754877437, 0.338408204102051, 1.05767983991996, 1.02391195597799, 0.363675587793897, 0.97288644322161, 0.454947223611806, 0.386512256128064, 0.0837128564282142, 0.437522761380691, 1.11627713856929, 1.02475637818909, 0.947073536768383, 1.04589794897449, 1.11619709854927, "NA", 0.421088294147074, 0.479959729864933, 0.466464232116059, 0.432273886943472, 0.433247623811906, 0.969194347173587, 0.366677088544273, 1.07115332666333, 1.10612906453227, 0.345888944472236, 1.03401300650325, 0.410684342171086, 1.01302551275638, 1.07973586793397, 0.0983251625812906, 0.427317658829415, 1.00106028014007, "NA", 0.486602301150575, 0.43113331665833, 1.00464207103552, 1.08055627813907, 0.384049774887443, 1.10072811405703, "NA", 0.224039769884943, 1.14948574287144, 1.05347773886943, 0.416952226113057, 0.0951585792896447, 1.00070010005003, 0.3944012006003, "NA", 0.290041020510255, 1.02275912956478, 0.378753376688344, 0.334725112556278, 1.06897048524262, 0.344516008004002, 1.07629589794897, 1.09978889444723, 0.383590795397698, 1.07459329664832, 1.07648924462231, 1.03084517258629, 1.13271735867934, 1.05908854427214, 0.121660580290145, 0.0864309654827416, 0.403195347673837, 1.07630790395198, "NA", 0.397597798899449, 0.484842421210604, 0.427907703851926, 0.117454727363682, 1.03767858929465, 0.491421710855427, 0.406103051525764, 0.448175087543772, 0.496936218109055, 1.01149674837419, 0.960679339669832, 1.06872811405703, 1.05612706353177, 1.00829514757379, 0.295866933466734, 1.02035392696348, 0.48159979989995, 1.06645222611306, 0.0615605302651324, 0.380821410705353, 1.0171795897949, 0.352143821910956, 1.02155052526263, 0.442941220610305, 1.00375962981491, 0.347073536768384, 1.02951375687844, 1.06727138569285, 1.07197498749375, 1.06120835417709, 0.36089819909955, 0.311930965482741, 0.396792146073036, 1.02252726363182, 0.393190345172586, 0.326122061030515, 1.11684617308655, 0.417116308154077, 0.51959579789895, 0.141998749374687, 1.00313256628314, 0.070679339669835, 0.973430465232617, 0.355847673836918, 0.0898526763381691, 0.346773136568285, 0.316229114557279, 1.03245397698849, 1.00219484742371, 0.950392946473234, 0.427153326663331, 0.534384942471235, 0.957066283141571, 0.440117808904452, 0.353540770385192, 0.429612556278138, 1.08223486743372, 1.00413306653327, 1.07350450225112, 0.401394447223612, "NA", 0.971589794897449, 0.499947723861931, 1.03211505752876],
+        "var.obs": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0],
+        "pearson": [-0.502662035928624, -0.7149202587974, 0.381924902039421, -0.757694102933912, -0.750951088977672, -0.672734974829217, -0.70779658001565, -0.792070211755727, -0.741498909830488, -0.768946533340506, 1.17827594714347, 0.379827805364724, -0.798669998269095, -0.529784296956862, -0.728596242739872, -0.299624323624574, -0.708678029769921, -0.833886752522631, 0.353301463546798, 0.324686050078639, 0.36337169517418, -0.504453615070749, 0.396835181365284, "NA", -0.719448274621327, -0.647977684787827, -0.745495061385131, -0.714627118310979, -0.671150514571345, 1.11755130598452, 1.06207542021019, -0.755487464981406, -0.748548943597001, 1.16385943912121, -0.714141026678775, -0.529362505502903, -2.64214056776223, -0.767256202907719, 1.18829826809353, 0.340761176348674, 0.330011006053331, 0.323336633255113, 0.338011776352496, 0.33350424306212, 0.31327832446726, 0.321080034114047, -0.521005663542911, -0.752957204334095, -0.470542298902694, -0.739810552116008, -0.755279749300252, 0.307263459145056, -0.680825564561391, -0.547915073796382, 1.22468640787921, -0.46113970385174, -0.760113929452079, -0.757462225954686, "NA", -0.51375706369572, -0.699308922668562, "NA", -0.66607484159272, 1.11403744822712, -0.556516574348989, -0.129492969229287, 1.09993829939887, -0.724085412014234, 0.34655813727901, 0.326273632394345, -0.774867020065178, -0.725602243630173, -0.749022954182539, -0.56905726076687, 2.22702778771604, -0.299930179771001, 0.345497090548661, -0.743861497219244, -0.796723103732091, 0.357348580410499, -0.713695816004508, -0.504040610416706, -0.474001016699598, -0.749111464558148, -0.900659983454966, 0.433013176578151, 1.39679730744753, -0.496776156662463, 0.352331546899116, -0.730170249726834, -0.704053707282535, -0.715936694186175, -0.748545167994192, -0.675980314239878, 0.311141637683066, -0.77107402621246, 1.2254352762106, 0.327499035447465, -0.669133633144028, 0.362491939550699, 0.33617440991522, -0.252305535900181, -2.66684794972233, -0.795994341684352, 2.23846130035111, -0.698742343094031, -0.75780426785692, -0.727873478280023, "NA", -0.526264559039868, -0.549227483075837, -0.566632905046335, 1.03654070031733, -0.475528162815188, -0.701387863363362, 0.326155880237988, -0.735773407182084, -0.825309460037364, -0.472690044324936, -0.73952837100603, -0.450965968982192, -0.686543177684784, -0.767969773692019, -0.261505914500641, -0.514000873714594, -0.715120986148918, "NA", -0.54331554475644, -0.515528738664497, -0.758740974266974, -0.742666107590579, 0.333216346677966, -0.7229621412983, "NA", 0.246129328250781, 1.13511217980409, 0.236751964932669, 0.352320774952646, -0.269063085172427, -0.675263665294321, 0.340756900432916, "NA", 0.282236953521425, -0.740125082057942, -2.91503774150407, 0.313712974986647, -0.717663812859842, 0.319445348678398, -0.753291626375558, -0.780960802897931, -0.485995677844104, -0.760158496231121, 1.21151955979902, -0.718502982933991, -0.745096304312219, -0.749183567097076, -0.28526476936886, -0.243204361807503, 0.350406585109278, -0.680031066289127, "NA", 2.69445784323227, 0.402121899784656, 0.37071203910478, -0.285950476864294, -0.726931745094112, 0.382302928018822, 2.65196982481178, 0.36297976706346, -0.572391549996212, -0.748708443198625, -0.664189129069679, -0.756921304466856, -0.77747904668302, -0.700102271034334, 0.29231352430903, -0.705357759920893, -0.546130034230595, -0.734972472361273, -0.219657140800268, -2.89576872795836, -0.671258580274234, -4.73781448223141, -0.756393109713017, 0.367371798514358, -0.717153149545727, 0.322509751227431, 1.23293798445196, 1.20657646509234, -0.802617635013503, -0.719798314312665, 0.310446293236392, 0.295430071439759, -0.5357870882688, -0.719936066872952, -0.474444643166494, 0.31344615142118, 1.1624612386717, 0.358444903968969, -0.54381759128654, -0.309160261267261, -0.711885857032832, 3.51318188331412, -0.701887180955862, 0.326052504174214, -0.228520445875485, 1.2303131515719, 0.307641681974722, 1.25824548769411, -0.71671389229018, -0.678544361984273, -0.513334706685198, -0.528715925540931, -0.686396418417308, -0.492151388278416, 0.32627363239434, -0.45541344970558, -0.728151714130066, -0.711531113470197, -0.783225085967281, 0.343299824293852, "NA", 1.35539221196007, -0.56359356787098, 1.18216732248185]
+      },
+      "isolates": {
+        "observed": [-5, "NA", -3, -4, "NA", -4, "NA", -4, -4, -4, -4, -3, -4, -4, -4, "NA", -4, -4, -3, -3, -3, -5, -3, -2, -4, "NA", -4, "NA", -4, -4, -5, -4, "NA", -4, -4, "NA", -3, -4, -4, -3, -3, -3, -3, -3, -3, "NA", -5, -4, -5, -4, -4, -3, "NA", "NA", -4, "NA", -4, -4, -2, -5, -4, -2, -4, -4, "NA", "NA", -4, -4, -3, -3, -4, "NA", -4, -5, -3, "NA", -3, -4, -4, -3, -4, -5, -5, -4, -4, -3, "NA", "NA", -3, -4, "NA", -4, -4, "NA", -3, "NA", -4, -3, -4, -3, -3, "NA", -3, -4, -3, -4, "NA", -4, -2, "NA", -5, -5, -5, "NA", -4, -3, -4, -4, -4, -4, "NA", "NA", "NA", -6, "NA", -4, -2, -5, -4, -4, "NA", -3, -4, -2, -3, -4, -3, -3, -6, -4, -3, -2, -3, -4, -3, -3, -4, -3, -4, -4, -5, -4, -4, -4, -4, -2, "NA", "NA", -3, -4, -2, "NA", -3, -3, "NA", -4, -3, "NA", -3, -5, "NA", -4, -4, "NA", "NA", -3, -4, -5, -4, "NA", "NA", -4, -2, -4, -3, -4, -3, -4, -4, "NA", -4, -3, -3, -5, "NA", -5, "NA", -4, -3, "NA", -6, -4, "NA", -4, -3, "NA", -5, "NA", -4, -4, -4, -5, -5, -4, "NA", -3, -5, -4, -4, -4, -3, -2, "NA", -5, -4],
+        "fitted": [-4.99800000000001, "NA", -2.9925, -3.9995, "NA", -3.9985, "NA", -3.9955, -3.9955, -3.999, -3.999, -2.9985, -3.998, -4.9995, -3.9995, "NA", -3.9995, -3.995, -2.998, -2.9975, -2.9915, -4.999, -2.98549999999999, -1.951, -3.9995, "NA", -3.9995, "NA", -3.999, -3.996, -4.999, -3.9985, "NA", -3.9985, -3.9975, "NA", -2.997, -3.996, -3.999, -2.9935, -2.999, -2.9965, -2.996, -2.9985, -2.99749999999999, "NA", -4.99899999999999, -3.998, -4.99900000000001, -3.997, -3.999, -2.997, "NA", "NA", -3.9985, "NA", -3.9995, -3.9995, -1.95, -4.99850000000001, -3.9995, -1.962, -3.9985, -3.999, "NA", "NA", -3.997, -3.9955, -2.9945, -2.999, -3.9995, "NA", -3.9975, -4.99850000000001, -3.9985, "NA", -2.9955, -3.995, -3.9985, -2.992, -3.9995, -4.9985, -4.998, -3.9995, -3.999, -2.987, "NA", "NA", -2.993, -3.9985, "NA", -3.999, -3.9995, "NA", -2.997, "NA", -3.997, -2.9975, -3.998, -2.9915, -2.996, "NA", -2.993, -3.997, -3.999, -3.99700000000001, "NA", -3.999, -1.939, "NA", -4.9995, -4.9995, -4.99800000000001, "NA", -3.9985, -2.9965, -3.9965, -3.997, -4.9995, -3.999, "NA", "NA", "NA", -5.9995, "NA", -3.9995, -1.973, -4.997, -4.9995, -3.9995, "NA", -2.9955, -3.9985, -1.954, -2.9985, -3.997, -3.998, -2.9955, -5.9995, -3.9975, -2.996, -1.92, -2.997, -3.9995, -2.997, -2.9985, -3.999, -2.9985, -3.9975, -3.996, -4.99900000000001, -3.999, -3.996, -3.9995, -3.99900000000001, -3.999, "NA", "NA", -2.99749999999999, -3.9985, -1.956, "NA", -2.999, -2.9995, "NA", -3.9985, -2.988, "NA", -2.99300000000001, -4.99899999999999, "NA", -3.998, -3.9955, "NA", "NA", -2.999, -3.9985, -4.999, -3.998, "NA", "NA", -3.999, -2.9965, -3.9985, -2.9955, -3.9985, -2.99900000000001, -3.998, -3.99249999999999, "NA", -3.9995, -2.9925, -2.997, -4.99900000000001, "NA", -4.9995, "NA", -3.9985, -2.9975, "NA", -5.999, -3.997, "NA", -3.99749999999999, -2.9985, "NA", -4.9995, "NA", -3.99749999999999, -3.9995, -3.9985, -4.9985, -4.9995, -3.9985, "NA", -2.999, -4.9985, -3.9985, -3.994, -3.9965, -2.9955, -1.944, "NA", -4.99800000000001, -3.99800000000001],
+        "var": [0.00199699849924962, "NA", 0.0074474737368684, 0.000500000000000002, "NA", 0.00149849924962481, "NA", 0.00448199099549775, 0.00448199099549774, 0.000999499749874933, 0.000999499749874934, 0.00149849924962481, 0.00199699849924962, 0.0005, 0.000500000000000001, "NA", 0.000500000000000001, 0.00497748874437217, 0.00199699849924962, 0.00249499749874938, 0.0084319659829915, 0.000999499749874938, 0.0233014007003501, 0.0956468234117058, 0.000500000000000002, "NA", 0.000499999999999997, "NA", 0.000999499749874934, 0.00398599299649825, 0.000999499749874939, 0.00149849924962481, "NA", 0.00149849924962482, 0.00249499749874938, "NA", 0.00299249624812406, 0.00398599299649826, 0.000999499749874942, 0.00646098049024514, 0.000999499749874935, 0.00348949474737368, 0.00398599299649824, 0.00149849924962481, 0.00249499749874937, "NA", 0.000999499749874945, 0.00199699849924963, 0.000999499749874943, 0.00299249624812407, 0.000999499749874934, 0.00299249624812407, "NA", "NA", 0.00149849924962482, "NA", 0.0005, 0.000500000000000002, 0.0975487743871937, 0.00149849924962482, 0.000499999999999996, 0.0745932966483241, 0.00149849924962482, 0.000999499749874932, "NA", "NA", 0.00299249624812406, 0.00448199099549775, 0.00547248624312155, 0.000999499749874934, 0.0005, "NA", 0.00249499749874938, 0.00149849924962481, 0.00149849924962482, "NA", 0.00748349174587293, 0.00497748874437217, 0.00149849924962481, 0.00793996998499247, 0.0005, 0.00149849924962482, 0.00199699849924962, 0.0005, 0.000999499749874936, 0.0158389194597299, "NA", "NA", 0.00695447723861933, 0.0014984992496248, "NA", 0.000999499749874939, 0.0005, "NA", 0.00299249624812406, "NA", 0.00299249624812405, 0.00249499749874937, 0.00199699849924963, 0.0084319659829915, 0.00398599299649825, "NA", 0.0069544772386193, 0.00299249624812407, 0.000999499749874938, 0.00299249624812408, "NA", 0.000999499749874936, 0.118338169084542, "NA", 0.000499999999999998, 0.0005, 0.00199699849924963, "NA", 0.00149849924962481, 0.00348949474737369, 0.00448999499749873, 0.00299249624812406, 0.0005, 0.000999499749874936, "NA", "NA", "NA", 0.000499999999999998, "NA", 0.000500000000000001, 0.0532976488244123, 0.00299249624812405, 0.0005, 0.0005, "NA", 0.00448199099549777, 0.00149849924962481, 0.0899289644822412, 0.00149849924962481, 0.00399299649824913, 0.00199699849924963, 0.00448199099549773, 0.000499999999999994, 0.00249499749874938, 0.00398599299649824, 0.15367683841921, 0.00299249624812406, 0.000500000000000001, 0.00299249624812406, 0.00149849924962481, 0.000999499749874939, 0.00149849924962481, 0.00249499749874937, 0.00398599299649823, 0.000999499749874941, 0.000999499749874935, 0.00398599299649824, 0.000500000000000001, 0.000999499749874932, 0.000999499749874935, "NA", "NA", 0.00249499749874937, 0.00149849924962481, 0.0861070535267635, "NA", 0.000999499749874938, 0.000500000000000001, "NA", 0.00149849924962482, 0.0208664332166082, "NA", 0.00695447723861931, 0.00099949974987494, "NA", 0.00199699849924963, 0.00448199099549775, "NA", "NA", 0.000999499749874931, 0.00149849924962481, 0.00099949974987494, 0.00199699849924963, "NA", "NA", 0.000999499749874933, 0.00348949474737369, 0.00149849924962482, 0.00448199099549774, 0.00149849924962481, 0.000999499749874933, 0.00199699849924963, 0.00844797398699351, "NA", 0.000500000000000001, 0.00744747373686845, 0.00299249624812406, 0.000999499749874938, "NA", 0.0005, "NA", 0.00149849924962481, 0.00249499749874938, "NA", 0.000999499749874936, 0.00299249624812406, "NA", 0.00249499749874938, 0.00149849924962481, "NA", 0.000499999999999999, "NA", 0.00249499749874938, 0.000500000000000001, 0.00149849924962482, 0.00149849924962481, 0.0005, 0.00149849924962482, "NA", 0.000999499749874935, 0.00149849924962481, 0.00149849924962482, 0.00596698349174585, 0.00348949474737368, 0.00448199099549775, 0.108918459229615, "NA", 0.00199699849924962, 0.00199699849924963],
+        "var.obs": [0, "NA", 0, 0, "NA", 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, "NA", 0, 0, 0, 0, "NA", 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, "NA", "NA", 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, "NA", "NA", 0, 0, 0, 0, 0, "NA", 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", "NA", 0, 0, "NA", 0, 0, "NA", 0, "NA", 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, "NA", 0, 0, "NA", 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, "NA", "NA", "NA", 0, "NA", 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "NA", "NA", 0, 0, 0, "NA", 0, 0, "NA", 0, 0, "NA", 0, 0, "NA", 0, 0, "NA", "NA", 0, 0, 0, 0, "NA", "NA", 0, 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, "NA", 0, "NA", 0, 0, "NA", 0, 0, "NA", 0, 0, "NA", 0, "NA", 0, 0, 0, 0, 0, 0, "NA", 0, 0, 0, 0, 0, 0, 0, "NA", 0, 0],
+        "pearson": [-0.0447549551670829, "NA", -0.0869074031682592, -0.0223606797751642, "NA", -0.038749222616589, "NA", -0.0672166747626377, -0.0672166747626445, -0.0316306892193687, -0.0316306892195372, -0.0387492226164971, -0.044754955167222, 44.6989988702207, -0.0223606797751046, "NA", -0.0223606797750848, -0.070870396254874, -0.044754955167222, -0.0500501002130665, -0.0925666406170012, -0.0316306892195091, -0.0949898032460984, -0.158438530072005, -0.0223606797751841, "NA", -0.0223606797750849, "NA", -0.0316306892193827, -0.0633565799652941, -0.0316306892195091, -0.0387492226164742, "NA", -0.0387492226165544, -0.0500501002130576, "NA", -0.0548408840894153, -0.0633565799652871, -0.0316306892193826, -0.0808656611828154, -0.0316306892195232, -0.0592497837892877, -0.0633565799652591, -0.0387492226164742, -0.0500501002130843, "NA", -0.0316306892197056, -0.0447549551672319, -0.0316306892192281, -0.0548408840893665, -0.0316306892193687, -0.0548408840893665, "NA", "NA", -0.0387492226165085, "NA", -0.0223606797749855, -0.0223606797751642, -0.160088116761378, -0.0387492226161873, -0.0223606797750849, -0.139134136174907, -0.0387492226165659, -0.0316306892193687, "NA", "NA", -0.0548408840893422, -0.0672166747625847, -0.0743481814604243, -0.0316306892196075, -0.0223606797751047, "NA", -0.0500501002130576, -0.0387492226162792, 25.7940658550242, "NA", -0.0520188050748756, -0.0708703962549181, -0.0387492226165545, -0.0897801975436096, -0.0223606797751047, -0.0387492226163479, -0.0447549551673612, -0.0223606797750252, -0.0316306892195512, -0.103295303754098, "NA", "NA", -0.0839393873292643, -0.0387492226165431, "NA", -0.0316306892193826, -0.0223606797749259, "NA", -0.0548408840894559, "NA", -0.0548408840894235, -0.0500501002129776, -0.0447549551672319, -0.0925666406170544, -0.063356579965259, "NA", -0.0839393873292805, -0.0548408840893746, 31.5990585302791, -0.054840884089269, "NA", -0.0316306892196215, -0.177323956239477, "NA", -0.0223606797749458, -0.0223606797750252, -0.0447549551671225, "NA", -0.0387492226163939, -0.0592497837892501, -0.0522330175047942, -0.0548408840893909, 44.6989988702207, -0.0316306892194248, "NA", "NA", "NA", -0.0223606797749458, "NA", -0.0223606797750649, -0.116952561633259, -0.0548408840894316, 44.6989988702208, -0.0223606797750054, "NA", -0.0672166747625911, -0.0387492226165085, -0.153393880914952, -0.0387492226164053, -0.0474757451689988, 22.332722628466, -0.067216674762618, -0.022360679774787, -0.0500501002130576, -0.0633565799652942, -0.204073107815154, -0.0548408840893665, -0.0223606797751245, -0.0548408840893747, -0.0387492226165085, -0.0316306892193827, -0.0387492226164742, -0.0500501002130666, -0.0633565799653014, -0.0316306892192843, -0.0316306892196075, -0.0633565799652942, -0.0223606797750848, -0.0316306892193266, 63.2297477497775, "NA", "NA", -0.0500501002130843, -0.0387492226164283, -0.149945457022881, "NA", -0.0316306892193827, -0.0223606797751046, "NA", -0.03874922261652, -0.0830724724152717, "NA", -0.0839393873292272, -0.0316306892196776, "NA", -0.0447549551673611, -0.0672166747626444, "NA", "NA", -0.0316306892196075, -0.0387492226164512, -0.0316306892196214, -0.0447549551672716, "NA", "NA", -0.0316306892193546, 16.8692598702915, -0.0387492226165544, -0.0672166747626511, -0.038749222616543, -0.0316306892193125, -0.0447549551672716, -0.0815990268588998, "NA", -0.0223606797750848, -0.086907403168259, -0.0548408840893585, -0.0316306892192562, "NA", -0.0223606797750252, "NA", -0.0387492226165316, -0.0500501002130665, "NA", -0.0316306892196496, -0.0548408840893341, "NA", -0.0500501002130754, -0.0387492226165086, "NA", -0.0223606797749458, "NA", -0.0500501002130932, -0.0223606797750252, -0.0387492226165429, -0.0387492226164627, -0.0223606797750252, -0.0387492226165544, "NA", -0.0316306892193687, -0.0387492226165316, -0.0387492226165543, -0.0776736711838099, -0.0592497837892952, -0.0672166747626842, -0.16968258917744, "NA", -0.0447549551670034, -0.0447549551671424]
+      }
+    },
+    "network_size": [5, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 5, 4, 6, 4, 4, 3, 3, 3, 5, 3, 2, 4, 4, 4, 4, 4, 4, 5, 4, 4, 4, 4, 5, 3, 4, 4, 3, 3, 3, 3, 3, 3, 3, 5, 4, 5, 4, 4, 3, 4, 5, 4, 5, 4, 4, 2, 5, 4, 2, 4, 4, 5, 7, 4, 4, 3, 3, 4, 4, 4, 5, 4, 6, 3, 4, 4, 3, 4, 5, 5, 4, 4, 3, 4, 5, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3, 4, 3, 3, 6, 3, 4, 4, 4, 4, 4, 2, 5, 5, 5, 5, 5, 4, 3, 4, 4, 5, 4, 5, 4, 4, 6, 5, 4, 2, 5, 5, 4, 4, 3, 4, 2, 3, 4, 4, 3, 6, 4, 3, 2, 3, 4, 3, 3, 4, 3, 4, 4, 5, 4, 4, 4, 4, 4, 6, 6, 3, 4, 2, 5, 3, 3, 6, 4, 3, 5, 3, 5, 4, 4, 4, 4, 4, 3, 4, 5, 4, 6, 3, 4, 3, 4, 3, 4, 3, 4, 4, 4, 4, 3, 3, 5, 4, 5, 3, 4, 3, 5, 6, 4, 6, 4, 3, 6, 5, 3, 4, 4, 4, 5, 5, 4, 5, 3, 5, 4, 4, 4, 3, 2, 4, 5, 4]
   },
   "ergm_differences": {
     "rtp": {
@@ -3216,6 +4786,23 @@
         "ttriple": 1254,
         "triads": 371
       }
+    },
+    "intransitive": {
+      "samplk3": {
+        "ergm_intransitive": 92,
+        "twopath_minus_ttriple": 92,
+        "triads": 70
+      },
+      "faux.dixon.high": {
+        "ergm_intransitive": 6752,
+        "twopath_minus_ttriple": 6752,
+        "triads": 5991
+      }
+    },
+    "dyadcov_lower_to_higher_tie": {
+      "dyadcov.ones.mutual": 0,
+      "dyadcov.ones.utri": 0,
+      "dyadcov.ones.ltri": 1
     }
   }
 }

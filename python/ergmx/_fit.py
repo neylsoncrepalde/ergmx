@@ -36,6 +36,12 @@ class ErgmFit:
         self.control = control
         self._seed = seed
 
+    def save(self, path) -> None:
+        """Save the fit to a file, to reload with :func:`ergmx.load_fit`: its
+        model and network, estimates, MCMC sample and settings, with Python's
+        pickle (so only load files you trust)."""
+        _save(self, path)
+
     # -- Coefficients -------------------------------------------------------------
 
     @property
@@ -183,6 +189,15 @@ class ErgmFit:
             if output != "network":
                 raise ValueError("dynamic simulation returns DynamicSimulation objects; their "
                                  ".stats and .monitor hold the statistics")
+            from ._temporal import _varying, simulate_varying
+
+            if _varying(self._model):
+                # Coefficients that change over time continue the series from its end.
+                if not (isinstance(nw_start, str) and nw_start == "last"):
+                    raise ValueError("a model whose coefficients vary over time (lm=) continues the "
+                                     "series from its last network: use nw_start='last'")
+                return simulate_varying(self._model, self.params, time_slices, nsim=nsim, seed=seed,
+                                        **options)
             return simulate_dynamic(start, self._model.formula, self.params, time_slices, nsim=nsim,
                                     constraints=self._model.constraints, seed=seed, **options)
         from ._simulate import simulate
@@ -375,3 +390,31 @@ class FitSummary:
         return "\n".join(lines)
 
     __repr__ = __str__
+
+
+def _save(fit, path) -> None:
+    import pickle
+
+    from . import __version__
+
+    with open(path, "wb") as f:
+        pickle.dump({"ergmx": __version__, "fit": fit}, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_fit(path):
+    """A fit saved with ``fit.save(path)`` (:meth:`ErgmFit.save`), ready to
+    summarize, simulate, check and compare as before. It is read with
+    Python's pickle, which can run code: only load files you trust."""
+    import pickle
+    import warnings
+
+    from . import __version__
+
+    with open(path, "rb") as f:
+        saved = pickle.load(f)
+    if not isinstance(saved, dict) or "fit" not in saved:
+        raise ValueError(f"{path} is not a fit saved by ergmx")
+    if saved.get("ergmx") != __version__:
+        warnings.warn(f"the fit was saved with ergmx {saved.get('ergmx')}; this is ergmx {__version__}",
+                      stacklevel=2)
+    return saved["fit"]

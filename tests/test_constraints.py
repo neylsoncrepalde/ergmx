@@ -130,6 +130,58 @@ def test_out_and_in_degrees(kind):
     check(model, np.array([0.0, 0.7, 0.3, -0.2]), allowed, weights=(0.0,))
 
 
+def test_edges_constraint_keeps_the_number_of_edges():
+    g = graph(6, [(0, 1), (1, 2), (2, 3), (3, 4), (0, 5)])
+    model = bind(g, "triangle + gwesp(0.5, fixed=TRUE) + kstar(2)", "edges")
+    allowed = lambda e: len(e) == 5  # noqa: E731
+    assert check(model, np.array([0.6, 0.3, -0.2]), allowed, weights=(0.0,)) == 3003
+
+
+@pytest.mark.parametrize("kind", ["b1degrees", "b2degrees"])
+def test_mode_degrees(kind):
+    """Vertices 0, 2 and 4 are the first mode; the modes interleave on purpose."""
+    g = graph(6, [(0, 1), (0, 3), (2, 3), (4, 5), (2, 5)], type=[False, True] * 3)
+    model = bind(g, "b1star(2) + b2star(2) + cycle(4)", kind, bipartite="type")
+    first = np.array([True, False] * 3)
+    kept = first if kind == "b1degrees" else ~first
+    target = degrees(model.network.edges, 6, False)[0][kept]
+
+    def allowed(e):
+        across = all(first[a] != first[b] for a, b in e)
+        return across and np.array_equal(degrees(e, 6, False)[0][kept], target)
+
+    check(model, np.array([0.4, -0.3, 0.5]), allowed, weights=(0.0,))
+
+
+def test_bounds_by_alter_class_undirected():
+    sex = np.array([0, 0, 0, 1, 1, 1])
+    g = graph(6, [(0, 3), (1, 4), (2, 5), (0, 1)], sex=sex.tolist())
+    g["classes"] = np.column_stack([sex == 0, sex == 1])
+    g["most"] = np.array([[1, 1], [1, 2], [2, 1], [1, 1], [2, 1], [1, 2]])
+    model = bind(g, "edges + triangle + nodematch('sex')", "bd(attribs='classes', maxout='most')")
+
+    def allowed(e):
+        adj = np.zeros((6, 6), dtype=int)
+        adj[e[:, 0], e[:, 1]] = adj[e[:, 1], e[:, 0]] = 1
+        return (adj @ g["classes"] <= g["most"]).all()
+
+    check(model, np.array([0.3, 0.5, 0.4]), allowed)
+
+
+def test_bounds_by_alter_class_directed():
+    g = graph(4, [(0, 2), (1, 3), (2, 1)], directed=True)
+    g["classes"] = np.array([[1, 0], [1, 0], [0, 1], [0, 1]], dtype=bool)
+    g["most_in"] = np.array([[1, 1], [2, 1], [1, 2], [1, 1]])
+    model = bind(g, "edges + mutual + ttriple", "bd(attribs='classes', maxin='most_in', minout=matrix(0, 4, 2))")
+
+    def allowed(e):
+        adj = np.zeros((4, 4), dtype=int)
+        adj[e[:, 0], e[:, 1]] = 1
+        return (adj.T @ g["classes"] <= g["most_in"]).all()
+
+    check(model, np.array([0.2, 0.6, 0.3]), allowed)
+
+
 def test_blocks_fix_dyads():
     g = graph(6, [(0, 1), (2, 3), (1, 4), (3, 5)], level=["a", "a", "a", "b", "b", "b"])
     # Fix the a-b dyads: only ties within levels change.
@@ -158,11 +210,13 @@ def test_constraints_parse_like_r():
     assert repr(c) == "bd(maxout=4) + blocks('Grade', levels2=-1)"
     assert c.dyad_dependent
     assert not parse_constraints("blocks('Grade')").dyad_dependent
-    assert parse_constraints("degrees").preserves == frozenset({"in", "out"})
+    assert parse_constraints("degrees").preserves == frozenset({"in", "out", "b1", "b2"})
+    assert parse_constraints("b1degrees").preserves == frozenset({"b1"})
+    assert parse_constraints("edges").preserves == frozenset({"edges"})
     with pytest.raises(ValueError, match="one degree-preserving"):
         parse_constraints("degrees + odegrees")
     with pytest.raises(ergmx.FormulaError, match="unknown constraint"):
-        parse_constraints("edges")
+        parse_constraints("degreedist")
 
 
 def test_observed_network_must_satisfy_the_constraints():

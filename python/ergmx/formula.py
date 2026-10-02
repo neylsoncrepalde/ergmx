@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 import re
 
-from .terms import BLOCK_OPERATORS, TERMS, Formula
+from .terms import BLOCK_OPERATORS, TERMS, Formula, Interaction
 
 # R's constants, so formulas can be pasted from R.
 _R_CONSTANTS = {"TRUE": True, "FALSE": False, "T": True, "F": False, "NA": None, "Inf": float("inf")}
@@ -21,10 +21,12 @@ def parse_formula(formula: str) -> Formula:
     The syntax is R's: terms separated by ``+``, with arguments in
     parentheses. A left-hand side (``"net ~ edges + mutual"``) is ignored;
     ``TRUE``/``FALSE``, ``NA``, ``c(2, 3)`` and ``2:3`` are accepted as in R,
-    and so are the operators ``offset(term)``, ``F(~terms, ~filter)``,
-    ``N(~terms, lm=~attributes)`` and tergm's ``Form()``, ``Persist()``,
-    ``Diss()``, ``Cross()`` and ``Change()``. Nothing is evaluated: arguments
-    must be literals.
+    and so are interactions of dyad-independent terms (``a:b``, and ``a*b``
+    for ``a + b + a:b``), R's argument names with dots (``sign.action=``), and
+    the operators ``offset(term)``, ``F(~terms, ~filter)``, ``N(~terms,
+    lm=~attributes)``, ``S(~terms, ~attributes)`` and tergm's ``Form()``,
+    ``Persist()``, ``Diss()``, ``Cross()`` and ``Change()``. Nothing is
+    evaluated: arguments must be literals.
     """
     text, models = _protect_linear_models(_strip_lhs(formula))
     rhs = _r_syntax(text)
@@ -65,7 +67,10 @@ def _protect_linear_models(text: str) -> tuple[str, list[str]]:
     linear models' R text."""
     models: list[str] = []
     # The operators' arguments in R syntax: the second (or this keyword).
-    keywords = {**dict.fromkeys(BLOCK_OPERATORS, "lm"), "S": "attrs"}
+    keywords = {**dict.fromkeys(BLOCK_OPERATORS, ("lm", "subset", "offset", "weights")), "S": ("attrs",),
+                "mm": ("attrs",)}
+    # The position of the first when it is given without its name.
+    positions = {"mm": 0}
     pattern = re.compile(r"(?<![\w.])(" + "|".join(keywords) + r")\s*\(")
     pos = 0
     while (m := pattern.search(text, pos)) is not None:
@@ -77,15 +82,17 @@ def _protect_linear_models(text: str) -> tuple[str, list[str]]:
         for start, stop in reversed(spans):
             argument = text[start:stop]
             keyword = re.match(r"\s*([A-Za-z_.][\w.]*)\s*=(?!=)", argument)
-            is_lm = keyword is not None and keyword.group(1) == keywords[m.group(1)]
+            name = keyword.group(1) if keyword is not None and keyword.group(1) in keywords[m.group(1)] \
+                else None
             if keyword is None:
                 positional = sum(1 for a, b in spans[:spans.index((start, stop))]
                                  if not re.match(r"\s*[A-Za-z_.][\w.]*\s*=(?!=)", text[a:b]))
-                is_lm = positional == 1
-            if is_lm:
+                if positional == positions.get(m.group(1), 1):
+                    name = keywords[m.group(1)][0]
+            if name is not None:
                 value = argument[keyword.end():] if keyword else argument
                 models.append(value.strip())
-                text = text[:start] + f"{keywords[m.group(1)]}={len(models) - 1}" + text[stop:]
+                text = text[:start] + f"{name}={len(models) - 1}" + text[stop:]
         pos = m.end()
     return text, models
 
@@ -110,11 +117,35 @@ def _strip_lhs(formula: str) -> str:
     return text
 
 
+def _dotted(node: ast.expr) -> str | None:
+    """An R name with dots (mean.age), which Python parses as attributes."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        head = _dotted(node.value)
+        return None if head is None else f"{head}.{node.attr}"
+    return None
+
+
 def _terms(node: ast.expr, formula: str, models: list[str] = ()) -> list:
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
         return _terms(node.left, formula, models) + _terms(node.right, formula, models)
+    if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Pow, ast.Mult)):
+        # R's interactions: a:b (rewritten as a ** b) and a*b, for a + b + a:b.
+        left, right = _terms(node.left, formula, models), _terms(node.right, formula, models)
+        try:
+            interaction = Interaction(left, right)
+        except ValueError as e:
+            raise FormulaError(f"{e}, in {formula!r}") from None
+        return [interaction] if isinstance(node.op, ast.Pow) else [*left, *right, interaction]
     if isinstance(node, ast.Name):
         return [_make(node.id, [], {})]
+    if isinstance(node, ast.Attribute) and _dotted(node):
+        return [_make(_dotted(node), [], {})]
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and _dotted(node.func):
+        args = [_literal(a) for a in node.args]
+        kwargs = {k.arg: _literal(k.value) for k in node.keywords}
+        return [_make(_dotted(node.func), args, kwargs)]
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
         name = node.func.id
         if name == "offset":
@@ -130,6 +161,12 @@ def _terms(node: ast.expr, formula: str, models: list[str] = ()) -> list:
             return [_block_term(node, formula, models)]
         if name == "S":
             return [_subgraph_term(node, formula, models)]
+        if name == "mm":
+            kwargs = {k.arg: _literal(k.value) for k in node.keywords}
+            if "attrs" not in kwargs or node.args:
+                raise FormulaError(f"mm() takes the attributes' formula first, in {formula!r}")
+            kwargs["attrs"] = models[kwargs["attrs"]]
+            return [_make(name, [], kwargs)]
         args = [_literal(a) for a in node.args]
         kwargs = {k.arg: _literal(k.value) for k in node.keywords}
         return [_make(name, args, kwargs)]
@@ -159,8 +196,8 @@ def _block_term(node: ast.Call, formula: str, models: list[str]):
     terms = _terms(_one_sided(args[0], formula), formula, models)
     options = {}
     for key, value in kwargs.items():
-        if key == "lm":
-            options["lm"] = models[_literal(value)]
+        if key in ("lm", "subset", "offset", "weights"):
+            options[key] = models[_literal(value)]
         else:
             options[key] = _literal(value)
     try:
@@ -202,7 +239,10 @@ def _filter_term(node: ast.Call, formula: str, models: list[str] = ()):
 
 def _r_syntax(text: str) -> str:
     """Rewrite R syntax that Python can't parse, outside quoted strings: integer
-    ranges such as 2:4 become lists, and the negation `!` becomes `-`."""
+    ranges such as 2:4 become lists, other `:` (interactions) `**`, the
+    negation `!` becomes `-`, the names degree1.5, idegree1.5 and odegree1.5
+    lose their dot, and so do argument names (sign.action=), and lambda= is
+    lambda_=."""
     parts = re.split(r"('[^']*'|\"[^\"]*\")", text)
     for i in range(0, len(parts), 2):
         parts[i] = re.sub(
@@ -210,7 +250,11 @@ def _r_syntax(text: str) -> str:
             lambda m: str(list(range(int(m[1]), int(m[2]) + 1))),
             parts[i],
         )
+        parts[i] = parts[i].replace(":", "**")
         parts[i] = re.sub(r"!(?!=)", "-", parts[i])
+        parts[i] = re.sub(r"(?<![\w.])([io]?degree)1\.5(?![\w.])", r"\g<1>1_5", parts[i])
+        parts[i] = re.sub(r"(?<![\w.])([A-Za-z]\w*)\.([A-Za-z]\w*)(?=\s*=(?!=))", r"\1_\2", parts[i])
+        parts[i] = re.sub(r"(?<![\w.])lambda(?=\s*=(?!=))", "lambda_", parts[i])
     return "".join(parts)
 
 

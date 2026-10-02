@@ -4,14 +4,14 @@ import igraph as ig
 import networkx as nx
 import numpy as np
 import pytest
-from conftest import DATA, REFERENCE, load, options, without_overflow
+from conftest import formula, DATA, REFERENCE, load, options, without_overflow
 
 import ergmx
 
 
 def test_statistics_match_r(reference):
     _, model, g = reference
-    stats = without_overflow(ergmx.summary_stats(g, model["formula"], **_bipartite(model)))
+    stats = without_overflow(ergmx.summary_stats(g, formula(model), **_bipartite(model)))
     assert list(stats) == list(model["stats"])  # same names, same order
     np.testing.assert_allclose(list(stats.values()), list(model["stats"].values()), rtol=1e-12)
 
@@ -35,14 +35,14 @@ def test_statistics_tracked_by_the_sampler_are_exact(name):
         n1 = sum(not t for t in g.vs["type"])
         dyads = n1 * (g.vcount() - n1)
     density = g.ecount() / dyads
-    formula = model["formula"] if "edges" in model["stats"] else "edges + " + model["formula"]
-    params = ergmx.ergm(g, formula, estimate="MPLE", **bip).names if "gwesp(0.5)" in formula else \
-        list(ergmx.summary_stats(g, formula, **bip))
+    f = formula(model) if "edges" in model["stats"] else "edges + " + formula(model)
+    params = ergmx.ergm(g, f, estimate="MPLE", **bip).names if "gwesp(0.5)" in f else \
+        list(ergmx.summary_stats(g, f, **bip))
     coef = [np.log(density / (1 - density)) if term == "edges" else
             (0.5 if term.endswith(".decay") else 0.0) for term in params]
-    tracked = ergmx.simulate(g, formula, coef, 20, seed=3, interval=4096, output="stats", **bip)
-    networks = ergmx.simulate(g, formula, coef, 20, seed=3, interval=4096, **bip)
-    recomputed = [list(ergmx.summary_stats(h, formula, **bip).values()) for h in networks]
+    tracked = ergmx.simulate(g, f, coef, 20, seed=3, interval=4096, output="stats", **bip)
+    networks = ergmx.simulate(g, f, coef, 20, seed=3, interval=4096, **bip)
+    recomputed = [list(ergmx.summary_stats(h, f, **bip).values()) for h in networks]
     np.testing.assert_allclose(tracked, recomputed, rtol=1e-9, atol=1e-9)
     assert len({h.ecount() for h in networks}) > 1  # the chain moved
 

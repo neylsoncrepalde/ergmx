@@ -52,3 +52,13 @@ dict(zip(fit.names, stats.mean(axis=0).round(2))), fit.observed
 first network and `interval` (1,024) the number between networks. Networks
 closer together are more alike; raise `interval` when consecutive networks
 must be nearly independent.
+
+## Over time
+
+A temporal model simulates a process, each network drawn given the one
+before: {meth}`fit.simulate(time_slices=...) <ergmx.ErgmFit.simulate>` for a
+fit of {func}`ergmx.tergm`, and {func}`ergmx.simulate_dynamic` for any
+coefficients and starting network, with the ties that form and dissolve,
+their durations, and `monitor=` statistics of each network, tie ages
+included: see [](temporal.md#simulating-the-process).
+
