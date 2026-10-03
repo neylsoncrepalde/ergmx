@@ -874,7 +874,16 @@ mod tests {
     #[test]
     fn log_factorials_and_gamma() {
         assert!((ln_factorial(5.0) - 120f64.ln()).abs() < 1e-12);
-        assert!((ln_gamma(60.5) - 186.592_399_092_427_6).abs() < 1e-9);
+        // Python's math.lgamma.
+        for (x, expected) in [
+            (0.5, 0.572_364_942_924_700_4),
+            (3.7, 1.428_072_326_665_388_5),
+            (10.0, 12.801_827_480_081_467),
+            (60.5, 186.578_917_833_337_84),
+            (1234.5, 7_550.550_901_077_895),
+        ] {
+            assert!((ln_gamma(x) - expected).abs() < 1e-10 * expected.abs().max(1.0), "ln_gamma({x})");
+        }
     }
 
     #[test]
@@ -895,10 +904,12 @@ mod tests {
         .unwrap();
         let net = WtNetwork::from_values(4, true, &[(0, 1, 3.0), (1, 0, 2.0), (1, 2, 2.0), (0, 2, 1.0)]).unwrap();
         let s = model.summary(&net);
-        // sum 8; mutual min(3, 2) = 2; 0 -> 2 via 1: min(min(3, 2), 1) = 1; CMP log(3! 2! 2! 1!); two values at least 2... three.
+        // sum 8; mutual: min(3, 2) = 2; transitive weights: 0 -> 2 via 1,
+        // min(min(3, 2), 1) = 1, and 1 -> 2 via 0, min(min(2, 1), 2) = 1; CMP
+        // log(3! 2! 2! 1!); three values at least 2.
         assert_eq!(s[0], 8.0);
         assert_eq!(s[1], 2.0);
-        assert_eq!(s[2], 1.0);
+        assert_eq!(s[2], 2.0);
         assert!((s[3] - (6f64 * 2.0 * 2.0).ln()).abs() < 1e-12);
         assert_eq!(s[4], 3.0);
     }
