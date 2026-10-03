@@ -10,6 +10,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -54,6 +55,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -91,6 +93,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": "mm('Race') + mm(Race~Sex) + mm(Race~.) + attrcov('Sex', matrix(c(1,2,2,3),2)) + smalldiff('Grade', 2) + diff('Grade', sign.action='abs') + nodematch('Race', diff=TRUE, levels=-1) + nodefactor('Race', levels=c('White','Black')) + sociality(nodes=c(1, 3)) + nodecov('Grade'):nodematch('Sex') + nodefactor('Race'):nodecov('Grade') + dyadcov('asym') + hamming + localtriangle('nbhd_mesa') + nodefactordistinct('Race', levels=c('Hisp','White'))",
       "py_constraints": {},
       "bipartite": false,
@@ -152,6 +155,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -197,6 +201,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -285,6 +290,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": "threetrail + hamming('wave2') + localtriangle('nbhd_samplk') + triadcensus(c('021D','300'))",
       "py_constraints": {},
       "bipartite": false,
@@ -307,6 +313,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": true,
@@ -489,6 +496,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": true,
@@ -508,6 +516,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": true,
@@ -527,6 +536,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -608,7 +618,7 @@
       },
       "loglik": -1099.95761997459,
       "nobs": 20910,
-      "seconds": 0.0329999999999999
+      "seconds": 0.032
     },
     "mesa_attrcov_dyadind": {
       "network": "faux.mesa.high",
@@ -620,6 +630,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -656,7 +667,7 @@
       },
       "loglik": -984.910004804767,
       "nobs": 20910,
-      "seconds": 0.0250000000000004
+      "seconds": 0.028
     },
     "dixon_dyadcov_dyadind": {
       "network": "faux.dixon.high",
@@ -668,6 +679,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -731,6 +743,7 @@
       ],
       "constraints": "Dyads(fix=~nodematch('Sex'))",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -762,7 +775,7 @@
       },
       "loglik": -367.004482972522,
       "nobs": 10494,
-      "seconds": 0.0489999999999999
+      "seconds": 0.048
     },
     "mesa_dyads_vary": {
       "network": "faux.mesa.high",
@@ -774,6 +787,7 @@
       ],
       "constraints": "Dyads(vary=~nodematch('Grade'))",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -812,6 +826,7 @@
       ],
       "constraints": "fixedas(present=matrix(c(1, 9, 2, 6, 2, 7), ncol=2, byrow=TRUE), absent=matrix(c(1, 2, 1, 3, 2, 3), ncol=2, byrow=TRUE))",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -838,7 +853,7 @@
       },
       "loglik": -45.0310259367542,
       "nobs": 114,
-      "seconds": 0.02
+      "seconds": 0.0209999999999999
     },
     "flo_fixallbut": {
       "network": "flomarriage",
@@ -850,6 +865,7 @@
       ],
       "constraints": "fixallbut(matrix(c(1, 9, 2, 6, 2, 7, 2, 9, 3, 5, 3, 9, 4, 7, 4, 11, 5, 16, 11, 16, 1, 11, 10, 11, 3, 16, 8, 10, 3, 12, 2, 4, 3, 10, 9, 11, 2, 13, 14, 15, 2, 8, 1, 15, 1, 6, 9, 12, 1, 8, 6, 10, 4, 6, 11, 12, 6, 16, 7, 10, 6, 15, 2, 3, 7, 11, 5, 13, 2, 5, 11, 13, 14, 16, 8, 14, 15, 16, 7, 9, 8, 13, 5, 12, 1, 10, 1, 14, 4, 16, 6, 7, 7, 14, 4, 5), ncol=2, byrow=TRUE))",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -876,7 +892,7 @@
       },
       "loglik": -21.318076865313,
       "nobs": 48,
-      "seconds": 0.0220000000000002
+      "seconds": 0.0209999999999999
     },
     "mesa_blockdiag": {
       "network": "faux.mesa.within",
@@ -888,6 +904,7 @@
       ],
       "constraints": "blockdiag('Grade')",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -930,6 +947,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -942,11 +960,11 @@
       },
       "dyad_independent": false,
       "mle": {
-        "edges": -6.208657950045,
-        "nodematch.Grade": 1.97107941068567,
-        "deg1.Sex.F": -0.103750520631827,
-        "deg1.Sex.M": -0.019151263811599,
-        "gwesp.fixed.0.5": 1.25033671737625
+        "edges": -6.20865795004501,
+        "nodematch.Grade": 1.97107941068559,
+        "deg1.Sex.F": -0.103750520631757,
+        "deg1.Sex.M": -0.0191512638116132,
+        "gwesp.fixed.0.5": 1.25033671737627
       },
       "se": {
         "edges": 0.146874095714431,
@@ -962,9 +980,9 @@
         "deg1.Sex.M": 0,
         "gwesp.fixed.0.5": 0
       },
-      "loglik": -871.39795004373,
+      "loglik": -871.397950043733,
       "nobs": 20910,
-      "seconds": 9.781
+      "seconds": 10.052
     },
     "mesa_edges_constraint": {
       "network": "faux.mesa.high",
@@ -975,6 +993,7 @@
       ],
       "constraints": "edges",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -985,9 +1004,9 @@
       },
       "dyad_independent": false,
       "mle": {
-        "nodematch.Grade": 1.97120608300544,
-        "nodematch.Race": 0.258490768740101,
-        "gwesp.fixed.0.5": 1.25064840160843
+        "nodematch.Grade": 1.97120608300511,
+        "nodematch.Race": 0.258490768740179,
+        "gwesp.fixed.0.5": 1.25064840160832
       },
       "se": {
         "nodematch.Grade": 0.181778281351621,
@@ -999,9 +1018,9 @@
         "nodematch.Race": 0,
         "gwesp.fixed.0.5": 0
       },
-      "loglik": 274.636612227893,
+      "loglik": 274.63661222786,
       "nobs": 20910,
-      "seconds": 9.588
+      "seconds": 9.834
     },
     "bip_b1degrees": {
       "network": "bipartite_sim",
@@ -1012,6 +1031,7 @@
       ],
       "constraints": "b1degrees",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": true,
@@ -1038,7 +1058,7 @@
       },
       "loglik": 0.555600270611094,
       "nobs": 2400,
-      "seconds": 0.178999999999998
+      "seconds": 0.18
     },
     "dixon_bd_attribs": {
       "network": "faux.dixon.high",
@@ -1049,6 +1069,7 @@
       ],
       "constraints": "bd(attribs=sexmat, maxout=maxsex)",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": "bd(attribs='sexmat', maxout='maxsex')",
       "bipartite": false,
@@ -1059,9 +1080,9 @@
       },
       "dyad_independent": false,
       "mle": {
-        "edges": -4.29601452250538,
-        "mutual": 3.52363397823707,
-        "nodematch.race": 1.25323879654605
+        "edges": -4.29601451916205,
+        "mutual": 3.52363396883864,
+        "nodematch.race": 1.25323879719615
       },
       "se": {
         "edges": 0.0691084788721904,
@@ -1073,9 +1094,9 @@
         "mutual": 0,
         "nodematch.race": 0
       },
-      "loglik": 1892.98325402355,
+      "loglik": 1892.98325188563,
       "nobs": 61256,
-      "seconds": 6.532
+      "seconds": 6.796
     },
     "flo_dyadind": {
       "network": "flomarriage",
@@ -1087,6 +1108,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1118,7 +1140,7 @@
       },
       "loglik": -50.7610235284313,
       "nobs": 120,
-      "seconds": 0.0210000000000008
+      "seconds": 0.0219999999999985
     },
     "flo_edgecov": {
       "network": "flomarriage",
@@ -1130,6 +1152,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1168,6 +1191,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1194,7 +1218,7 @@
       },
       "loglik": -54.0320435345241,
       "nobs": 120,
-      "seconds": 0.223999999999997
+      "seconds": 0.228000000000002
     },
     "flo_gwdegree": {
       "network": "flomarriage",
@@ -1206,6 +1230,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1232,7 +1257,7 @@
       },
       "loglik": -54.068740079075,
       "nobs": 120,
-      "seconds": 0.210000000000001
+      "seconds": 0.215
     },
     "samplk_mutual": {
       "network": "samplk3",
@@ -1244,6 +1269,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1270,7 +1296,7 @@
       },
       "loglik": -133.98562510637,
       "nobs": 306,
-      "seconds": 0.295000000000002
+      "seconds": 0.289000000000001
     },
     "mesa_gwesp": {
       "network": "faux.mesa.high",
@@ -1282,6 +1308,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1301,11 +1328,11 @@
       },
       "dyad_independent": false,
       "mle": {
-        "edges": -6.1883660378881,
-        "nodefactor.Sex.M": -0.129328421286251,
-        "nodematch.Grade": 1.97609349926544,
-        "nodematch.Race": 0.269863814829551,
-        "gwesp.fixed.0.5": 1.21775770235748
+        "edges": -6.18836603788804,
+        "nodefactor.Sex.M": -0.129328421286262,
+        "nodematch.Grade": 1.97609349926536,
+        "nodematch.Race": 0.269863814829561,
+        "gwesp.fixed.0.5": 1.21775770235741
       },
       "se": {
         "edges": 0.178474836222633,
@@ -1321,9 +1348,9 @@
         "nodematch.Race": 0,
         "gwesp.fixed.0.5": 0
       },
-      "loglik": -867.557609659408,
+      "loglik": -867.557609659416,
       "nobs": 20910,
-      "seconds": 18.645
+      "seconds": 18.611
     },
     "mesa_gwdegree": {
       "network": "faux.mesa.high",
@@ -1335,6 +1362,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1354,11 +1382,11 @@
       },
       "dyad_independent": false,
       "mle": {
-        "edges": -6.80868093334012,
-        "nodematch.Grade": 2.00017898527743,
-        "nodematch.Race": 0.285635013118362,
-        "gwdeg.fixed.0.5": 0.486243283168935,
-        "gwesp.fixed.0.5": 1.47239931609129
+        "edges": -6.80868093334014,
+        "nodematch.Grade": 2.00017898527741,
+        "nodematch.Race": 0.285635013118358,
+        "gwdeg.fixed.0.5": 0.486243283168996,
+        "gwesp.fixed.0.5": 1.4723993160913
       },
       "se": {
         "edges": 0.257179662866395,
@@ -1376,7 +1404,7 @@
       },
       "loglik": -866.012346547627,
       "nobs": 20910,
-      "seconds": 8.936
+      "seconds": 9.037
     },
     "mesa_terms": {
       "network": "faux.mesa.high",
@@ -1386,6 +1414,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1413,6 +1442,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1451,6 +1481,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1490,6 +1521,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1526,6 +1558,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1612,7 +1645,7 @@
       },
       "loglik": -5124.51287371576,
       "nobs": 61256,
-      "seconds": 0.833999999999996
+      "seconds": 0.828000000000003
     },
     "samplk_gwesp": {
       "network": "samplk3",
@@ -1624,6 +1657,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1655,7 +1689,7 @@
       },
       "loglik": -131.36062013783,
       "nobs": 306,
-      "seconds": 1.183
+      "seconds": 1.224
     },
     "dixon_gwesp": {
       "network": "faux.dixon.high",
@@ -1667,6 +1701,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1686,11 +1721,11 @@
       },
       "dyad_independent": false,
       "mle": {
-        "edges": -5.87187608473519,
-        "mutual": 1.85996173997772,
-        "nodematch.grade": 1.16624223407652,
-        "nodematch.race": 0.759737897976401,
-        "gwesp.OTP.fixed.0.1": 1.43029975257848
+        "edges": -5.87187608473526,
+        "mutual": 1.85996173997773,
+        "nodematch.grade": 1.16624223407653,
+        "nodematch.race": 0.759737897976471,
+        "gwesp.OTP.fixed.0.1": 1.43029975257843
       },
       "se": {
         "edges": 0.0575729555303685,
@@ -1706,9 +1741,9 @@
         "nodematch.race": 0,
         "gwesp.OTP.fixed.0.1": 0
       },
-      "loglik": -4206.09836270207,
+      "loglik": -4206.0983627021,
       "nobs": 61256,
-      "seconds": 130.115
+      "seconds": 130.585
     },
     "mesa_terms2": {
       "network": "faux.mesa.high",
@@ -1718,6 +1753,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1786,6 +1822,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1837,6 +1874,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1866,6 +1904,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1908,6 +1947,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1939,7 +1979,7 @@
       },
       "loglik": -1126.73397689881,
       "nobs": 20910,
-      "seconds": 0.0229999999999961
+      "seconds": 0.0240000000000009
     },
     "flo_offset": {
       "network": "flomarriage",
@@ -1951,6 +1991,7 @@
       ],
       "constraints": {},
       "offset_coef": -2.6,
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -1977,7 +2018,7 @@
       },
       "loglik": -51.5543309118758,
       "nobs": 120,
-      "seconds": 0.0200000000000102
+      "seconds": 0.0219999999999914
     },
     "mesa_offset": {
       "network": "faux.mesa.high",
@@ -1989,6 +2030,7 @@
       ],
       "constraints": {},
       "offset_coef": -6.2,
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2005,8 +2047,8 @@
       "dyad_independent": false,
       "mle": {
         "offset(edges)": -6.2,
-        "nodematch.Grade": 1.96525085939008,
-        "gwesp.fixed.0.5": 1.25447445043139
+        "nodematch.Grade": 1.96525085939009,
+        "gwesp.fixed.0.5": 1.2544744504314
       },
       "se": {
         "offset(edges)": 0,
@@ -2018,9 +2060,9 @@
         "nodematch.Grade": 0,
         "gwesp.fixed.0.5": 0
       },
-      "loglik": -871.301000661384,
+      "loglik": -871.301000661382,
       "nobs": 20910,
-      "seconds": 12.675
+      "seconds": 12.718
     },
     "mesa_F": {
       "network": "faux.mesa.high",
@@ -2032,6 +2074,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2049,10 +2092,10 @@
       },
       "dyad_independent": false,
       "mle": {
-        "edges": -6.16501338014215,
-        "nodematch.Grade": 2.00266784527826,
-        "nodematch.Race": 0.297895577960864,
-        "F(nodematch(\"Grade\"))~gwesp.fixed.0.5": 1.09882867086496
+        "edges": -6.16501338014216,
+        "nodematch.Grade": 2.00266784527829,
+        "nodematch.Race": 0.297895577960901,
+        "F(nodematch(\"Grade\"))~gwesp.fixed.0.5": 1.09882867086494
       },
       "se": {
         "edges": 0.165876361748918,
@@ -2066,9 +2109,9 @@
         "nodematch.Race": 0,
         "F(nodematch(\"Grade\"))~gwesp.fixed.0.5": 0
       },
-      "loglik": -894.461634466298,
+      "loglik": -894.4616344663,
       "nobs": 20910,
-      "seconds": 13.577
+      "seconds": 13.558
     },
     "mesa_esp": {
       "network": "faux.mesa.high",
@@ -2080,6 +2123,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2097,10 +2141,10 @@
       },
       "dyad_independent": false,
       "mle": {
-        "edges": -6.19128576163566,
-        "nodematch.Grade": 2.1108345271804,
-        "esp1": 1.15225613161403,
-        "esp2": 1.93298173854813
+        "edges": -6.19128576163567,
+        "nodematch.Grade": 2.11083452718038,
+        "esp1": 1.15225613161404,
+        "esp2": 1.93298173854815
       },
       "se": {
         "edges": 0.146740568888179,
@@ -2116,7 +2160,7 @@
       },
       "loglik": -887.866214926062,
       "nobs": 20910,
-      "seconds": 3.38399999999999
+      "seconds": 3.459
     },
     "samplk_bd": {
       "network": "samplk3",
@@ -2127,6 +2171,7 @@
       ],
       "constraints": "bd(maxout=4)",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2149,7 +2194,7 @@
       },
       "loglik": 17.8427864007292,
       "nobs": 306,
-      "seconds": 0.168999999999983
+      "seconds": 0.170999999999992
     },
     "mesa_blocks_dyadind": {
       "network": "faux.mesa.high",
@@ -2161,6 +2206,7 @@
       ],
       "constraints": "blocks('Grade', levels2=-1)",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2187,7 +2233,7 @@
       },
       "loglik": -315.40927899435,
       "nobs": 1891,
-      "seconds": 0.0240000000000009
+      "seconds": 0.0250000000000057
     },
     "mesa_blocks": {
       "network": "faux.mesa.high",
@@ -2199,6 +2245,7 @@
       ],
       "constraints": "blocks('Grade', levels2=-c(1, 3, 6, 10, 15, 21))",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2214,9 +2261,9 @@
       },
       "dyad_independent": false,
       "mle": {
-        "edges": -4.22633101570108,
-        "nodematch.Race": 0.167284120395458,
-        "gwesp.fixed.0.5": 1.19343202881349
+        "edges": -4.22633101570109,
+        "nodematch.Race": 0.167284120395476,
+        "gwesp.fixed.0.5": 1.19343202881351
       },
       "se": {
         "edges": 0.129745315232805,
@@ -2228,9 +2275,9 @@
         "nodematch.Race": 0,
         "gwesp.fixed.0.5": 0
       },
-      "loglik": -598.689896411797,
+      "loglik": -598.689896411796,
       "nobs": 4174,
-      "seconds": 8.34200000000001
+      "seconds": 8.32599999999999
     },
     "mesa_degrees": {
       "network": "faux.mesa.high",
@@ -2241,6 +2288,7 @@
       ],
       "constraints": "degrees",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2250,8 +2298,8 @@
       },
       "dyad_independent": false,
       "mle": {
-        "nodematch.Grade": 2.19525877556458,
-        "gwesp.fixed.0.5": 1.37528257007243
+        "nodematch.Grade": 2.19525877556328,
+        "gwesp.fixed.0.5": 1.37528257007187
       },
       "se": {
         "nodematch.Grade": 0.157174485573973,
@@ -2261,9 +2309,9 @@
         "nodematch.Grade": 0,
         "gwesp.fixed.0.5": 0
       },
-      "loglik": 252.501839209832,
+      "loglik": 252.501839209701,
       "nobs": 20910,
-      "seconds": 5.56999999999999
+      "seconds": 5.55900000000003
     },
     "samplk_odegrees": {
       "network": "samplk3",
@@ -2274,6 +2322,7 @@
       ],
       "constraints": "odegrees",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2283,8 +2332,8 @@
       },
       "dyad_independent": false,
       "mle": {
-        "mutual": 2.09174691015042,
-        "ttriple": 0.556313110395862
+        "mutual": 2.09174691015059,
+        "ttriple": 0.556313110395936
       },
       "se": {
         "mutual": 0.487101981568487,
@@ -2294,9 +2343,9 @@
         "mutual": 0,
         "ttriple": 0
       },
-      "loglik": 22.1304939016467,
+      "loglik": 22.130493901649,
       "nobs": 306,
-      "seconds": 0.457000000000022
+      "seconds": 0.459000000000003
     },
     "samplk_degrees": {
       "network": "samplk3",
@@ -2307,6 +2356,7 @@
       ],
       "constraints": "degrees",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2316,8 +2366,8 @@
       },
       "dyad_independent": false,
       "mle": {
-        "mutual": 2.16511703639764,
-        "ttriple": 0.607385881349567
+        "mutual": 2.16511703639888,
+        "ttriple": 0.607385881349917
       },
       "se": {
         "mutual": 0.572401450486394,
@@ -2327,9 +2377,9 @@
         "mutual": 0,
         "ttriple": 0
       },
-      "loglik": 23.572417419548,
+      "loglik": 23.5724174195615,
       "nobs": 306,
-      "seconds": 0.585000000000008
+      "seconds": 0.583999999999975
     },
     "linked_mix": {
       "network": "linked_sim",
@@ -2341,6 +2391,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2372,7 +2423,7 @@
       },
       "loglik": -2323.55276293794,
       "nobs": 11175,
-      "seconds": 0.0249999999999773
+      "seconds": 0.0229999999999961
     },
     "linked_multilevel": {
       "network": "linked_sim",
@@ -2384,6 +2435,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2420,7 +2472,7 @@
       },
       "loglik": -2323.33875872408,
       "nobs": 11175,
-      "seconds": 2.56200000000001
+      "seconds": 2.53900000000002
     },
     "linked_blocks": {
       "network": "linked_sim",
@@ -2432,6 +2484,7 @@
       ],
       "constraints": "blocks('level', levels2=2)",
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2463,7 +2516,7 @@
       },
       "loglik": -1461.57097284041,
       "nobs": 6175,
-      "seconds": 1.35500000000002
+      "seconds": 1.33200000000002
     },
     "mesa_terms3": {
       "network": "faux.mesa.high",
@@ -2473,6 +2526,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2705,6 +2759,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2752,6 +2807,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2801,6 +2857,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2828,6 +2885,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2860,6 +2918,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2906,7 +2965,7 @@
       },
       "loglik": -968.15013958721,
       "nobs": 20910,
-      "seconds": 0.0240000000000009
+      "seconds": 0.0229999999999961
     },
     "mesa_concurrent": {
       "network": "faux.mesa.high",
@@ -2917,6 +2976,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2928,10 +2988,10 @@
       },
       "dyad_independent": false,
       "mle": {
-        "edges": -6.44925409796332,
-        "nodematch.Grade": 1.98672547219302,
-        "concurrent": 0.36540893070246,
-        "gwesp.fixed.0.5": 1.36352518707933
+        "edges": -6.44925409796343,
+        "nodematch.Grade": 1.98672547219284,
+        "concurrent": 0.36540893070277,
+        "gwesp.fixed.0.5": 1.3635251870794
       },
       "se": {
         "edges": 0.191059220475929,
@@ -2945,9 +3005,9 @@
         "concurrent": 0,
         "gwesp.fixed.0.5": 0
       },
-      "loglik": -868.887405935006,
+      "loglik": -868.887405935008,
       "nobs": 20910,
-      "seconds": 8.536
+      "seconds": 8.52000000000001
     },
     "samplk_osp": {
       "network": "samplk3",
@@ -2959,6 +3019,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -2990,7 +3051,7 @@
       },
       "loglik": -130.72096399524,
       "nobs": 306,
-      "seconds": 0.853999999999985
+      "seconds": 0.849999999999994
     },
     "samplk_twopath": {
       "network": "samplk3",
@@ -3002,6 +3063,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3033,7 +3095,7 @@
       },
       "loglik": -130.725977541971,
       "nobs": 306,
-      "seconds": 0.252999999999986
+      "seconds": 0.248000000000019
     },
     "davis_terms": {
       "network": "davis",
@@ -3043,6 +3105,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": true,
@@ -3078,6 +3141,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": true,
@@ -3107,6 +3171,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": true,
@@ -3158,7 +3223,7 @@
       },
       "loglik": -410.790218041907,
       "nobs": 2400,
-      "seconds": 0.0289999999999964
+      "seconds": 0.02800000000002
     },
     "bipartite_gw": {
       "network": "bipartite_sim",
@@ -3170,6 +3235,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": true,
@@ -3211,7 +3277,7 @@
       },
       "loglik": -412.775771108326,
       "nobs": 2400,
-      "seconds": 0.248000000000019
+      "seconds": 0.24799999999999
     },
     "bipartite_match": {
       "network": "bipartite_sim",
@@ -3223,6 +3289,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": true,
@@ -3254,7 +3321,7 @@
       },
       "loglik": -424.900980434804,
       "nobs": 2400,
-      "seconds": 0.219999999999999
+      "seconds": 0.21599999999998
     },
     "bipartite_dsp": {
       "network": "bipartite_sim",
@@ -3266,6 +3333,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": true,
@@ -3302,7 +3370,7 @@
       },
       "loglik": -424.353599642212,
       "nobs": 2400,
-      "seconds": 0.254999999999995
+      "seconds": 0.312000000000012
     },
     "davis_dsp": {
       "network": "davis",
@@ -3314,6 +3382,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": true,
@@ -3340,7 +3409,7 @@
       },
       "loglik": -160.751678720953,
       "nobs": 252,
-      "seconds": 0.343999999999994
+      "seconds": 0.343000000000018
     },
     "mesa_curved_mple": {
       "network": "faux.mesa.high",
@@ -3351,6 +3420,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3404,6 +3474,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3445,17 +3516,17 @@
       "dyad_independent": false,
       "mle": {
         "edges": -6.3676045775251,
-        "nodematch.Grade": 1.96766683112358,
-        "nodematch.Race": 0.268930066485593,
-        "gwesp": 1.35141725416266,
-        "gwesp.decay": 0.38135134708813
+        "nodematch.Grade": 1.96766683112373,
+        "nodematch.Race": 0.268930066485166,
+        "gwesp": 1.35141725416268,
+        "gwesp.decay": 0.381351347088069
       },
       "se": {
-        "edges": 0.165340346942125,
-        "nodematch.Grade": 0.172911762272433,
+        "edges": 0.165340346942138,
+        "nodematch.Grade": 0.172911762272431,
         "nodematch.Race": 0.12088896703974,
-        "gwesp": 0.134332113754651,
-        "gwesp.decay": 0.104451531674671
+        "gwesp": 0.134332113754657,
+        "gwesp.decay": 0.104451531674669
       },
       "mcmc_pct": {
         "edges": 0,
@@ -3464,9 +3535,9 @@
         "gwesp": 0,
         "gwesp.decay": 0
       },
-      "loglik": -867.543918475316,
+      "loglik": -867.54391847532,
       "nobs": 20910,
-      "seconds": 17.285
+      "seconds": 17.026
     },
     "bipartite_curved": {
       "network": "bipartite_sim",
@@ -3478,6 +3549,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": true,
@@ -3547,7 +3619,7 @@
       },
       "loglik": -412.979790952134,
       "nobs": 2400,
-      "seconds": 0.229999999999961
+      "seconds": 0.221000000000004
     },
     "flo_curved": {
       "network": "flomarriage",
@@ -3558,6 +3630,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3594,6 +3667,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3635,20 +3709,20 @@
       },
       "dyad_independent": false,
       "mle": {
-        "edges": -5.90476077865847,
-        "mutual": 1.86825731148726,
-        "nodematch.grade": 1.1825925876189,
-        "nodematch.race": 0.767839010522469,
-        "gwesp.OTP": 1.48914439811031,
-        "gwesp.OTP.decay": 0.040448736496542
+        "edges": -5.90476077871867,
+        "mutual": 1.86825731114565,
+        "nodematch.grade": 1.18259258741752,
+        "nodematch.race": 0.767839010164856,
+        "gwesp.OTP": 1.48914439796652,
+        "gwesp.OTP.decay": 0.0404487364980042
       },
       "se": {
-        "edges": 0.0608343515138615,
-        "mutual": 0.120544906534756,
-        "nodematch.grade": 0.0496865768890659,
-        "nodematch.race": 0.0482047417725108,
-        "gwesp.OTP": 0.0646109448510228,
-        "gwesp.OTP.decay": 0.0320115137304014
+        "edges": 0.0608343515138611,
+        "mutual": 0.120544906534754,
+        "nodematch.grade": 0.0496865768890632,
+        "nodematch.race": 0.0482047417725138,
+        "gwesp.OTP": 0.0646109448510124,
+        "gwesp.OTP.decay": 0.0320115137335096
       },
       "mcmc_pct": {
         "edges": 0,
@@ -3658,9 +3732,9 @@
         "gwesp.OTP": 0,
         "gwesp.OTP.decay": 0
       },
-      "loglik": -4207.21600557685,
+      "loglik": -4207.21600579535,
       "nobs": 61256,
-      "seconds": 175.826
+      "seconds": 2880.099
     },
     "samplk_missing": {
       "network": "samplk3.nonresponse",
@@ -3671,6 +3745,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3693,7 +3768,7 @@
       },
       "loglik": -124.621398261725,
       "nobs": 272,
-      "seconds": 0.39100000000002
+      "seconds": 668.785
     },
     "mesa_missing_dyadind": {
       "network": "faux.mesa.high.missing",
@@ -3705,6 +3780,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3736,7 +3812,7 @@
       },
       "loglik": -907.45973068687,
       "nobs": 19864,
-      "seconds": 0.0459999999999923
+      "seconds": 0.0740000000000691
     },
     "mesa_missing": {
       "network": "faux.mesa.high.missing",
@@ -3747,6 +3823,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3758,10 +3835,10 @@
       },
       "dyad_independent": false,
       "mle": {
-        "edges": -6.36754597299254,
-        "nodematch.Grade": 2.06287629159162,
-        "nodematch.Race": 0.248473917860749,
-        "gwesp.fixed.0.5": 1.21532328252008
+        "edges": -6.36754597299263,
+        "nodematch.Grade": 2.06287629159181,
+        "nodematch.Race": 0.248473917860797,
+        "gwesp.fixed.0.5": 1.21532328252
       },
       "se": {
         "edges": 0.165988492260213,
@@ -3775,9 +3852,9 @@
         "nodematch.Race": 0,
         "gwesp.fixed.0.5": 0
       },
-      "loglik": -824.162129900173,
+      "loglik": -824.162129900177,
       "nobs": 19864,
-      "seconds": 16.174
+      "seconds": 75.924
     },
     "linked_S_stats": {
       "network": "linked_sim",
@@ -3787,6 +3864,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3824,6 +3902,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3855,7 +3934,7 @@
       },
       "loglik": -2323.55276293795,
       "nobs": 11175,
-      "seconds": 0.0629999999999882
+      "seconds": 0.130999999999858
     },
     "linked_S": {
       "network": "linked_sim",
@@ -3867,6 +3946,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3913,7 +3993,7 @@
       },
       "loglik": -2321.9802629761,
       "nobs": 11175,
-      "seconds": 7.50800000000004
+      "seconds": 36.4949999999999
     },
     "samplk_S": {
       "network": "samplk3",
@@ -3924,6 +4004,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3950,6 +4031,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -3982,6 +4064,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4008,7 +4091,7 @@
       },
       "loglik": -403.571006240378,
       "nobs": 918,
-      "seconds": 0.539000000000044
+      "seconds": 0.760000000000218
     },
     "multi_curved": {
       "network": "samplk123.Networks",
@@ -4018,6 +4101,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4070,6 +4154,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4111,7 +4196,7 @@
       },
       "loglik": -409.670882917116,
       "nobs": 1425,
-      "seconds": 0.954000000000008
+      "seconds": 1.26199999999972
     },
     "goey_weekday": {
       "network": "Goeyvaerts.weekday",
@@ -4123,6 +4208,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4148,14 +4234,14 @@
       },
       "dyad_independent": false,
       "mle": {
-        "N(1)~edges": 0.266183948507402,
-        "N(I(n <= 3)TRUE)~edges": 1.4138012109354,
-        "N(I(n >= 5)TRUE)~edges": -0.744188642814351,
-        "N(1)~kstar2": -0.540433016051006,
-        "N(1)~nodematch.gender": -0.226348914285756,
-        "N(1)~absdiff.age": 0.0332267236121801,
-        "N(1)~triangle": 2.39983964835534,
-        "N(I(n >= 6)TRUE)~triangle": -0.344455269319444
+        "N(1)~edges": 0.266183948507305,
+        "N(I(n <= 3)TRUE)~edges": 1.41380121093551,
+        "N(I(n >= 5)TRUE)~edges": -0.744188642814379,
+        "N(1)~kstar2": -0.540433016050924,
+        "N(1)~nodematch.gender": -0.22634891428577,
+        "N(1)~absdiff.age": 0.0332267236121806,
+        "N(1)~triangle": 2.3998396483552,
+        "N(I(n >= 6)TRUE)~triangle": -0.344455269319461
       },
       "se": {
         "N(1)~edges": 0.472599981778534,
@@ -4177,9 +4263,9 @@
         "N(1)~triangle": 0,
         "N(I(n >= 6)TRUE)~triangle": 0
       },
-      "loglik": -327.040260914753,
+      "loglik": -327.040260914755,
       "nobs": 1425,
-      "seconds": 23.871
+      "seconds": 82.299
     },
     "goey_offset": {
       "network": "Goeyvaerts.weekday",
@@ -4191,6 +4277,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4219,7 +4306,7 @@
       },
       "loglik": -443.721083953883,
       "nobs": 1425,
-      "seconds": 0.557999999999993
+      "seconds": 0.743999999999687
     },
     "goey_subset": {
       "network": "Goeyvaerts.weekday",
@@ -4231,6 +4318,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4269,7 +4357,7 @@
       },
       "loglik": -450.275599791674,
       "nobs": 1425,
-      "seconds": 0.906999999999982
+      "seconds": 1.24800000000005
     },
     "goey_subset_label": {
       "network": "Goeyvaerts.weekday",
@@ -4281,6 +4369,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4296,9 +4385,9 @@
       },
       "dyad_independent": false,
       "mle": {
-        "N(big,1)~edges": 0.478043678017769,
-        "N(big,1)~triangle": 0.765572250926667,
-        "N(odd,1)~edges": 0.905307913749373
+        "N(big,1)~edges": 0.478043678017826,
+        "N(big,1)~triangle": 0.76557225092666,
+        "N(odd,1)~edges": 0.905307913749372
       },
       "se": {
         "N(big,1)~edges": 0.187218494191128,
@@ -4310,9 +4399,9 @@
         "N(big,1)~triangle": 0,
         "N(odd,1)~edges": 0
       },
-      "loglik": -461.780147964241,
+      "loglik": -461.780147964242,
       "nobs": 1425,
-      "seconds": 4.50700000000001
+      "seconds": 72.4980000000005
     },
     "series_stats": {
       "network": "samplk123.NetSeries",
@@ -4322,6 +4411,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4356,6 +4446,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4392,7 +4483,7 @@
       },
       "loglik": -180.05503922944,
       "nobs": 612,
-      "seconds": 0.0460000000000491
+      "seconds": 0.0799999999999272
     },
     "series_gwesp": {
       "network": "samplk123.NetSeries",
@@ -4404,6 +4495,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4445,7 +4537,7 @@
       },
       "loglik": -187.786870006814,
       "nobs": 612,
-      "seconds": 1.202
+      "seconds": 1.57299999999941
     },
     "series_one": {
       "network": "samplk12.NetSeries",
@@ -4457,6 +4549,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4493,7 +4586,7 @@
       },
       "loglik": -102.243341198072,
       "nobs": 306,
-      "seconds": 0.317000000000007
+      "seconds": 0.375
     },
     "series_curved": {
       "network": "samplk123.NetSeries",
@@ -4503,6 +4596,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4544,6 +4638,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4575,7 +4670,7 @@
       },
       "loglik": -168.969564327289,
       "nobs": 574,
-      "seconds": 0.0489999999999782
+      "seconds": 0.0579999999999927
     },
     "series_na_next": {
       "network": "samplk123.na.next",
@@ -4586,6 +4681,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4616,7 +4712,7 @@
       },
       "loglik": -176.905560297276,
       "nobs": 574,
-      "seconds": 2.5
+      "seconds": 2.70100000000002
     },
     "series_na_previous": {
       "network": "samplk123.na.previous",
@@ -4628,6 +4724,7 @@
       ],
       "constraints": {},
       "offset_coef": {},
+      "target_stats": {},
       "py_formula": {},
       "py_constraints": {},
       "bipartite": false,
@@ -4659,7 +4756,1255 @@
       },
       "loglik": -172.839098658345,
       "nobs": 574,
-      "seconds": 0.0520000000000209
+      "seconds": 0.0590000000001965
+    },
+    "flo_degcor": {
+      "network": "flomarriage",
+      "formula": "edges + degcor + tripercent",
+      "checks": [
+        "stats",
+        "mple"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "target_stats": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 20,
+        "degcor": -0.374837872892348,
+        "tripercent": 7.31707289814949
+      },
+      "mple": {
+        "edges": -1.0544936463202,
+        "degcor": -0.903880555438093,
+        "tripercent": 0.153459218594072
+      }
+    },
+    "mesa_tripercent": {
+      "network": "faux.mesa.high",
+      "formula": "edges + degcor + tripercent('Grade') + tripercent('Sex', diff=TRUE)",
+      "checks": [
+        "stats",
+        "mple"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "target_stats": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 203,
+        "degcor": 0.122402141226882,
+        "tripercent.Grade": 14.3646404147148,
+        "tripercent.Sex.F": 10.9004735946655,
+        "tripercent.Sex.M": 16.3636356592178
+      },
+      "mple": {
+        "edges": -5.12864959482791,
+        "degcor": 26.7753556059148,
+        "tripercent.Grade": 5.22436887758213,
+        "tripercent.Sex.F": 1.53770983718366,
+        "tripercent.Sex.M": 1.3316359580045
+      }
+    },
+    "davis_coincidence": {
+      "network": "davis",
+      "formula": "edges + coincidence(levels=c(1, 2, 5, 40))",
+      "checks": [
+        "stats",
+        "mple"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "target_stats": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": true,
+      "stats": {
+        "edges": 89,
+        "coincidence.1.2": 2,
+        "coincidence.1.3": 3,
+        "coincidence.1.6": 3,
+        "coincidence.4.8": 3
+      },
+      "mple": {
+        "edges": -0.671177932307965,
+        "coincidence.1.2": 0.813891684149479,
+        "coincidence.1.3": 1.00914811097801,
+        "coincidence.1.6": 0.220213889796105,
+        "coincidence.4.8": -0.0219692482508164
+      }
+    },
+    "bip_coincidence": {
+      "network": "bipartite_sim",
+      "formula": "coincidence",
+      "checks": [
+        "stats"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "target_stats": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": true,
+      "stats": {
+        "coincidence.1.2": 0,
+        "coincidence.1.3": 0,
+        "coincidence.1.4": 0,
+        "coincidence.1.5": 0,
+        "coincidence.1.6": 1,
+        "coincidence.1.7": 0,
+        "coincidence.1.8": 0,
+        "coincidence.1.9": 0,
+        "coincidence.1.10": 1,
+        "coincidence.1.11": 1,
+        "coincidence.1.12": 0,
+        "coincidence.1.13": 0,
+        "coincidence.1.14": 1,
+        "coincidence.1.15": 1,
+        "coincidence.1.16": 1,
+        "coincidence.1.17": 0,
+        "coincidence.1.18": 0,
+        "coincidence.1.19": 0,
+        "coincidence.1.20": 0,
+        "coincidence.1.21": 0,
+        "coincidence.1.22": 0,
+        "coincidence.1.23": 0,
+        "coincidence.1.24": 0,
+        "coincidence.1.25": 0,
+        "coincidence.1.26": 0,
+        "coincidence.1.27": 0,
+        "coincidence.1.28": 0,
+        "coincidence.1.29": 0,
+        "coincidence.1.30": 0,
+        "coincidence.1.31": 0,
+        "coincidence.1.32": 0,
+        "coincidence.1.33": 0,
+        "coincidence.1.34": 0,
+        "coincidence.1.35": 1,
+        "coincidence.1.36": 0,
+        "coincidence.1.37": 1,
+        "coincidence.1.38": 0,
+        "coincidence.1.39": 0,
+        "coincidence.1.40": 0,
+        "coincidence.2.3": 0,
+        "coincidence.2.4": 0,
+        "coincidence.2.5": 0,
+        "coincidence.2.6": 1,
+        "coincidence.2.7": 0,
+        "coincidence.2.8": 0,
+        "coincidence.2.9": 1,
+        "coincidence.2.10": 0,
+        "coincidence.2.11": 0,
+        "coincidence.2.12": 0,
+        "coincidence.2.13": 0,
+        "coincidence.2.14": 0,
+        "coincidence.2.15": 0,
+        "coincidence.2.16": 0,
+        "coincidence.2.17": 0,
+        "coincidence.2.18": 0,
+        "coincidence.2.19": 0,
+        "coincidence.2.20": 0,
+        "coincidence.2.21": 0,
+        "coincidence.2.22": 0,
+        "coincidence.2.23": 0,
+        "coincidence.2.24": 0,
+        "coincidence.2.25": 1,
+        "coincidence.2.26": 1,
+        "coincidence.2.27": 0,
+        "coincidence.2.28": 0,
+        "coincidence.2.29": 0,
+        "coincidence.2.30": 0,
+        "coincidence.2.31": 0,
+        "coincidence.2.32": 0,
+        "coincidence.2.33": 0,
+        "coincidence.2.34": 0,
+        "coincidence.2.35": 1,
+        "coincidence.2.36": 0,
+        "coincidence.2.37": 0,
+        "coincidence.2.38": 0,
+        "coincidence.2.39": 0,
+        "coincidence.2.40": 0,
+        "coincidence.3.4": 0,
+        "coincidence.3.5": 0,
+        "coincidence.3.6": 1,
+        "coincidence.3.7": 0,
+        "coincidence.3.8": 0,
+        "coincidence.3.9": 0,
+        "coincidence.3.10": 1,
+        "coincidence.3.11": 0,
+        "coincidence.3.12": 0,
+        "coincidence.3.13": 0,
+        "coincidence.3.14": 0,
+        "coincidence.3.15": 0,
+        "coincidence.3.16": 0,
+        "coincidence.3.17": 0,
+        "coincidence.3.18": 1,
+        "coincidence.3.19": 0,
+        "coincidence.3.20": 0,
+        "coincidence.3.21": 1,
+        "coincidence.3.22": 1,
+        "coincidence.3.23": 1,
+        "coincidence.3.24": 1,
+        "coincidence.3.25": 0,
+        "coincidence.3.26": 0,
+        "coincidence.3.27": 0,
+        "coincidence.3.28": 0,
+        "coincidence.3.29": 0,
+        "coincidence.3.30": 0,
+        "coincidence.3.31": 1,
+        "coincidence.3.32": 0,
+        "coincidence.3.33": 0,
+        "coincidence.3.34": 0,
+        "coincidence.3.35": 0,
+        "coincidence.3.36": 0,
+        "coincidence.3.37": 0,
+        "coincidence.3.38": 0,
+        "coincidence.3.39": 0,
+        "coincidence.3.40": 0,
+        "coincidence.4.5": 0,
+        "coincidence.4.6": 1,
+        "coincidence.4.7": 0,
+        "coincidence.4.8": 0,
+        "coincidence.4.9": 1,
+        "coincidence.4.10": 0,
+        "coincidence.4.11": 0,
+        "coincidence.4.12": 0,
+        "coincidence.4.13": 0,
+        "coincidence.4.14": 0,
+        "coincidence.4.15": 0,
+        "coincidence.4.16": 0,
+        "coincidence.4.17": 0,
+        "coincidence.4.18": 0,
+        "coincidence.4.19": 0,
+        "coincidence.4.20": 0,
+        "coincidence.4.21": 0,
+        "coincidence.4.22": 0,
+        "coincidence.4.23": 0,
+        "coincidence.4.24": 0,
+        "coincidence.4.25": 0,
+        "coincidence.4.26": 0,
+        "coincidence.4.27": 0,
+        "coincidence.4.28": 0,
+        "coincidence.4.29": 0,
+        "coincidence.4.30": 0,
+        "coincidence.4.31": 0,
+        "coincidence.4.32": 0,
+        "coincidence.4.33": 0,
+        "coincidence.4.34": 1,
+        "coincidence.4.35": 0,
+        "coincidence.4.36": 0,
+        "coincidence.4.37": 1,
+        "coincidence.4.38": 0,
+        "coincidence.4.39": 0,
+        "coincidence.4.40": 0,
+        "coincidence.5.6": 0,
+        "coincidence.5.7": 0,
+        "coincidence.5.8": 0,
+        "coincidence.5.9": 0,
+        "coincidence.5.10": 0,
+        "coincidence.5.11": 0,
+        "coincidence.5.12": 0,
+        "coincidence.5.13": 0,
+        "coincidence.5.14": 0,
+        "coincidence.5.15": 0,
+        "coincidence.5.16": 0,
+        "coincidence.5.17": 0,
+        "coincidence.5.18": 0,
+        "coincidence.5.19": 0,
+        "coincidence.5.20": 0,
+        "coincidence.5.21": 0,
+        "coincidence.5.22": 0,
+        "coincidence.5.23": 0,
+        "coincidence.5.24": 0,
+        "coincidence.5.25": 0,
+        "coincidence.5.26": 0,
+        "coincidence.5.27": 0,
+        "coincidence.5.28": 0,
+        "coincidence.5.29": 0,
+        "coincidence.5.30": 0,
+        "coincidence.5.31": 0,
+        "coincidence.5.32": 0,
+        "coincidence.5.33": 0,
+        "coincidence.5.34": 0,
+        "coincidence.5.35": 0,
+        "coincidence.5.36": 0,
+        "coincidence.5.37": 0,
+        "coincidence.5.38": 0,
+        "coincidence.5.39": 0,
+        "coincidence.5.40": 0,
+        "coincidence.6.7": 0,
+        "coincidence.6.8": 0,
+        "coincidence.6.9": 2,
+        "coincidence.6.10": 1,
+        "coincidence.6.11": 1,
+        "coincidence.6.12": 0,
+        "coincidence.6.13": 0,
+        "coincidence.6.14": 0,
+        "coincidence.6.15": 0,
+        "coincidence.6.16": 1,
+        "coincidence.6.17": 0,
+        "coincidence.6.18": 1,
+        "coincidence.6.19": 0,
+        "coincidence.6.20": 0,
+        "coincidence.6.21": 1,
+        "coincidence.6.22": 0,
+        "coincidence.6.23": 1,
+        "coincidence.6.24": 1,
+        "coincidence.6.25": 0,
+        "coincidence.6.26": 1,
+        "coincidence.6.27": 0,
+        "coincidence.6.28": 0,
+        "coincidence.6.29": 0,
+        "coincidence.6.30": 0,
+        "coincidence.6.31": 1,
+        "coincidence.6.32": 0,
+        "coincidence.6.33": 0,
+        "coincidence.6.34": 1,
+        "coincidence.6.35": 1,
+        "coincidence.6.36": 0,
+        "coincidence.6.37": 1,
+        "coincidence.6.38": 1,
+        "coincidence.6.39": 0,
+        "coincidence.6.40": 0,
+        "coincidence.7.8": 0,
+        "coincidence.7.9": 0,
+        "coincidence.7.10": 0,
+        "coincidence.7.11": 1,
+        "coincidence.7.12": 0,
+        "coincidence.7.13": 1,
+        "coincidence.7.14": 0,
+        "coincidence.7.15": 0,
+        "coincidence.7.16": 0,
+        "coincidence.7.17": 0,
+        "coincidence.7.18": 0,
+        "coincidence.7.19": 0,
+        "coincidence.7.20": 0,
+        "coincidence.7.21": 0,
+        "coincidence.7.22": 0,
+        "coincidence.7.23": 0,
+        "coincidence.7.24": 0,
+        "coincidence.7.25": 1,
+        "coincidence.7.26": 0,
+        "coincidence.7.27": 0,
+        "coincidence.7.28": 0,
+        "coincidence.7.29": 0,
+        "coincidence.7.30": 0,
+        "coincidence.7.31": 0,
+        "coincidence.7.32": 0,
+        "coincidence.7.33": 0,
+        "coincidence.7.34": 0,
+        "coincidence.7.35": 0,
+        "coincidence.7.36": 0,
+        "coincidence.7.37": 0,
+        "coincidence.7.38": 0,
+        "coincidence.7.39": 0,
+        "coincidence.7.40": 0,
+        "coincidence.8.9": 0,
+        "coincidence.8.10": 0,
+        "coincidence.8.11": 0,
+        "coincidence.8.12": 0,
+        "coincidence.8.13": 0,
+        "coincidence.8.14": 0,
+        "coincidence.8.15": 1,
+        "coincidence.8.16": 1,
+        "coincidence.8.17": 0,
+        "coincidence.8.18": 0,
+        "coincidence.8.19": 0,
+        "coincidence.8.20": 0,
+        "coincidence.8.21": 0,
+        "coincidence.8.22": 0,
+        "coincidence.8.23": 0,
+        "coincidence.8.24": 0,
+        "coincidence.8.25": 1,
+        "coincidence.8.26": 1,
+        "coincidence.8.27": 0,
+        "coincidence.8.28": 0,
+        "coincidence.8.29": 0,
+        "coincidence.8.30": 0,
+        "coincidence.8.31": 0,
+        "coincidence.8.32": 0,
+        "coincidence.8.33": 0,
+        "coincidence.8.34": 0,
+        "coincidence.8.35": 0,
+        "coincidence.8.36": 0,
+        "coincidence.8.37": 0,
+        "coincidence.8.38": 1,
+        "coincidence.8.39": 0,
+        "coincidence.8.40": 0,
+        "coincidence.9.10": 1,
+        "coincidence.9.11": 0,
+        "coincidence.9.12": 0,
+        "coincidence.9.13": 0,
+        "coincidence.9.14": 0,
+        "coincidence.9.15": 0,
+        "coincidence.9.16": 1,
+        "coincidence.9.17": 0,
+        "coincidence.9.18": 1,
+        "coincidence.9.19": 0,
+        "coincidence.9.20": 0,
+        "coincidence.9.21": 0,
+        "coincidence.9.22": 0,
+        "coincidence.9.23": 0,
+        "coincidence.9.24": 0,
+        "coincidence.9.25": 0,
+        "coincidence.9.26": 1,
+        "coincidence.9.27": 0,
+        "coincidence.9.28": 1,
+        "coincidence.9.29": 0,
+        "coincidence.9.30": 0,
+        "coincidence.9.31": 0,
+        "coincidence.9.32": 0,
+        "coincidence.9.33": 0,
+        "coincidence.9.34": 1,
+        "coincidence.9.35": 1,
+        "coincidence.9.36": 1,
+        "coincidence.9.37": 1,
+        "coincidence.9.38": 0,
+        "coincidence.9.39": 0,
+        "coincidence.9.40": 0,
+        "coincidence.10.11": 0,
+        "coincidence.10.12": 0,
+        "coincidence.10.13": 0,
+        "coincidence.10.14": 1,
+        "coincidence.10.15": 2,
+        "coincidence.10.16": 1,
+        "coincidence.10.17": 0,
+        "coincidence.10.18": 2,
+        "coincidence.10.19": 0,
+        "coincidence.10.20": 0,
+        "coincidence.10.21": 1,
+        "coincidence.10.22": 0,
+        "coincidence.10.23": 1,
+        "coincidence.10.24": 1,
+        "coincidence.10.25": 0,
+        "coincidence.10.26": 0,
+        "coincidence.10.27": 0,
+        "coincidence.10.28": 0,
+        "coincidence.10.29": 0,
+        "coincidence.10.30": 1,
+        "coincidence.10.31": 1,
+        "coincidence.10.32": 0,
+        "coincidence.10.33": 0,
+        "coincidence.10.34": 0,
+        "coincidence.10.35": 1,
+        "coincidence.10.36": 0,
+        "coincidence.10.37": 0,
+        "coincidence.10.38": 0,
+        "coincidence.10.39": 0,
+        "coincidence.10.40": 0,
+        "coincidence.11.12": 0,
+        "coincidence.11.13": 1,
+        "coincidence.11.14": 0,
+        "coincidence.11.15": 0,
+        "coincidence.11.16": 1,
+        "coincidence.11.17": 0,
+        "coincidence.11.18": 0,
+        "coincidence.11.19": 0,
+        "coincidence.11.20": 0,
+        "coincidence.11.21": 1,
+        "coincidence.11.22": 1,
+        "coincidence.11.23": 0,
+        "coincidence.11.24": 0,
+        "coincidence.11.25": 1,
+        "coincidence.11.26": 0,
+        "coincidence.11.27": 0,
+        "coincidence.11.28": 0,
+        "coincidence.11.29": 0,
+        "coincidence.11.30": 0,
+        "coincidence.11.31": 1,
+        "coincidence.11.32": 0,
+        "coincidence.11.33": 0,
+        "coincidence.11.34": 0,
+        "coincidence.11.35": 0,
+        "coincidence.11.36": 0,
+        "coincidence.11.37": 0,
+        "coincidence.11.38": 0,
+        "coincidence.11.39": 0,
+        "coincidence.11.40": 0,
+        "coincidence.12.13": 0,
+        "coincidence.12.14": 0,
+        "coincidence.12.15": 0,
+        "coincidence.12.16": 1,
+        "coincidence.12.17": 0,
+        "coincidence.12.18": 0,
+        "coincidence.12.19": 0,
+        "coincidence.12.20": 0,
+        "coincidence.12.21": 0,
+        "coincidence.12.22": 0,
+        "coincidence.12.23": 1,
+        "coincidence.12.24": 0,
+        "coincidence.12.25": 0,
+        "coincidence.12.26": 0,
+        "coincidence.12.27": 0,
+        "coincidence.12.28": 0,
+        "coincidence.12.29": 0,
+        "coincidence.12.30": 0,
+        "coincidence.12.31": 1,
+        "coincidence.12.32": 0,
+        "coincidence.12.33": 0,
+        "coincidence.12.34": 0,
+        "coincidence.12.35": 0,
+        "coincidence.12.36": 0,
+        "coincidence.12.37": 0,
+        "coincidence.12.38": 0,
+        "coincidence.12.39": 0,
+        "coincidence.12.40": 0,
+        "coincidence.13.14": 0,
+        "coincidence.13.15": 0,
+        "coincidence.13.16": 0,
+        "coincidence.13.17": 0,
+        "coincidence.13.18": 0,
+        "coincidence.13.19": 0,
+        "coincidence.13.20": 0,
+        "coincidence.13.21": 0,
+        "coincidence.13.22": 0,
+        "coincidence.13.23": 0,
+        "coincidence.13.24": 0,
+        "coincidence.13.25": 1,
+        "coincidence.13.26": 0,
+        "coincidence.13.27": 0,
+        "coincidence.13.28": 0,
+        "coincidence.13.29": 0,
+        "coincidence.13.30": 0,
+        "coincidence.13.31": 0,
+        "coincidence.13.32": 0,
+        "coincidence.13.33": 1,
+        "coincidence.13.34": 1,
+        "coincidence.13.35": 0,
+        "coincidence.13.36": 0,
+        "coincidence.13.37": 0,
+        "coincidence.13.38": 0,
+        "coincidence.13.39": 1,
+        "coincidence.13.40": 0,
+        "coincidence.14.15": 1,
+        "coincidence.14.16": 0,
+        "coincidence.14.17": 1,
+        "coincidence.14.18": 0,
+        "coincidence.14.19": 0,
+        "coincidence.14.20": 0,
+        "coincidence.14.21": 0,
+        "coincidence.14.22": 0,
+        "coincidence.14.23": 0,
+        "coincidence.14.24": 0,
+        "coincidence.14.25": 0,
+        "coincidence.14.26": 0,
+        "coincidence.14.27": 0,
+        "coincidence.14.28": 0,
+        "coincidence.14.29": 0,
+        "coincidence.14.30": 0,
+        "coincidence.14.31": 1,
+        "coincidence.14.32": 0,
+        "coincidence.14.33": 1,
+        "coincidence.14.34": 0,
+        "coincidence.14.35": 0,
+        "coincidence.14.36": 0,
+        "coincidence.14.37": 0,
+        "coincidence.14.38": 0,
+        "coincidence.14.39": 1,
+        "coincidence.14.40": 0,
+        "coincidence.15.16": 0,
+        "coincidence.15.17": 0,
+        "coincidence.15.18": 0,
+        "coincidence.15.19": 0,
+        "coincidence.15.20": 0,
+        "coincidence.15.21": 0,
+        "coincidence.15.22": 0,
+        "coincidence.15.23": 0,
+        "coincidence.15.24": 0,
+        "coincidence.15.25": 0,
+        "coincidence.15.26": 0,
+        "coincidence.15.27": 0,
+        "coincidence.15.28": 0,
+        "coincidence.15.29": 0,
+        "coincidence.15.30": 1,
+        "coincidence.15.31": 0,
+        "coincidence.15.32": 0,
+        "coincidence.15.33": 0,
+        "coincidence.15.34": 0,
+        "coincidence.15.35": 1,
+        "coincidence.15.36": 0,
+        "coincidence.15.37": 0,
+        "coincidence.15.38": 1,
+        "coincidence.15.39": 0,
+        "coincidence.15.40": 0,
+        "coincidence.16.17": 1,
+        "coincidence.16.18": 1,
+        "coincidence.16.19": 0,
+        "coincidence.16.20": 0,
+        "coincidence.16.21": 0,
+        "coincidence.16.22": 0,
+        "coincidence.16.23": 0,
+        "coincidence.16.24": 0,
+        "coincidence.16.25": 0,
+        "coincidence.16.26": 1,
+        "coincidence.16.27": 0,
+        "coincidence.16.28": 0,
+        "coincidence.16.29": 0,
+        "coincidence.16.30": 0,
+        "coincidence.16.31": 1,
+        "coincidence.16.32": 0,
+        "coincidence.16.33": 0,
+        "coincidence.16.34": 0,
+        "coincidence.16.35": 0,
+        "coincidence.16.36": 0,
+        "coincidence.16.37": 0,
+        "coincidence.16.38": 0,
+        "coincidence.16.39": 0,
+        "coincidence.16.40": 0,
+        "coincidence.17.18": 0,
+        "coincidence.17.19": 0,
+        "coincidence.17.20": 0,
+        "coincidence.17.21": 0,
+        "coincidence.17.22": 0,
+        "coincidence.17.23": 0,
+        "coincidence.17.24": 0,
+        "coincidence.17.25": 0,
+        "coincidence.17.26": 0,
+        "coincidence.17.27": 0,
+        "coincidence.17.28": 0,
+        "coincidence.17.29": 0,
+        "coincidence.17.30": 0,
+        "coincidence.17.31": 0,
+        "coincidence.17.32": 0,
+        "coincidence.17.33": 0,
+        "coincidence.17.34": 0,
+        "coincidence.17.35": 0,
+        "coincidence.17.36": 0,
+        "coincidence.17.37": 0,
+        "coincidence.17.38": 0,
+        "coincidence.17.39": 0,
+        "coincidence.17.40": 0,
+        "coincidence.18.19": 0,
+        "coincidence.18.20": 0,
+        "coincidence.18.21": 1,
+        "coincidence.18.22": 0,
+        "coincidence.18.23": 1,
+        "coincidence.18.24": 1,
+        "coincidence.18.25": 0,
+        "coincidence.18.26": 0,
+        "coincidence.18.27": 0,
+        "coincidence.18.28": 0,
+        "coincidence.18.29": 0,
+        "coincidence.18.30": 0,
+        "coincidence.18.31": 1,
+        "coincidence.18.32": 0,
+        "coincidence.18.33": 0,
+        "coincidence.18.34": 0,
+        "coincidence.18.35": 0,
+        "coincidence.18.36": 0,
+        "coincidence.18.37": 0,
+        "coincidence.18.38": 0,
+        "coincidence.18.39": 0,
+        "coincidence.18.40": 0,
+        "coincidence.19.20": 0,
+        "coincidence.19.21": 0,
+        "coincidence.19.22": 0,
+        "coincidence.19.23": 0,
+        "coincidence.19.24": 0,
+        "coincidence.19.25": 0,
+        "coincidence.19.26": 0,
+        "coincidence.19.27": 0,
+        "coincidence.19.28": 0,
+        "coincidence.19.29": 0,
+        "coincidence.19.30": 0,
+        "coincidence.19.31": 0,
+        "coincidence.19.32": 0,
+        "coincidence.19.33": 0,
+        "coincidence.19.34": 0,
+        "coincidence.19.35": 0,
+        "coincidence.19.36": 0,
+        "coincidence.19.37": 0,
+        "coincidence.19.38": 0,
+        "coincidence.19.39": 0,
+        "coincidence.19.40": 0,
+        "coincidence.20.21": 0,
+        "coincidence.20.22": 0,
+        "coincidence.20.23": 0,
+        "coincidence.20.24": 0,
+        "coincidence.20.25": 0,
+        "coincidence.20.26": 0,
+        "coincidence.20.27": 0,
+        "coincidence.20.28": 0,
+        "coincidence.20.29": 0,
+        "coincidence.20.30": 0,
+        "coincidence.20.31": 0,
+        "coincidence.20.32": 0,
+        "coincidence.20.33": 0,
+        "coincidence.20.34": 0,
+        "coincidence.20.35": 0,
+        "coincidence.20.36": 0,
+        "coincidence.20.37": 0,
+        "coincidence.20.38": 0,
+        "coincidence.20.39": 0,
+        "coincidence.20.40": 0,
+        "coincidence.21.22": 0,
+        "coincidence.21.23": 1,
+        "coincidence.21.24": 1,
+        "coincidence.21.25": 0,
+        "coincidence.21.26": 0,
+        "coincidence.21.27": 0,
+        "coincidence.21.28": 0,
+        "coincidence.21.29": 0,
+        "coincidence.21.30": 0,
+        "coincidence.21.31": 1,
+        "coincidence.21.32": 0,
+        "coincidence.21.33": 0,
+        "coincidence.21.34": 0,
+        "coincidence.21.35": 0,
+        "coincidence.21.36": 0,
+        "coincidence.21.37": 0,
+        "coincidence.21.38": 0,
+        "coincidence.21.39": 0,
+        "coincidence.21.40": 0,
+        "coincidence.22.23": 0,
+        "coincidence.22.24": 0,
+        "coincidence.22.25": 0,
+        "coincidence.22.26": 0,
+        "coincidence.22.27": 0,
+        "coincidence.22.28": 0,
+        "coincidence.22.29": 0,
+        "coincidence.22.30": 0,
+        "coincidence.22.31": 1,
+        "coincidence.22.32": 0,
+        "coincidence.22.33": 0,
+        "coincidence.22.34": 0,
+        "coincidence.22.35": 0,
+        "coincidence.22.36": 0,
+        "coincidence.22.37": 0,
+        "coincidence.22.38": 0,
+        "coincidence.22.39": 0,
+        "coincidence.22.40": 0,
+        "coincidence.23.24": 1,
+        "coincidence.23.25": 0,
+        "coincidence.23.26": 0,
+        "coincidence.23.27": 0,
+        "coincidence.23.28": 0,
+        "coincidence.23.29": 0,
+        "coincidence.23.30": 0,
+        "coincidence.23.31": 1,
+        "coincidence.23.32": 0,
+        "coincidence.23.33": 0,
+        "coincidence.23.34": 0,
+        "coincidence.23.35": 0,
+        "coincidence.23.36": 0,
+        "coincidence.23.37": 0,
+        "coincidence.23.38": 0,
+        "coincidence.23.39": 0,
+        "coincidence.23.40": 0,
+        "coincidence.24.25": 0,
+        "coincidence.24.26": 0,
+        "coincidence.24.27": 0,
+        "coincidence.24.28": 0,
+        "coincidence.24.29": 0,
+        "coincidence.24.30": 0,
+        "coincidence.24.31": 1,
+        "coincidence.24.32": 0,
+        "coincidence.24.33": 0,
+        "coincidence.24.34": 0,
+        "coincidence.24.35": 0,
+        "coincidence.24.36": 0,
+        "coincidence.24.37": 0,
+        "coincidence.24.38": 0,
+        "coincidence.24.39": 0,
+        "coincidence.24.40": 0,
+        "coincidence.25.26": 0,
+        "coincidence.25.27": 0,
+        "coincidence.25.28": 0,
+        "coincidence.25.29": 0,
+        "coincidence.25.30": 0,
+        "coincidence.25.31": 0,
+        "coincidence.25.32": 0,
+        "coincidence.25.33": 0,
+        "coincidence.25.34": 0,
+        "coincidence.25.35": 0,
+        "coincidence.25.36": 0,
+        "coincidence.25.37": 0,
+        "coincidence.25.38": 0,
+        "coincidence.25.39": 0,
+        "coincidence.25.40": 0,
+        "coincidence.26.27": 0,
+        "coincidence.26.28": 0,
+        "coincidence.26.29": 0,
+        "coincidence.26.30": 0,
+        "coincidence.26.31": 0,
+        "coincidence.26.32": 0,
+        "coincidence.26.33": 0,
+        "coincidence.26.34": 0,
+        "coincidence.26.35": 1,
+        "coincidence.26.36": 0,
+        "coincidence.26.37": 0,
+        "coincidence.26.38": 0,
+        "coincidence.26.39": 0,
+        "coincidence.26.40": 0,
+        "coincidence.27.28": 0,
+        "coincidence.27.29": 0,
+        "coincidence.27.30": 0,
+        "coincidence.27.31": 0,
+        "coincidence.27.32": 0,
+        "coincidence.27.33": 0,
+        "coincidence.27.34": 0,
+        "coincidence.27.35": 0,
+        "coincidence.27.36": 0,
+        "coincidence.27.37": 0,
+        "coincidence.27.38": 0,
+        "coincidence.27.39": 0,
+        "coincidence.27.40": 0,
+        "coincidence.28.29": 0,
+        "coincidence.28.30": 0,
+        "coincidence.28.31": 0,
+        "coincidence.28.32": 0,
+        "coincidence.28.33": 0,
+        "coincidence.28.34": 0,
+        "coincidence.28.35": 0,
+        "coincidence.28.36": 1,
+        "coincidence.28.37": 0,
+        "coincidence.28.38": 0,
+        "coincidence.28.39": 0,
+        "coincidence.28.40": 0,
+        "coincidence.29.30": 0,
+        "coincidence.29.31": 0,
+        "coincidence.29.32": 0,
+        "coincidence.29.33": 0,
+        "coincidence.29.34": 0,
+        "coincidence.29.35": 0,
+        "coincidence.29.36": 0,
+        "coincidence.29.37": 0,
+        "coincidence.29.38": 0,
+        "coincidence.29.39": 0,
+        "coincidence.29.40": 0,
+        "coincidence.30.31": 1,
+        "coincidence.30.32": 0,
+        "coincidence.30.33": 0,
+        "coincidence.30.34": 0,
+        "coincidence.30.35": 1,
+        "coincidence.30.36": 0,
+        "coincidence.30.37": 0,
+        "coincidence.30.38": 0,
+        "coincidence.30.39": 0,
+        "coincidence.30.40": 0,
+        "coincidence.31.32": 0,
+        "coincidence.31.33": 1,
+        "coincidence.31.34": 0,
+        "coincidence.31.35": 0,
+        "coincidence.31.36": 0,
+        "coincidence.31.37": 0,
+        "coincidence.31.38": 0,
+        "coincidence.31.39": 1,
+        "coincidence.31.40": 0,
+        "coincidence.32.33": 0,
+        "coincidence.32.34": 0,
+        "coincidence.32.35": 0,
+        "coincidence.32.36": 0,
+        "coincidence.32.37": 0,
+        "coincidence.32.38": 0,
+        "coincidence.32.39": 0,
+        "coincidence.32.40": 0,
+        "coincidence.33.34": 1,
+        "coincidence.33.35": 0,
+        "coincidence.33.36": 0,
+        "coincidence.33.37": 0,
+        "coincidence.33.38": 0,
+        "coincidence.33.39": 3,
+        "coincidence.33.40": 0,
+        "coincidence.34.35": 0,
+        "coincidence.34.36": 0,
+        "coincidence.34.37": 1,
+        "coincidence.34.38": 0,
+        "coincidence.34.39": 1,
+        "coincidence.34.40": 0,
+        "coincidence.35.36": 0,
+        "coincidence.35.37": 1,
+        "coincidence.35.38": 0,
+        "coincidence.35.39": 0,
+        "coincidence.35.40": 0,
+        "coincidence.36.37": 0,
+        "coincidence.36.38": 0,
+        "coincidence.36.39": 0,
+        "coincidence.36.40": 0,
+        "coincidence.37.38": 0,
+        "coincidence.37.39": 0,
+        "coincidence.37.40": 0,
+        "coincidence.38.39": 0,
+        "coincidence.38.40": 0,
+        "coincidence.39.40": 0
+      }
+    },
+    "mesa_degreedist": {
+      "network": "faux.mesa.high",
+      "formula": "nodematch('Grade') + nodematch('Race') + gwesp(0.5, fixed=TRUE)",
+      "checks": [
+        "stats",
+        "mle"
+      ],
+      "constraints": "degreedist",
+      "offset_coef": {},
+      "target_stats": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "nodematch.Grade": 163,
+        "nodematch.Race": 103,
+        "gwesp.fixed.0.5": 141.925805553864
+      },
+      "dyad_independent": false,
+      "mle": {
+        "nodematch.Grade": 1.98557401916864,
+        "nodematch.Race": 0.271781507487902,
+        "gwesp.fixed.0.5": 1.48168487830193
+      },
+      "se": {
+        "nodematch.Grade": 0.178848298088577,
+        "nodematch.Race": 0.125538977978101,
+        "gwesp.fixed.0.5": 0.130270682653696
+      },
+      "mcmc_pct": {
+        "nodematch.Grade": 0,
+        "nodematch.Race": 0,
+        "gwesp.fixed.0.5": 0
+      },
+      "loglik": 237.354321835023,
+      "nobs": 20910,
+      "seconds": 5.73199999999997
+    },
+    "mesa_egocentric": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodematch('Grade') + nodefactor('Sex')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": "egocentric('ego')",
+      "offset_coef": {},
+      "target_stats": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 203,
+        "nodematch.Grade": 163,
+        "nodefactor.Sex.M": 171
+      },
+      "mple": {
+        "edges": -5.29241128246412,
+        "nodematch.Grade": 2.13895241381005,
+        "nodefactor.Sex.M": -0.0576081861775175
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -5.29241128246412,
+        "nodematch.Grade": 2.13895241381004,
+        "nodefactor.Sex.M": -0.0576081861775178
+      },
+      "se": {
+        "edges": 0.21566776539375,
+        "nodematch.Grade": 0.197417740025655,
+        "nodefactor.Sex.M": 0.129365034513949
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodematch.Grade": 0,
+        "nodefactor.Sex.M": 0
+      },
+      "loglik": -607.931758976896,
+      "nobs": 10153,
+      "seconds": 0.0320000000001528
+    },
+    "dixon_egocentric_out": {
+      "network": "faux.dixon.high",
+      "formula": "edges + nodematch('race') + nodeofactor('sex') + nodeifactor('sex')",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": "egocentric('ego', direction='out')",
+      "offset_coef": {},
+      "target_stats": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 1197,
+        "nodematch.race": 912,
+        "nodeofactor.sex.2": 633,
+        "nodeifactor.sex.2": 623
+      },
+      "mple": {
+        "edges": -4.88391600464975,
+        "nodematch.race": 1.57142102794312,
+        "nodeofactor.sex.2": 0.122787060564111,
+        "nodeifactor.sex.2": 0.0875125445644577
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -4.88391600464975,
+        "nodematch.race": 1.57142102794312,
+        "nodeofactor.sex.2": 0.122787060564111,
+        "nodeifactor.sex.2": 0.0875125445644574
+      },
+      "se": {
+        "edges": 0.0777349765225694,
+        "nodematch.race": 0.0718777925783524,
+        "nodeofactor.sex.2": 0.0604677196334943,
+        "nodeifactor.sex.2": 0.0603899318312811
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodematch.race": 0,
+        "nodeofactor.sex.2": 0,
+        "nodeifactor.sex.2": 0
+      },
+      "loglik": -5185.36261746238,
+      "nobs": 52858,
+      "seconds": 0.0510000000003856
+    },
+    "flo_target": {
+      "network": "flomarriage",
+      "formula": "edges + nodecov('wealth')",
+      "checks": [
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "target_stats": [25, 3000],
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 20,
+        "nodecov.wealth": 2168
+      },
+      "dyad_independent": true,
+      "mle": {
+        "edges": -2.99994003329848,
+        "nodecov.wealth": 0.0173877760153315
+      },
+      "se": {
+        "edges": 0.548225906038969,
+        "nodecov.wealth": 0.00472573253823696
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodecov.wealth": 0
+      },
+      "loglik": -53.9014338557809,
+      "nobs": 120,
+      "seconds": 0.0289999999995416
+    },
+    "mesa_target": {
+      "network": "faux.mesa.high",
+      "formula": "edges + nodematch('Grade') + gwesp(0.5, fixed=TRUE)",
+      "checks": [
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "target_stats": [250, 190, 200],
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "edges": 203,
+        "nodematch.Grade": 163,
+        "gwesp.fixed.0.5": 141.925805553864
+      },
+      "dyad_independent": false,
+      "mle": {
+        "edges": -5.94085696321409,
+        "nodematch.Grade": 1.62576762310344,
+        "gwesp.fixed.0.5": 1.30763951037501
+      },
+      "se": {
+        "edges": 0.118752524318486,
+        "nodematch.Grade": 0.140379559587526,
+        "gwesp.fixed.0.5": 0.0795962361283016
+      },
+      "mcmc_pct": {
+        "edges": 0,
+        "nodematch.Grade": 0,
+        "gwesp.fixed.0.5": 0
+      },
+      "loglik": -1032.38159841074,
+      "nobs": 20910,
+      "seconds": 26.7719999999999
+    },
+    "goey_contrasts_sum": {
+      "network": "Goeyvaerts.included",
+      "formula": "N(~edges + nodematch('gender'), lm=~weekday, contrasts=list(weekday='contr.sum'))",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "target_stats": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "N(1)~edges": 1852,
+        "N(weekday1)~edges": -748,
+        "N(1)~nodematch.gender": 779,
+        "N(weekday1)~nodematch.gender": -325
+      },
+      "mple": {
+        "N(1)~edges": 2.75176160858019,
+        "N(weekday1)~edges": 0.324013372632168,
+        "N(1)~nodematch.gender": -0.163734623548414,
+        "N(weekday1)~nodematch.gender": 0.0280030100282356
+      },
+      "dyad_independent": true,
+      "mle": {
+        "N(1)~edges": 2.75176160858019,
+        "N(weekday1)~edges": 0.324013372632168,
+        "N(1)~nodematch.gender": -0.163734623548414,
+        "N(weekday1)~nodematch.gender": 0.0280030100282356
+      },
+      "se": {
+        "N(1)~edges": 0.146826115628643,
+        "N(weekday1)~edges": 0.146826115628643,
+        "N(1)~nodematch.gender": 0.21950561990017,
+        "N(weekday1)~nodematch.gender": 0.21950561990017
+      },
+      "mcmc_pct": {
+        "N(1)~edges": 0,
+        "N(weekday1)~edges": 0,
+        "N(1)~nodematch.gender": 0,
+        "N(weekday1)~nodematch.gender": 0
+      },
+      "loglik": -532.101936605535,
+      "nobs": 2004,
+      "seconds": 0.792999999999665
+    },
+    "goey_contrasts_helmert": {
+      "network": "Goeyvaerts.included",
+      "formula": "N(~edges, lm=~factor(n), subset=~n>=3 & n<=5, contrasts=list(`factor(n)`='contr.helmert'))",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "target_stats": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "N(1)~edges": 1619,
+        "N(factor(n)1)~edges": 692,
+        "N(factor(n)2)~edges": -56
+      },
+      "mple": {
+        "N(1)~edges": 2.61049087986325,
+        "N(factor(n)1)~edges": -0.0144851736066252,
+        "N(factor(n)2)~edges": -0.123280568110259
+      },
+      "dyad_independent": true,
+      "mle": {
+        "N(1)~edges": 2.61049087986325,
+        "N(factor(n)1)~edges": -0.0144851736066252,
+        "N(factor(n)2)~edges": -0.123280568110259
+      },
+      "se": {
+        "N(1)~edges": 0.116544283519508,
+        "N(factor(n)1)~edges": 0.158047131759882,
+        "N(factor(n)2)~edges": 0.072500147599162
+      },
+      "mcmc_pct": {
+        "N(1)~edges": 0,
+        "N(factor(n)1)~edges": 0,
+        "N(factor(n)2)~edges": 0
+      },
+      "loglik": -620.53480116173,
+      "nobs": 2004,
+      "seconds": 0.326000000000022
+    },
+    "goey_contrasts_poly": {
+      "network": "Goeyvaerts.included",
+      "formula": "N(~edges + nodematch('gender'), lm=~factor(n), subset=~n>=3, contrasts=list(`factor(n)`='contr.poly'))",
+      "checks": [
+        "stats",
+        "mple",
+        "mle"
+      ],
+      "constraints": {},
+      "offset_coef": {},
+      "target_stats": {},
+      "py_formula": {},
+      "py_constraints": {},
+      "bipartite": false,
+      "stats": {
+        "N(1)~edges": 1840,
+        "N(factor(n).L)~edges": -329.193104423531,
+        "N(factor(n).Q)~edges": -436.97213052681,
+        "N(factor(n).C)~edges": 399.079440713256,
+        "N(factor(n)^4)~edges": -112.351489277434,
+        "N(1)~nodematch.gender": 773,
+        "N(factor(n).L)~nodematch.gender": -119.850323320381,
+        "N(factor(n).Q)~nodematch.gender": -199.64414770858,
+        "N(factor(n).C)~nodematch.gender": 159.062566306469,
+        "N(factor(n)^4)~nodematch.gender": -36.693518306567
+      },
+      "mple": {
+        "N(1)~edges": 2.56521132380738,
+        "N(factor(n).L)~edges": -0.0190399523776527,
+        "N(factor(n).Q)~edges": 0.453109241962792,
+        "N(factor(n).C)~edges": 0.748434558974134,
+        "N(factor(n)^4)~edges": 0.10441660262611,
+        "N(1)~nodematch.gender": -0.16250754017339,
+        "N(factor(n).L)~nodematch.gender": -0.796684282811551,
+        "N(factor(n).Q)~nodematch.gender": -0.00930961207660774,
+        "N(factor(n).C)~nodematch.gender": -0.600520647264063,
+        "N(factor(n)^4)~nodematch.gender": 0.11675223741789
+      },
+      "dyad_independent": true,
+      "mle": {
+        "N(1)~edges": 2.56521132380737,
+        "N(factor(n).L)~edges": -0.0190399523776586,
+        "N(factor(n).Q)~edges": 0.453109241962793,
+        "N(factor(n).C)~edges": 0.748434558974133,
+        "N(factor(n)^4)~edges": 0.104416602626111,
+        "N(1)~nodematch.gender": -0.162507540173388,
+        "N(factor(n).L)~nodematch.gender": -0.796684282811544,
+        "N(factor(n).Q)~nodematch.gender": -0.00930961207661001,
+        "N(factor(n).C)~nodematch.gender": -0.600520647264065,
+        "N(factor(n)^4)~nodematch.gender": 0.116752237417888
+      },
+      "se": {
+        "N(1)~edges": 0.229278093302501,
+        "N(factor(n).L)~edges": 0.688294867204792,
+        "N(factor(n).Q)~edges": 0.591929677113722,
+        "N(factor(n).C)~edges": 0.402959932594512,
+        "N(factor(n)^4)~edges": 0.254679420494896,
+        "N(1)~nodematch.gender": 0.308899928174634,
+        "N(factor(n).L)~nodematch.gender": 0.920390004708193,
+        "N(factor(n).Q)~nodematch.gender": 0.794172708648753,
+        "N(factor(n).C)~nodematch.gender": 0.54843048874583,
+        "N(factor(n)^4)~nodematch.gender": 0.360248885648024
+      },
+      "mcmc_pct": {
+        "N(1)~edges": 0,
+        "N(factor(n).L)~edges": 0,
+        "N(factor(n).Q)~edges": 0,
+        "N(factor(n).C)~edges": 0,
+        "N(factor(n)^4)~edges": 0,
+        "N(1)~nodematch.gender": 0,
+        "N(factor(n).L)~nodematch.gender": 0,
+        "N(factor(n).Q)~nodematch.gender": 0,
+        "N(factor(n).C)~nodematch.gender": 0,
+        "N(factor(n)^4)~nodematch.gender": 0
+      },
+      "loglik": -537.680970104667,
+      "nobs": 2004,
+      "seconds": 0.769000000000233
     }
   },
   "gofn": {
@@ -4755,7 +6100,64 @@
         "pearson": [-0.0447549551670829, "NA", -0.0869074031682592, -0.0223606797751642, "NA", -0.038749222616589, "NA", -0.0672166747626377, -0.0672166747626445, -0.0316306892193687, -0.0316306892195372, -0.0387492226164971, -0.044754955167222, 44.6989988702207, -0.0223606797751046, "NA", -0.0223606797750848, -0.070870396254874, -0.044754955167222, -0.0500501002130665, -0.0925666406170012, -0.0316306892195091, -0.0949898032460984, -0.158438530072005, -0.0223606797751841, "NA", -0.0223606797750849, "NA", -0.0316306892193827, -0.0633565799652941, -0.0316306892195091, -0.0387492226164742, "NA", -0.0387492226165544, -0.0500501002130576, "NA", -0.0548408840894153, -0.0633565799652871, -0.0316306892193826, -0.0808656611828154, -0.0316306892195232, -0.0592497837892877, -0.0633565799652591, -0.0387492226164742, -0.0500501002130843, "NA", -0.0316306892197056, -0.0447549551672319, -0.0316306892192281, -0.0548408840893665, -0.0316306892193687, -0.0548408840893665, "NA", "NA", -0.0387492226165085, "NA", -0.0223606797749855, -0.0223606797751642, -0.160088116761378, -0.0387492226161873, -0.0223606797750849, -0.139134136174907, -0.0387492226165659, -0.0316306892193687, "NA", "NA", -0.0548408840893422, -0.0672166747625847, -0.0743481814604243, -0.0316306892196075, -0.0223606797751047, "NA", -0.0500501002130576, -0.0387492226162792, 25.7940658550242, "NA", -0.0520188050748756, -0.0708703962549181, -0.0387492226165545, -0.0897801975436096, -0.0223606797751047, -0.0387492226163479, -0.0447549551673612, -0.0223606797750252, -0.0316306892195512, -0.103295303754098, "NA", "NA", -0.0839393873292643, -0.0387492226165431, "NA", -0.0316306892193826, -0.0223606797749259, "NA", -0.0548408840894559, "NA", -0.0548408840894235, -0.0500501002129776, -0.0447549551672319, -0.0925666406170544, -0.063356579965259, "NA", -0.0839393873292805, -0.0548408840893746, 31.5990585302791, -0.054840884089269, "NA", -0.0316306892196215, -0.177323956239477, "NA", -0.0223606797749458, -0.0223606797750252, -0.0447549551671225, "NA", -0.0387492226163939, -0.0592497837892501, -0.0522330175047942, -0.0548408840893909, 44.6989988702207, -0.0316306892194248, "NA", "NA", "NA", -0.0223606797749458, "NA", -0.0223606797750649, -0.116952561633259, -0.0548408840894316, 44.6989988702208, -0.0223606797750054, "NA", -0.0672166747625911, -0.0387492226165085, -0.153393880914952, -0.0387492226164053, -0.0474757451689988, 22.332722628466, -0.067216674762618, -0.022360679774787, -0.0500501002130576, -0.0633565799652942, -0.204073107815154, -0.0548408840893665, -0.0223606797751245, -0.0548408840893747, -0.0387492226165085, -0.0316306892193827, -0.0387492226164742, -0.0500501002130666, -0.0633565799653014, -0.0316306892192843, -0.0316306892196075, -0.0633565799652942, -0.0223606797750848, -0.0316306892193266, 63.2297477497775, "NA", "NA", -0.0500501002130843, -0.0387492226164283, -0.149945457022881, "NA", -0.0316306892193827, -0.0223606797751046, "NA", -0.03874922261652, -0.0830724724152717, "NA", -0.0839393873292272, -0.0316306892196776, "NA", -0.0447549551673611, -0.0672166747626444, "NA", "NA", -0.0316306892196075, -0.0387492226164512, -0.0316306892196214, -0.0447549551672716, "NA", "NA", -0.0316306892193546, 16.8692598702915, -0.0387492226165544, -0.0672166747626511, -0.038749222616543, -0.0316306892193125, -0.0447549551672716, -0.0815990268588998, "NA", -0.0223606797750848, -0.086907403168259, -0.0548408840893585, -0.0316306892192562, "NA", -0.0223606797750252, "NA", -0.0387492226165316, -0.0500501002130665, "NA", -0.0316306892196496, -0.0548408840893341, "NA", -0.0500501002130754, -0.0387492226165086, "NA", -0.0223606797749458, "NA", -0.0500501002130932, -0.0223606797750252, -0.0387492226165429, -0.0387492226164627, -0.0223606797750252, -0.0387492226165544, "NA", -0.0316306892193687, -0.0387492226165316, -0.0387492226165543, -0.0776736711838099, -0.0592497837892952, -0.0672166747626842, -0.16968258917744, "NA", -0.0447549551670034, -0.0447549551671424]
       }
     },
-    "network_size": [5, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 5, 4, 6, 4, 4, 3, 3, 3, 5, 3, 2, 4, 4, 4, 4, 4, 4, 5, 4, 4, 4, 4, 5, 3, 4, 4, 3, 3, 3, 3, 3, 3, 3, 5, 4, 5, 4, 4, 3, 4, 5, 4, 5, 4, 4, 2, 5, 4, 2, 4, 4, 5, 7, 4, 4, 3, 3, 4, 4, 4, 5, 4, 6, 3, 4, 4, 3, 4, 5, 5, 4, 4, 3, 4, 5, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3, 4, 3, 3, 6, 3, 4, 4, 4, 4, 4, 2, 5, 5, 5, 5, 5, 4, 3, 4, 4, 5, 4, 5, 4, 4, 6, 5, 4, 2, 5, 5, 4, 4, 3, 4, 2, 3, 4, 4, 3, 6, 4, 3, 2, 3, 4, 3, 3, 4, 3, 4, 4, 5, 4, 4, 4, 4, 4, 6, 6, 3, 4, 2, 5, 3, 3, 6, 4, 3, 5, 3, 5, 4, 4, 4, 4, 4, 3, 4, 5, 4, 6, 3, 4, 3, 4, 3, 4, 3, 4, 4, 4, 4, 3, 3, 5, 4, 5, 3, 4, 3, 5, 6, 4, 6, 4, 3, 6, 5, 3, 4, 4, 4, 5, 5, 4, 5, 3, 5, 4, 4, 4, 3, 2, 4, 5, 4]
+    "network_size": [5, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 5, 4, 6, 4, 4, 3, 3, 3, 5, 3, 2, 4, 4, 4, 4, 4, 4, 5, 4, 4, 4, 4, 5, 3, 4, 4, 3, 3, 3, 3, 3, 3, 3, 5, 4, 5, 4, 4, 3, 4, 5, 4, 5, 4, 4, 2, 5, 4, 2, 4, 4, 5, 7, 4, 4, 3, 3, 4, 4, 4, 5, 4, 6, 3, 4, 4, 3, 4, 5, 5, 4, 4, 3, 4, 5, 3, 4, 4, 4, 4, 4, 3, 4, 4, 3, 4, 3, 3, 6, 3, 4, 4, 4, 4, 4, 2, 5, 5, 5, 5, 5, 4, 3, 4, 4, 5, 4, 5, 4, 4, 6, 5, 4, 2, 5, 5, 4, 4, 3, 4, 2, 3, 4, 4, 3, 6, 4, 3, 2, 3, 4, 3, 3, 4, 3, 4, 4, 5, 4, 4, 4, 4, 4, 6, 6, 3, 4, 2, 5, 3, 3, 6, 4, 3, 5, 3, 5, 4, 4, 4, 4, 4, 3, 4, 5, 4, 6, 3, 4, 3, 4, 3, 4, 3, 4, 4, 4, 4, 3, 3, 5, 4, 5, 3, 4, 3, 5, 6, 4, 6, 4, 3, 6, 5, 3, 4, 4, 4, 5, 5, 4, 5, 3, 5, 4, 4, 4, 3, 2, 4, 5, 4],
+    "lm_formula": "c('edges', 'triangle', 'degree1') ~ n + I(n^2)",
+    "lm": {
+      "edges": {
+        "coef": {
+          "(Intercept)": -0.074232794829505,
+          "n": 0.062006017218451,
+          "I(n^2)": -0.0103746635022756
+        },
+        "se": {
+          "(Intercept)": 0.455688960222828,
+          "n": 0.290409046787211,
+          "I(n^2)": 0.0441670480622091
+        },
+        "sigma": 1.50394432814353,
+        "df": 222,
+        "r_squared": 0.000296976920683639,
+        "adj_r_squared": -0.00870935662057137,
+        "fstatistic": [0.0329742307814033, 2, 222],
+        "dropped": 0
+      },
+      "triangle": {
+        "coef": {
+          "(Intercept)": 1.00261992387846,
+          "n": -0.765672867652703,
+          "I(n^2)": 0.14486641728695
+        },
+        "se": {
+          "(Intercept)": 2.21691486252563,
+          "n": 1.23430046517728,
+          "I(n^2)": 0.167021739189874
+        },
+        "sigma": 1.10479374592706,
+        "df": 213,
+        "r_squared": 0.0391897327346297,
+        "adj_r_squared": 0.0301680400842507,
+        "fstatistic": [4.34394456266287, 2, 213],
+        "dropped": 9
+      },
+      "degree1": {
+        "coef": {
+          "(Intercept)": -1.4892255449104,
+          "n": 0.639962806493058,
+          "I(n^2)": -0.0569442847795515
+        },
+        "se": {
+          "(Intercept)": 0.628467618382219,
+          "n": 0.251820412200484,
+          "I(n^2)": 0.0245623430842876
+        },
+        "sigma": 3.16548141138926,
+        "df": 222,
+        "r_squared": 0.038416723194835,
+        "adj_r_squared": 0.0297538107911849,
+        "fstatistic": [4.43461983739418, 2, 222],
+        "dropped": 0
+      }
+    }
   },
   "ergm_differences": {
     "rtp": {
@@ -4803,6 +6205,15 @@
       "dyadcov.ones.mutual": 0,
       "dyadcov.ones.utri": 0,
       "dyadcov.ones.ltri": 1
+    },
+    "degcrossprod": {
+      "ergm_degcrossprod": 5.25,
+      "mean": 10.5
+    },
+    "coincidence_active": {
+      "active": 3,
+      "ergm": ["coincidence.3.4", "coincidence.3.5", "coincidence.3.6", "coincidence.3.7", "coincidence.3.8", "coincidence.4.5", "coincidence.5.6", "coincidence.5.7", "coincidence.5.8", "coincidence.6.7", "coincidence.6.8", "coincidence.6.9", "coincidence.7.8", "coincidence.7.9", "coincidence.7.12", "coincidence.8.9", "coincidence.8.10", "coincidence.8.12", "coincidence.9.10", "coincidence.9.12", "coincidence.10.12"],
+      "at_least": ["coincidence.1.3", "coincidence.1.5", "coincidence.1.6", "coincidence.1.8", "coincidence.2.3", "coincidence.2.5", "coincidence.2.6", "coincidence.2.8", "coincidence.3.4", "coincidence.3.5", "coincidence.3.6", "coincidence.3.7", "coincidence.3.8", "coincidence.4.5", "coincidence.4.6", "coincidence.4.7", "coincidence.4.8", "coincidence.5.6", "coincidence.5.7", "coincidence.5.8", "coincidence.5.9", "coincidence.6.7", "coincidence.6.8", "coincidence.6.9", "coincidence.7.8", "coincidence.7.9", "coincidence.7.10", "coincidence.7.12", "coincidence.8.9", "coincidence.8.10", "coincidence.8.12", "coincidence.9.10", "coincidence.9.11", "coincidence.9.12", "coincidence.9.13", "coincidence.9.14", "coincidence.10.12", "coincidence.10.13", "coincidence.10.14", "coincidence.12.13", "coincidence.12.14", "coincidence.13.14"]
     }
   }
 }

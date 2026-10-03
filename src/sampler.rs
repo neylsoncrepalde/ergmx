@@ -30,6 +30,13 @@
 //! * `odegrees` (`idegrees`): move the head (tail) of a tie to another vertex;
 //! * `b1degrees` (`b2degrees`): move the end of a tie in the other mode to
 //!   another vertex of that mode;
+//! * `degreedist`: the moves of `degrees`, and moves of a tie's end to a
+//!   vertex with one tie fewer than the end's vertex, so that the two swap
+//!   degrees (in directed networks, of the head to swap in-degrees and of the
+//!   tail to swap out-degrees: both distributions are kept);
+//! * `odegreedist` (`idegreedist`): the moves of `odegrees` (`idegrees`),
+//!   and moves of a tie's tail (head) that swap two vertices' out-degrees
+//!   (in-degrees);
 //!
 //! and `edges`, which preserves the number of edges, swaps a random tie for a
 //! random non-tie.
@@ -43,7 +50,7 @@ use rustc_hash::FxHashMap;
 use crate::network::{Network, count_common, for_each_common};
 use crate::rng::Rng;
 use crate::space::{EdgeIndex, Preserve, Space};
-use crate::terms::{Model, State};
+use crate::terms::{Ends, Model, State};
 
 /// Probability that a TNT move toggles a random existing tie.
 const TIE_PROB: f64 = 0.5;
@@ -213,6 +220,20 @@ impl Proposal<'_> {
                 self.move_end(net, ties, rng)
             }
             Preserve::Edges => self.swap_tie(net, ties, rng),
+            Preserve::DegreeDist => {
+                let u = rng.unif();
+                if u < 0.5 {
+                    self.move_swapping(net, ties, rng, if !net.directed() { Ends::Both } else if u < 0.25 { Ends::Head } else { Ends::Tail })
+                } else if net.directed() && u < 0.5 + CYCLE_PROB / 2.0 {
+                    self.reverse_cycle(net, ties, rng)
+                } else {
+                    self.swap(net, ties, rng)
+                }
+            }
+            // The moves of odegrees (idegrees), with the out-degrees (in-degrees) swapped half the time.
+            Preserve::OutDegreeDist if rng.unif() < 0.5 => self.move_swapping(net, ties, rng, Ends::Tail),
+            Preserve::InDegreeDist if rng.unif() < 0.5 => self.move_swapping(net, ties, rng, Ends::Head),
+            Preserve::OutDegreeDist | Preserve::InDegreeDist => self.move_end(net, ties, rng),
         }
     }
 
@@ -325,8 +346,8 @@ impl Proposal<'_> {
         let (a, b) = ties.random(net, rng);
         let n = net.n() as u64;
         let keep = match self.space.preserve {
-            Preserve::OutDegrees => a,
-            Preserve::InDegrees => b,
+            Preserve::OutDegrees | Preserve::OutDegreeDist => a,
+            Preserve::InDegrees | Preserve::InDegreeDist => b,
             // The end in the mode whose degrees are kept; within-mode dyads aren't free.
             mode => {
                 let first = self.space.first_mode.as_ref().expect("mode degrees need the modes");
@@ -337,7 +358,42 @@ impl Proposal<'_> {
         if v >= keep {
             v += 1;
         }
-        let (i, j) = if self.space.preserve == Preserve::InDegrees { (v, b) } else { (keep, v) };
+        let in_degrees = matches!(self.space.preserve, Preserve::InDegrees | Preserve::InDegreeDist);
+        let (i, j) = if in_degrees { (v, b) } else { (keep, v) };
+        if !self.open(net, i, j) {
+            return None;
+        }
+        Some(Move::of(&[(a, b), (i, j)], 0.0))
+    }
+
+    /// Moves one end of a random tie (`Both`: either end, undirected; `Head`;
+    /// `Tail`) to a random vertex with one tie fewer on that side than the
+    /// end's vertex, so that the two swap degrees and the degree distribution
+    /// is kept; symmetric, so log q = 0.
+    fn move_swapping(&self, net: &Network, ties: &EdgeIndex, rng: &mut Rng, side: Ends) -> Option<Move> {
+        if ties.count(net) == 0 {
+            return None;
+        }
+        let (a, b) = ties.random(net, rng);
+        // The vertex that keeps the tie, and the one it moves from.
+        let (keep, from) = match side {
+            Ends::Both if rng.unif() < 0.5 => (b, a),
+            Ends::Both | Ends::Head => (a, b),
+            Ends::Tail => (b, a),
+        };
+        let v = rng.below(net.n() as u64) as u32;
+        if v == keep || v == from {
+            return None;
+        }
+        let degree = |x: u32| match side {
+            Ends::Both => net.neighbours(x).len(),
+            Ends::Head => net.in_neighbours(x).len(),
+            Ends::Tail => net.out_neighbours(x).len(),
+        };
+        if degree(v) + 1 != degree(from) {
+            return None;
+        }
+        let (i, j) = if matches!(side, Ends::Tail) { (v, keep) } else { (keep, v) };
         if !self.open(net, i, j) {
             return None;
         }
@@ -457,6 +513,126 @@ impl<'a> Sampler<'a> {
             }
         }
     }
+}
+
+/// The settings of a simulated annealing run (ergm's SAN): the targeted
+/// statistics and their targets, offsets (statistic, coefficient) that bias
+/// the search, the weights W (targeted x targeted, row-major) of the energy
+/// (s - target)' W (s - target), the temperature, the number of proposals and
+/// of samples recorded.
+pub struct SanSettings<'a> {
+    pub targeted: &'a [usize],
+    pub target: &'a [f64],
+    pub offsets: &'a [(usize, f64)],
+    pub weights: &'a [f64],
+    pub tau: f64,
+    pub nsteps: u64,
+    pub samplesize: usize,
+}
+
+/// The result of a simulated annealing run: the last network, and for each
+/// sample, the targeted statistics' deviations from their targets and the
+/// sum of the changes proposed since the previous sample (accepted or not),
+/// whose covariance tunes the next run's weights, as ergm's.
+pub struct San {
+    pub last: Network,
+    pub deviations: Vec<f64>,
+    pub proposed: Vec<f64>,
+}
+
+impl Sampler<'_> {
+    /// One step of simulated annealing: a proposal accepted if it lowers the
+    /// energy (or, at a positive temperature, with probability exp(-change /
+    /// tau)), times the offsets' weights. Proposal probabilities are ignored,
+    /// as in ergm: this is a search, not a sampler. Returns whether every
+    /// deviation is now 0.
+    fn san_step(&mut self, rng: &mut Rng, settings: &SanSettings, deviations: &mut [f64], proposed: &mut [f64]) -> bool {
+        let Some(mv) = self.proposal.propose(&self.state.net, &self.ties, None, rng) else { return false };
+        let space = self.proposal.space;
+        let single = mv.len == 1;
+        if single {
+            let (i, j) = mv.toggles[0];
+            if let Some(bounds) = &space.bounds
+                && !bounds.allows(&self.state.net, i, j)
+            {
+                return false;
+            }
+            self.model.change(&self.state, i, j, &mut self.delta);
+        } else {
+            self.delta.fill(0.0);
+            for &(i, j) in &mv.toggles[..mv.len] {
+                self.model.change(&self.state, i, j, &mut self.scratch);
+                self.delta.iter_mut().zip(&self.scratch).for_each(|(d, s)| *d += s);
+                self.apply(i, j);
+            }
+        }
+        let q = settings.targeted.len();
+        let mut energy = 0.0; // the change of (s - target)' W (s - target)
+        for (a, &k) in settings.targeted.iter().enumerate() {
+            proposed[a] += self.delta[k];
+            let weighted: f64 = settings.targeted.iter().enumerate().map(|(b, &l)| self.delta[l] * settings.weights[a * q + b]).sum();
+            energy += weighted * (self.delta[k] + 2.0 * deviations[a]);
+        }
+        // Skipping zero changes lets offsets be -Inf (forbidding a change).
+        let offset: f64 = settings.offsets.iter().filter(|&&(k, _)| self.delta[k] != 0.0).map(|&(k, eta)| eta * self.delta[k]).sum();
+        let within = single
+            || match &space.bounds {
+                None => true,
+                Some(bounds) => mv.toggles[..mv.len]
+                    .iter()
+                    .all(|&(i, j)| bounds.satisfied(&self.state.net, i) && bounds.satisfied(&self.state.net, j)),
+            };
+        let accept = within
+            && if settings.tau == 0.0 { energy - offset <= 0.0 } else { energy / settings.tau - offset <= -rng.unif().ln() };
+        if !accept {
+            if !single {
+                for &(i, j) in mv.toggles[..mv.len].iter().rev() {
+                    self.apply(i, j);
+                }
+            }
+            return false;
+        }
+        if single {
+            let (i, j) = mv.toggles[0];
+            self.apply(i, j);
+        }
+        self.stats.iter_mut().zip(&self.delta).for_each(|(s, d)| *s += d);
+        for (a, &k) in settings.targeted.iter().enumerate() {
+            deviations[a] += self.delta[k];
+        }
+        deviations.iter().all(|&d| d == 0.0)
+    }
+}
+
+/// Simulated annealing from `net` (ergm's SAN): `nsteps` proposals, the
+/// samples spread over them as ergm's, stopping early if the targets are met.
+pub fn run_san(model: &Model, proposal: &Proposal, net: Network, settings: &SanSettings, rng: &mut Rng) -> San {
+    let stats = model.summary(&net);
+    let q = settings.targeted.len();
+    let mut deviations: Vec<f64> = settings.targeted.iter().zip(settings.target).map(|(&k, t)| stats[k] - t).collect();
+    let theta = vec![0.0; stats.len()];
+    let mut s = Sampler::new(model, proposal, &theta, model.state(net), stats);
+    let samples = settings.samplesize.max(1) as u64;
+    let interval = (settings.nsteps / samples).max(1);
+    let burnin = settings.nsteps.saturating_sub((samples - 1) * interval);
+    let (mut out, mut proposed_rows) = (Vec::new(), Vec::new());
+    let mut finished = deviations.iter().all(|&d| d == 0.0);
+    for sample in 0..samples {
+        let mut proposed = vec![0.0; q];
+        let steps = if sample == 0 { burnin } else { interval };
+        for _ in 0..steps {
+            if finished {
+                break;
+            }
+            finished = s.san_step(rng, settings, &mut deviations, &mut proposed);
+        }
+        out.extend_from_slice(&deviations);
+        proposed_rows.extend_from_slice(&proposed);
+        if finished {
+            break;
+        }
+    }
+    San { last: s.state.net, deviations: out, proposed: proposed_rows }
 }
 
 /// Runs `burnin` steps, then records `samplesize` samples `interval` steps apart.

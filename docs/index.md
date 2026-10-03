@@ -15,7 +15,7 @@ the same terms and statistics, and `summary()`, `gof()` and
 and runs chains in parallel threads, so fits take seconds.
 
 :::{note}
-`ergmx` has 167 terms and 9 operators for directed, undirected and bipartite
+`ergmx` has 171 terms and 9 operators for directed, undirected and bipartite
 networks, and interactions; curved ERGMs, sample space constraints, missing
 ties, multilevel networks (as MPNet), samples of networks (as ergm.multi),
 temporal ERGMs, EGMME and dynamic simulation (as tergm), MPLE, contrastive
@@ -82,7 +82,7 @@ results, simulation, and saving fits.
 :link: terms
 :link-type: doc
 
-The 167 terms and 9 operators, their statistics and their names.
+The 171 terms and 9 operators, their statistics and their names.
 :::
 
 :::{grid-item-card} {fas}`code` API reference

@@ -200,6 +200,12 @@ class ErgmFit:
                                         **options)
             return simulate_dynamic(start, self._model.formula, self.params, time_slices, nsim=nsim,
                                     constraints=self._model.constraints, seed=seed, **options)
+        if getattr(self._model, "valued", False):
+            from ._valued import simulate_valued
+
+            return simulate_valued(self._model, self.params, nsim, seed, options.get("burnin"),
+                                   options.get("interval", self._estimate.interval), output,
+                                   options.get("response", "weight"))
         from ._simulate import simulate
 
         return simulate(
@@ -368,12 +374,16 @@ class FitSummary:
             se_text = f" (MC SE {fit.loglik_se:.3f})" if fit.loglik_se else ""
             kind = "Log-likelihood, relative to the null model" if fit.loglik_relative else "Log-likelihood"
             lines.append(f"{kind}: {fit.loglik:.4f}{se_text}   AIC: {fit.aic:.4f}   BIC: {fit.bic:.4f}")
+        elif getattr(model, "valued", False) and model.reference[0] == "Geometric":
+            lines.append("Log-likelihood: not computed (the geometric reference can't be normalized).")
         else:
             lines.append("Log-likelihood: not computed (eval_loglik=False).")
         if model.constraints:
             lines.append(f"Constraints: {model.constraints!r}.")
         if model.has_missing:
             lines.append(f"Missing dyads: {len(model.network.missing)}, assumed missing at random.")
+        if model.target is not None:
+            lines.append("Fitted to target statistics, from a network simulated towards them (san()).")
         if model.network.combined:
             what = "transitions, each conditional on the network before it" if model.network.series \
                 else "networks"

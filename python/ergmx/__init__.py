@@ -6,15 +6,18 @@
 """
 
 from . import constraints, datasets
+from ._bayes import BergmFit, BergmSummary, bergm
 from ._compare import ModelComparison, compare
 from ._diagnostics import McmcDiagnostics
 from ._estimation import Control, DegeneracyError
 from ._fit import ErgmFit, FitSummary, load_fit
+from ._ego import EgoData, EgoFit, ego_stats, ergm_ego
 from ._durational import edge_ages, edgecov_ages, edges_ageinterval, mean_age, nodefactor_mean_age
 from ._gof import GofResult, GofTable, gof
-from ._gofn import GofNResult, GofNSummary, GofNTable, gofN
+from ._gofn import GofNResult, GofNSummary, GofNTable, LmFit, gofN, lm_gofN
 from ._interpret import NumericTable, TiePredictions
 from ._multi import NetSeries, Networks
+from ._san import SanControl, san
 from ._simulate import ergm, predict, simulate, summary_stats
 from ._table import ResultsTable, table
 from ._temporal import DynamicSimulation, EgmmeFit, simulate_dynamic, tergm
@@ -96,12 +99,15 @@ from .terms import (
     c4axbexchangeareciprocity,
     c4axbexchangebreciprocity,
     c4axbreciprocity,
+    coincidence,
     concurrent,
     concurrentties,
     ctriple,
     cycle,
     cyclicalties,
     ddsp,
+    degcor,
+    degcrossprod,
     degrange,
     degree,
     degree1_5,
@@ -191,6 +197,7 @@ from .terms import (
     transitiveties,
     triadcensus,
     triangle,
+    tripercent,
     ttriple,
     twopath,
     txax,
@@ -201,9 +208,11 @@ from .terms import (
     txbxreciprocity,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
+    "BergmFit",
+    "BergmSummary",
     "Change",
     "Control",
     "Cross",
@@ -211,6 +220,8 @@ __all__ = [
     "Diss",
     "DynamicSimulation",
     "EgmmeFit",
+    "EgoData",
+    "EgoFit",
     "ErgmDifferenceWarning",
     "ErgmFit",
     "F",
@@ -223,6 +234,7 @@ __all__ = [
     "GofNTable",
     "GofResult",
     "GofTable",
+    "LmFit",
     "McmcDiagnostics",
     "ModelComparison",
     "N",
@@ -232,6 +244,7 @@ __all__ = [
     "Persist",
     "ResultsTable",
     "S",
+    "SanControl",
     "Term",
     "TiePredictions",
     "aaaxs",
@@ -293,12 +306,14 @@ __all__ = [
     "b2starmix",
     "b2twostar",
     "balance",
+    "bergm",
     "c4axb",
     "c4axbentrainment",
     "c4axbexchange",
     "c4axbexchangeareciprocity",
     "c4axbexchangebreciprocity",
     "c4axbreciprocity",
+    "coincidence",
     "compare",
     "concurrent",
     "concurrentties",
@@ -308,6 +323,8 @@ __all__ = [
     "cyclicalties",
     "datasets",
     "ddsp",
+    "degcor",
+    "degcrossprod",
     "degrange",
     "degree",
     "degree1_5",
@@ -325,7 +342,9 @@ __all__ = [
     "edgecov_ages",
     "edges",
     "edges_ageinterval",
+    "ego_stats",
     "ergm",
+    "ergm_ego",
     "esp",
     "exta",
     "extb",
@@ -361,6 +380,7 @@ __all__ = [
     "l3xaxreciprocity",
     "l3xbx",
     "l3xbxreciprocity",
+    "lm_gofN",
     "load_fit",
     "localtriangle",
     "m2star",
@@ -396,6 +416,7 @@ __all__ = [
     "parse_formula",
     "predict",
     "receiver",
+    "san",
     "sender",
     "simmelian",
     "simmelianties",
@@ -413,6 +434,7 @@ __all__ = [
     "transitiveties",
     "triadcensus",
     "triangle",
+    "tripercent",
     "ttriple",
     "twopath",
     "txax",

@@ -29,6 +29,8 @@ class Constraint:
     dyad_dependent = False
     #: For degree-preserving constraints, the degrees they keep.
     preserves: frozenset = frozenset()
+    #: The degree distributions they keep (beyond those of the degrees kept).
+    preserves_distribution: frozenset = frozenset()
     #: The Rust core's name of the degree-preserving move, if any.
     preserve_kind = ""
 
@@ -406,11 +408,90 @@ class IDegrees(ODegrees):
     preserve_kind = "idegrees"
 
 
+class DegreeDist(Constraint):
+    """Preserve the degree distribution (of in- and out-degrees, if
+    directed), as R's ergm documents its degreedist constraint: the
+    vertices' degrees may change, but not how many vertices have each
+    degree. (ergm 4.12's proposals keep every vertex's out-degree and swap
+    in-degrees, or the reverse, which reaches fewer networks; see
+    ``odegreedist``.)"""
+
+    dyad_dependent = True
+    preserve_kind = "degreedist"
+    preserves_distribution = frozenset({"in", "out", "b1", "b2"})
+
+
+class ODegreeDist(Constraint):
+    """Preserve the out-degree distribution (directed networks). R's ergm
+    documents this; ergm 4.12 keeps every vertex's out-degree, as odegrees."""
+
+    dyad_dependent = True
+    preserve_kind = "odegreedist"
+    preserves_distribution = frozenset({"out"})
+
+    def check(self, network: Network) -> None:
+        if not network.directed:
+            raise ValueError(f"{self!r} needs a directed network")
+
+
+class IDegreeDist(ODegreeDist):
+    """Preserve the in-degree distribution (directed networks). R's ergm
+    documents this; ergm 4.12 keeps every vertex's in-degree, as idegrees."""
+
+    preserve_kind = "idegreedist"
+    preserves_distribution = frozenset({"in"})
+
+
+class Egocentric(Constraint):
+    """Fix the dyads of some vertices, as ergm's egocentric(): of those whose
+    ``attr`` is true (or, without ``attr``, whose ``na`` attribute is false).
+    ``direction`` (directed networks): "both" fixes the dyads with such a
+    vertex at either end, "out" those they send and "in" those they receive."""
+
+    def __init__(self, attr=None, direction: str = "both"):
+        if direction not in ("both", "out", "in"):
+            raise ValueError(f"egocentric(): direction must be 'both', 'out' or 'in', not {direction!r}")
+        self.attr, self.direction = attr, direction
+
+    def _egos(self, network: Network) -> np.ndarray:
+        if self.attr is None:
+            if "na" not in network.attributes:
+                raise ValueError("egocentric() without attr needs the vertex attribute 'na'")
+            return ~np.asarray(network.attribute("na"), dtype=bool)
+        values = network.attribute(self.attr) if isinstance(self.attr, str) else self.attr
+        egos = np.asarray(values)
+        if egos.dtype != bool or egos.shape != (network.n,):
+            raise ValueError("egocentric(): attr must be a logical vertex attribute (or one logical value per vertex)")
+        return egos
+
+    def check(self, network: Network) -> None:
+        if not network.directed and self.direction != "both":
+            raise ValueError("egocentric(): direction applies to directed networks only")
+        self._egos(network)
+
+    def fixed(self, network: Network) -> np.ndarray:
+        egos = self._egos(network)
+        if self.direction == "out":
+            mask = np.repeat(egos[:, None], network.n, axis=1)
+        elif self.direction == "in":
+            mask = np.repeat(egos[None, :], network.n, axis=0)
+        else:
+            mask = egos[:, None] | egos[None, :]
+        np.fill_diagonal(mask, False)
+        return mask
+
+    def __repr__(self) -> str:
+        args = ([repr(self.attr)] if isinstance(self.attr, str) else []) + \
+            ([f"direction={self.direction!r}"] if self.direction != "both" else [])
+        return f"egocentric({', '.join(args)})"
+
+
 CONSTRAINTS = {
     "bd": Bd, "blocks": Blocks, "degrees": Degrees, "nodedegrees": Degrees,
     "odegrees": ODegrees, "idegrees": IDegrees, "edges": Edges, "b1degrees": B1Degrees,
     "b2degrees": B2Degrees, "fixedas": Fixedas, "fixallbut": Fixallbut, "observed": Observed,
-    "blockdiag": Blockdiag, "Dyads": DyadsConstraint,
+    "blockdiag": Blockdiag, "Dyads": DyadsConstraint, "degreedist": DegreeDist,
+    "odegreedist": ODegreeDist, "idegreedist": IDegreeDist, "egocentric": Egocentric,
 }
 
 
@@ -431,6 +512,13 @@ class Constraints:
     def preserves(self) -> frozenset | None:
         """The degrees a degree-preserving constraint keeps, or None."""
         kept = [c.preserves for c in self.items if c.preserve_kind]
+        return kept[0] if kept else None
+
+    @property
+    def preserves_distribution(self) -> frozenset | None:
+        """The degree distributions a degree-preserving constraint keeps
+        (those of the degrees it keeps too), or None."""
+        kept = [c.preserves | c.preserves_distribution for c in self.items if c.preserve_kind]
         return kept[0] if kept else None
 
     @property

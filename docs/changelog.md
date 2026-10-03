@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.3.0 (2026-10-03)
+
+- **Robust Monte Carlo MLE.** It now stops by ergm's default convergence
+  test (`termination="confidence"`): an equivalence test that the estimate
+  is within the tolerance region, with the sample growing until the test can
+  tell; `termination="Hummel"` keeps the old rule. A trust region checks each
+  step with the next sample, and replaces a step that lost log-likelihood by
+  one half as long (Fisher scoring's, in curved models), bounding the next
+  ones; steps wait for samples of at least `effective_size` effective draws;
+  curved models are fitted with their decays held first, then freed; decays
+  stay at or above 0, as ergm's. Curved fits inside `N()` that stalled
+  on some random paths (some numbers of chains, some platforms) now converge
+  on all of them.
+- **Terms**: `degcor`, `degcrossprod`, `tripercent` and `coincidence`,
+  checked against R. ergm computes half of `degcrossprod`'s documented mean,
+  and `coincidence(active=)` keeps the pairs with more than `active`
+  partners, not at least: ergmx follows the documentation and warns.
+- **Constraints**: `degreedist`, `odegreedist`, `idegreedist` (the degree
+  distributions kept, as ergm documents them) and `egocentric`.
+- **Several networks**: N()'s `contrasts`, as R's `contrasts.arg`
+  (`contr.sum`, `contr.helmert`, `contr.poly`, `contr.SAS`, matrices), and
+  {func}`~ergmx.lm_gofN`, ergm.multi's `lm.gofN()`: linear models of
+  `gofN()`'s residuals on the networks' attributes. N() accepts `weights` of
+  1, as ergm.multi. Backquoted names (``list(`factor(n)` = ...)``) work in
+  formula strings.
+- The tests run in the continuous integration with 2 and 3 Monte Carlo
+  chains too (`ERGMX_TEST_CHAINS`), the random paths of other machines.
+- **Networks with given statistics**: {func}`~ergmx.san`, ergm's simulated
+  annealing, and `ergm(target_stats=)`, models fitted to target statistics
+  (exactly, for dyad-independent ones), as ergm's `target.stats`.
+- **Egocentric ERGMs**, as R's ergm.ego, checked against it:
+  {class}`~ergmx.EgoData` (egos, alters and the ties among them, or a
+  network's census), {func}`~ergmx.ego_stats` (the population statistics
+  egocentric data estimate, with the survey, asymptotic, naive, bootstrap
+  and jackknife variances) and {func}`~ergmx.ergm_ego` (the fit, on a
+  pseudo-population, with the network size adjustment and the egos'
+  sampling variance in the standard errors).
+- **Valued networks**, as R's ergm with ergm.count, checked against it:
+  `ergmx.ergm(g, formula, response="contexts", reference="Poisson")`, with
+  the Poisson, binomial, geometric and discrete uniform reference measures,
+  ergm's valued terms (`sum`, `nonzero`, the dyad-independent terms with
+  `form=`, thresholds, `mutual`, `transitiveweights`, `cyclicalweights`,
+  `nodecovar`, `CMP`...), contrastive divergence, the Monte Carlo MLE, the
+  log-likelihood and simulation (ergm.count's `DiscTNT` proposals). The
+  dataset `zach`, ergm.count's karate club with counts of contexts.
+- **Bayesian ERGMs**, as R's Bergm, checked against it and against exact
+  posteriors: {func}`~ergmx.bergm`, the approximate exchange algorithm with
+  adaptive direction sampling over a population of chains (half of them
+  updated in parallel), normal priors, offsets, constraints and missing
+  dyads (imputed by every chain, as `bergmM()`); posterior summaries,
+  diagnostics (effective sample sizes, R-hat), plots, and the posterior
+  predictive goodness of fit (`bgof()`) and simulation. Its auxiliary
+  networks get at least one MCMC proposal per dyad by default, where
+  Bergm's 1000 bias the posterior of larger networks.
+
 ## 0.2.0 (2026-10-02)
 
 - **More of ergm's vocabulary**, checked against R: `degrange`,

@@ -8,6 +8,7 @@ mod rng;
 mod sampler;
 mod space;
 mod terms;
+mod valued;
 mod vocab;
 
 use numpy::ndarray::{Array1, Array2, Array3};
@@ -63,8 +64,9 @@ impl PySpace {
     /// (`fixed_mask`, n x n row-major, and the pairs `fixed`); if `only` is
     /// given, only those of its pairs. `bounds` are (min_out, max_out, min_in,
     /// max_in) per vertex, and `class_bounds` those of bd(attribs=); `preserve`
-    /// is "", "degrees", "odegrees", "idegrees", "edges", "b1degrees" or
-    /// "b2degrees" (the last two with `first_mode`, the vertices of the first mode).
+    /// is "", "degrees", "odegrees", "idegrees", "edges", "b1degrees",
+    /// "b2degrees" (these two with `first_mode`, the vertices of the first
+    /// mode), "degreedist", "odegreedist" or "idegreedist".
     #[new]
     #[pyo3(signature = (n, directed, groups = None, modes = None, fixed_mask = None, fixed = None, only = None, bounds = None, preserve = "", first_mode = None, class_bounds = None))]
     #[allow(clippy::too_many_arguments)]
@@ -89,10 +91,13 @@ impl PySpace {
             "edges" => Preserve::Edges,
             "b1degrees" => Preserve::FirstModeDegrees,
             "b2degrees" => Preserve::SecondModeDegrees,
+            "degreedist" => Preserve::DegreeDist,
+            "odegreedist" => Preserve::OutDegreeDist,
+            "idegreedist" => Preserve::InDegreeDist,
             other => return Err(PyValueError::new_err(format!("unknown degree constraint {other:?}"))),
         };
-        if !directed && matches!(preserve, Preserve::OutDegrees | Preserve::InDegrees) {
-            return Err(PyValueError::new_err("odegrees and idegrees need a directed network"));
+        if !directed && matches!(preserve, Preserve::OutDegrees | Preserve::InDegrees | Preserve::OutDegreeDist | Preserve::InDegreeDist) {
+            return Err(PyValueError::new_err("odegrees, idegrees, odegreedist and idegreedist need a directed network"));
         }
         let mode_degrees = matches!(preserve, Preserve::FirstModeDegrees | Preserve::SecondModeDegrees);
         if mode_degrees != first_mode.is_some() || first_mode.as_ref().is_some_and(|m| m.len() != n as usize) {
@@ -325,6 +330,61 @@ impl PyModel {
         Ok((stats, last, networks))
     }
 
+    /// Simulated annealing (ergm's SAN) from the network `start`: the
+    /// statistics `targeted` (their indices) towards `target`, with `offsets`
+    /// (statistic, coefficient) and the weights `weights` (targeted x
+    /// targeted, row-major), at temperature `tau`, for `nsteps` proposals and
+    /// `samplesize` samples. Returns the last network, and for each sample the
+    /// deviations from the targets and the sums of the proposed changes
+    /// (samples x targeted, each).
+    #[pyo3(signature = (start, targeted, target, offsets, weights, tau, nsteps, samplesize, seed, triadic_weight = 0.0, space = None))]
+    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    fn san<'py>(
+        &self,
+        py: Python<'py>,
+        start: PyReadonlyArray2<u32>,
+        targeted: Vec<usize>,
+        target: Vec<f64>,
+        offsets: Vec<(usize, f64)>,
+        weights: Vec<f64>,
+        tau: f64,
+        nsteps: u64,
+        samplesize: usize,
+        seed: u64,
+        triadic_weight: f64,
+        space: Option<PyRef<'py, PySpace>>,
+    ) -> PyResult<(EdgeArray<'py>, Bound<'py, PyArray2<f64>>, Bound<'py, PyArray2<f64>>)> {
+        let p = self.model.n_stats();
+        let q = targeted.len();
+        if target.len() != q || weights.len() != q * q {
+            return Err(PyValueError::new_err("need one target per targeted statistic, and q x q weights"));
+        }
+        if targeted.iter().chain(offsets.iter().map(|(k, _)| k)).any(|&k| k >= p) {
+            return Err(PyValueError::new_err(format!("statistics are numbered 0 to {}", p.saturating_sub(1))));
+        }
+        if !(0.0..1.0).contains(&triadic_weight) || tau < 0.0 {
+            return Err(PyValueError::new_err("triadic_weight must be in [0, 1), and tau non-negative"));
+        }
+        let all = space::Space::unconstrained(self.n, self.directed);
+        let space = space.as_ref().map_or(&all, |s| &s.space);
+        let proposal = sampler::Proposal { triadic_weight, max_edges: usize::MAX, space };
+        let net = self.network(&start)?;
+        let settings = sampler::SanSettings {
+            targeted: &targeted,
+            target: &target,
+            offsets: &offsets,
+            weights: &weights,
+            tau,
+            nsteps,
+            samplesize,
+        };
+        let result = py.detach(|| sampler::run_san(&self.model, &proposal, net, &settings, &mut Rng::new(seed)));
+        let rows = result.deviations.len() / q.max(1);
+        let deviations = Array2::from_shape_vec((rows, q), result.deviations).unwrap().into_pyarray(py);
+        let proposed = Array2::from_shape_vec((rows, q), result.proposed).unwrap().into_pyarray(py);
+        Ok((to_array(py, result.last.edges()), deviations, proposed))
+    }
+
     /// Runs `slices` time steps of a model with tergm's operators, from each
     /// starting network (one replication each, in parallel threads): at each
     /// step, the previous networks are the networks at its start, and the
@@ -424,10 +484,133 @@ fn gof_distribution<'py>(
     Ok(Array2::from_shape_vec((flat.len() / width.max(1), width), flat).unwrap().into_pyarray(py))
 }
 
+/// A valued network's dyads with nonzero values, as rows (i, j, value).
+fn to_triples(values: &PyReadonlyArray2<f64>) -> PyResult<Vec<(u32, u32, f64)>> {
+    let a = values.as_array();
+    if a.ncols() != 3 {
+        return Err(PyValueError::new_err("valued networks are three columns: i, j and the value"));
+    }
+    Ok(a.rows().into_iter().map(|r| (r[0] as u32, r[1] as u32, r[2])).collect())
+}
+
+fn triples_array<'py>(py: Python<'py>, triples: &[(u32, u32, f64)]) -> Bound<'py, PyArray2<f64>> {
+    let flat: Vec<f64> = triples.iter().flat_map(|&(i, j, v)| [i as f64, j as f64, v]).collect();
+    Array2::from_shape_vec((triples.len(), 3), flat).unwrap().into_pyarray(py)
+}
+
+type WtSimulation<'py> = (Bound<'py, PyArray3<f64>>, Vec<Bound<'py, PyArray2<f64>>>, Vec<Vec<Bound<'py, PyArray2<f64>>>>);
+
+/// A valued ERGM (ergm.count) for networks with `n` vertices: its terms
+/// (`dyads` is the number of dyads, for the terms that count the dyads
+/// with a value), to compute statistics and sample valued networks.
+#[pyclass(name = "WtModel", module = "ergmx._core", frozen)]
+struct PyWtModel {
+    model: valued::WtModel,
+    n: u32,
+    directed: bool,
+}
+
+#[pymethods]
+impl PyWtModel {
+    #[new]
+    fn new(n: u32, directed: bool, terms: Vec<TermSpec>, dyads: f64) -> PyResult<Self> {
+        if n < 3 {
+            return Err(PyValueError::new_err("valued networks need at least 3 vertices"));
+        }
+        let model = valued::WtModel::new(n, directed, &terms, dyads).map_err(PyValueError::new_err)?;
+        Ok(Self { model, n, directed })
+    }
+
+    #[getter]
+    fn n_stats(&self) -> usize {
+        self.model.n_stats()
+    }
+
+    /// Statistics of the valued network with these nonzero values (rows i, j, value).
+    fn summary(&self, values: PyReadonlyArray2<f64>) -> PyResult<Vec<f64>> {
+        let net = valued::WtNetwork::from_values(self.n, self.directed, &to_triples(&values)?)
+            .map_err(PyValueError::new_err)?;
+        Ok(self.model.summary(&net))
+    }
+
+    /// Runs one Markov chain from each starting valued network, in parallel
+    /// threads, with the reference measure `reference` ("Poisson",
+    /// "Geometric", "Binomial" with the trials, "DiscUnif" with its bounds)
+    /// and ergm.count's DiscTNT proposal (`p0`, the share of jumps of a
+    /// nonzero dyad to 0) or Disc (`p0=None`). Returns the statistics
+    /// (chains x samples x statistics), each chain's last network, and the
+    /// sampled networks if `keep_networks`.
+    #[pyo3(signature = (starts, theta, burnin, interval, samplesize, seed, reference, p0 = Some(0.2), keep_networks = false, max_nonzero = None, chain_thetas = None, space = None))]
+    #[allow(clippy::too_many_arguments)]
+    fn simulate<'py>(
+        &self,
+        py: Python<'py>,
+        starts: Vec<PyReadonlyArray2<f64>>,
+        theta: Vec<f64>,
+        burnin: u64,
+        interval: u64,
+        samplesize: usize,
+        seed: u64,
+        reference: (String, Vec<f64>),
+        p0: Option<f64>,
+        keep_networks: bool,
+        max_nonzero: Option<usize>,
+        chain_thetas: Option<Vec<Vec<f64>>>,
+        space: Option<PyRef<'py, PySpace>>,
+    ) -> PyResult<WtSimulation<'py>> {
+        let reference = match (reference.0.as_str(), reference.1.as_slice()) {
+            ("Poisson", []) => valued::Reference::Poisson,
+            ("Geometric", []) => valued::Reference::Geometric,
+            ("Binomial", [trials]) => valued::Reference::Binomial(*trials),
+            ("DiscUnif", [a, b]) => valued::Reference::DiscUnif(*a, *b),
+            (other, _) => return Err(PyValueError::new_err(format!("unknown reference {other:?}"))),
+        };
+        if p0.is_some_and(|p| !(0.0..1.0).contains(&p)) {
+            return Err(PyValueError::new_err("p0 must be in [0, 1)"));
+        }
+        let thetas = chain_thetas.unwrap_or_else(|| vec![theta; starts.len()]);
+        if thetas.len() != starts.len() || thetas.iter().any(|t| t.len() != self.model.n_stats()) {
+            return Err(PyValueError::new_err(format!("need {} coefficients per chain", self.model.n_stats())));
+        }
+        if interval == 0 || starts.is_empty() {
+            return Err(PyValueError::new_err("need interval > 0 and at least one chain"));
+        }
+        let all = space::Space::unconstrained(self.n, self.directed);
+        let space = space.as_ref().map_or(&all, |s| &s.space);
+        let proposal = valued::WtProposal { reference, p0, space, max_nonzero: max_nonzero.unwrap_or(usize::MAX) };
+        let nets = starts
+            .iter()
+            .map(|s| valued::WtNetwork::from_values(self.n, self.directed, &to_triples(s)?).map_err(PyValueError::new_err))
+            .collect::<PyResult<Vec<_>>>()?;
+        let mut master = Rng::new(seed);
+        let seeds: Vec<u64> = nets.iter().map(|_| master.next_u64()).collect();
+        let chains: Vec<valued::WtChain> = py.detach(|| {
+            nets.into_par_iter()
+                .zip(seeds)
+                .zip(&thetas)
+                .map(|((net, chain_seed), theta)| {
+                    let mut rng = Rng::new(chain_seed);
+                    valued::run_wt_chain(&self.model, &proposal, net, theta, burnin, interval, samplesize, &mut rng, keep_networks)
+                })
+                .collect()
+        });
+        if chains.iter().any(|c| c.exceeded) {
+            return Err(DensityGuardError::new_err("a simulated network has too many nonzero dyads"));
+        }
+        let shape = (chains.len(), samplesize, self.model.n_stats());
+        let stats = chains.iter().flat_map(|c| c.stats.iter().copied()).collect();
+        let stats = Array3::from_shape_vec(shape, stats).unwrap().into_pyarray(py);
+        let last = chains.iter().map(|c| triples_array(py, &c.last.triples())).collect();
+        let networks = chains.iter().map(|c| c.networks.iter().map(|t| triples_array(py, t)).collect()).collect();
+        Ok((stats, last, networks))
+    }
+}
+
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(gof_distribution, m)?)?;
     m.add_class::<PyModel>()?;
+    m.add_class::<PyWtModel>()?;
     m.add_class::<PySpace>()?;
     m.add("DensityGuardError", m.py().get_type::<DensityGuardError>())
 }

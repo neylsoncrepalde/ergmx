@@ -134,6 +134,18 @@ fastest), and `a*b` is `a + b + a:b`.
 `isolatededges()`, undirected
 : Number of ties whose two vertices have no other tie. Name: `isolatededges`.
 
+`degcor()`, undirected
+: The correlation of the degrees of tied vertices. As in ergm, its change
+  statistics are linearized at the observed network: those of the sum over
+  ties of $d_i d_j$, scaled by the observed variance of the tied vertices'
+  degrees, so simulated networks' values (`output="stats"`) are that linear
+  statistic's. Name: `degcor`.
+
+`degcrossprod()`, undirected
+: The mean over ties of $d_i d_j$, with change statistics over the observed
+  number of ties, as ergm's. ergm 4.12 computes half of it (and its
+  coefficients are twice ergmx's); it warns. Name: `degcrossprod`.
+
 `altkstar(lambda, fixed=TRUE)`, undirected
 : Alternating $k$-stars (Snijders et al. 2006),
   $\lambda^2 \sum_i \left[(1 - 1/\lambda)^{d_i} - 1 + d_i / \lambda\right]$.
@@ -239,6 +251,13 @@ fastest), and `a*b` is `a + b + a:b`.
 `opentriad()`, undirected
 : Number of 2-stars minus three times the number of triangles. Name:
   `opentriad`.
+
+`tripercent(attr=, diff=FALSE, levels=)`, undirected
+: 100 times the number of triangles over the number of triangles and of
+  2-stars not in a triangle (0 without triangles); with `attr`, of the ties
+  between vertices with the same value, and with `diff=TRUE`, within each
+  value. ergm computes its ratios in single precision; ergmx in double.
+  Names: `tripercent`, `tripercent.<attr>`, `tripercent.<attr>.<value>`.
 
 `localtriangle(x)`
 : Number of triangles (transitive plus cyclic triples, if directed) whose
@@ -394,6 +413,14 @@ first mode, `b2` terms the second; each has a `b2` (or `b1`) twin.
 `b1degree(d, by=, levels=)`
 : Number of first-mode vertices with degree exactly $d$, by value of `by` if
   given. Names: `b1degree0`..., `b1deg1.<attr>.<value>`.
+
+`coincidence(levels=, active=0)`
+: For each pair of second-mode vertices, the number of first-mode vertices
+  tied to both. `levels` picks pairs (1-based indices into the list of pairs,
+  or the pairs), and `active` keeps the pairs with at least that many
+  partners in common in the observed network, as ergm documents (ergm 4.12
+  keeps those with more; it warns when that differs). Names:
+  `coincidence.<a>.<b>`, by the positions of the pair in the second mode.
 
 `b1degrange(from, to=Inf, by=, homophily=, levels=)`, `b1mindegree(d)`
 : First-mode vertices with degree in $[\text{from}, \text{to})$, as
@@ -615,11 +642,15 @@ All of them take ergm.multi's `subset` (the networks to use: an expression
 of their attributes, logical values or indices), `offset` (an amount added
 to every coefficient in each network, an expression or numbers; also
 `offset()` terms in `lm`), which adds the statistics `offset1`,
-`offset2`... with coefficients fixed at 1, and `label` (a name for the
+`offset2`... with coefficients fixed at 1, `label` (a name for the
 operator, `N(<label>,<column>)~<name>`, or a function of the statistic's name
-and the column).
+and the column), and `contrasts` (the contrasts of the linear model's
+factors, by term, as R's `contrasts.arg`: `list(weekday='contr.sum')`, with
+`contr.treatment`, the default, `contr.SAS`, `contr.sum`, `contr.helmert`,
+`contr.poly` or a matrix; backquote other terms' names, as in R:
+``list(`factor(n)`='contr.helmert')``). As in ergm.multi, `weights` must be 1.
 
-`N(formula, lm=~1, subset=, offset=, label=)`
+`N(formula, lm=~1, subset=, offset=, label=, contrasts=)`
 : ergm.multi's operator: `formula` on each network.
 
 `Form(formula, lm=~1)`
@@ -638,6 +669,57 @@ and the column).
 
 `Change(formula, lm=~1)`
 : tergm's change: `formula` on the network of the dyads that changed.
+
+## Valued terms
+
+For [valued networks](user-guide/valued.md) (`response=` in
+{func}`ergmx.ergm`), with ergm's names and statistics (checked against R's
+ergm.count on an undirected and a directed count network):
+
+`sum(pow=1)`, `nonzero`
+: The sum of the dyads' values (to a power), and the number of nonzero dyads.
+  Names: `sum`, `sum0.5`, `nonzero`.
+
+Dyad-independent binary terms with `form="sum"` or `form="nonzero"`
+: `nodematch`, `nodemix`, `nodefactor`, `nodeifactor`, `nodeofactor`,
+  `nodecov`, `nodeicov`, `nodeocov`, `absdiff`, `absdiffcat`, `edgecov`,
+  `attrcov`, `diff`, `sociality`, `sender`, `receiver`, `mm`, `b1cov`,
+  `b2cov`, `b1factor`, `b2factor`, `b1sociality` and `b2sociality`: each
+  dyad's change statistic weighted by its value (`sum`, the default) or by
+  whether it is nonzero. Names: `nodematch.sum.<attr>`,
+  `nodefactor.nonzero.<attr>.<value>`...
+
+`atleast(threshold)`, `atmost(threshold)`, `greaterthan(threshold)`, `smallerthan(threshold)`, `equalto(value, tolerance=0)`, `ininterval(lower, upper, open=c(TRUE, TRUE))`
+: The number of dyads whose value meets each threshold, or is in the
+  interval. Names: `atleast.2`, `equalto.3.pm.0`, `ininterval[1,3)`...
+
+`mutual(form="min")`, directed
+: Reciprocity of values: the sum over pairs of the minimum of $y_{ij}$ and
+  $y_{ji}$, minus their absolute difference (`"nabsdiff"`), their product
+  (`"product"`) or geometric mean (`"geometric"`). Names: `mutual.min`...
+
+`transitiveweights(twopath="min", combine="max", affect="min")`, `cyclicalweights(...)`
+: For each dyad, its value compared (`affect`: the minimum or geometric mean)
+  with the combination (`combine`: the maximum or the sum) of its two-paths'
+  values (`twopath`: each the minimum or geometric mean of its two values);
+  cyclical: two-paths back from the head to the tail. Names:
+  `transitiveweights.min.max.min`...
+
+`transitiveties(threshold=0)`
+: The dyads whose value is above the threshold with a two-path above it.
+  ergm 4.12 counts more in undirected networks (every tie of zach); ergmx
+  follows the binary term's definition there, as in directed networks, and
+  warns. Name: `transitiveties`.
+
+`nodecovar(center=FALSE, transform="identity")`, `nodeocovar`, `nodeicovar`
+: The covariance of the values (or their square roots, `transform="sqrt"`)
+  of each vertex's dyads, summed over vertices, centered on the mean value
+  with `center=TRUE`: heterogeneity in sociality. `nodeocovar` and
+  `nodeicovar` (directed) use out- and in-dyads. Names: `nodecovar`...
+
+`CMP`
+: The sum over dyads of $\log y_{ij}!$: with the Poisson reference, the
+  Conway-Maxwell-Poisson distribution. Name: `CMP`.
 
 ## Statistics of tie ages
 

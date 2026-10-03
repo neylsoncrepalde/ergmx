@@ -1249,6 +1249,142 @@ impl Term for Interaction {
 /// Builds a term from its specification (for the terms of an interaction).
 pub type BuildTerm<'a> = dyn Fn(&TermSpec) -> Result<Box<dyn Term>, String> + 'a;
 
+// -- Degree correlation, triangle percentage, coincidence -------------------------------------
+
+/// `constant + scale * the sum over ties of the product of their vertices'
+/// degrees` (undirected): ergm's degcor and degcrossprod, linearized at the
+/// observed network as ergm's change statistics are (the constant and scale
+/// make it the observed network's correlation, or mean, there).
+struct DegreeCross {
+    scale: f64,
+    constant: f64,
+}
+
+impl Term for DegreeCross {
+    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
+        let degree = |v: u32| net.neighbours(v).len() as f64;
+        // The degrees of the other ends of v's ties but the toggled one: each
+        // such tie's product changes by that degree.
+        let others = |v: u32, skip: u32| net.neighbours(v).iter().filter(|&&k| k != skip).map(|&k| degree(k)).sum::<f64>();
+        let (di, dj) = (degree(i), degree(j));
+        let change = if sign > 0.0 { (di + 1.0) * (dj + 1.0) } else { di * dj } + others(i, j) + others(j, i);
+        out[0] += self.scale * sign * change;
+    }
+
+    fn empty(&self, _: u32, _: bool, out: &mut [f64]) {
+        out[0] += self.constant;
+    }
+}
+
+/// 100 times the triangles over the triangles and the two-paths not in a
+/// triangle (ergm's tripercent; undirected), counting only ties between
+/// vertices with the same code (`codes`), within one level each (`levels`).
+struct TriPercent {
+    codes: Option<Vec<i64>>,
+    /// The level of each statistic; empty: one statistic over all vertices.
+    levels: Vec<i64>,
+}
+
+impl TriPercent {
+    /// Whether the tie u -- v counts towards the statistic of `level`.
+    fn counts(&self, level: Option<i64>, u: u32, v: u32) -> bool {
+        match &self.codes {
+            None => true,
+            Some(c) => c[u as usize] == c[v as usize] && level.is_none_or(|l| c[u as usize] == l),
+        }
+    }
+
+    /// Triangles and two-stars (two-paths, triangles' included) of the ties that count.
+    fn totals(&self, net: &Network, level: Option<i64>) -> (f64, f64) {
+        let (mut triangles, mut stars) = (0.0, 0.0);
+        for u in 0..net.n() {
+            let mut degree = 0.0;
+            for &v in net.neighbours(u) {
+                if !self.counts(level, u, v) {
+                    continue;
+                }
+                degree += 1.0;
+                if v > u {
+                    for_each_common(net.neighbours(u), net.neighbours(v), |w| {
+                        if w > v && self.counts(level, u, w) {
+                            triangles += 1.0;
+                        }
+                    });
+                }
+            }
+            stars += degree * (degree - 1.0) / 2.0;
+        }
+        (triangles, stars)
+    }
+}
+
+fn tripercent_ratio(triangles: f64, stars: f64) -> f64 {
+    if triangles == 0.0 { 0.0 } else { triangles / (stars - 2.0 * triangles) }
+}
+
+impl Term for TriPercent {
+    fn n_stats(&self) -> usize {
+        self.levels.len().max(1)
+    }
+
+    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
+        for (k, stat) in out.iter_mut().enumerate() {
+            let level = self.levels.get(k).copied();
+            if !self.counts(level, i, j) {
+                continue;
+            }
+            // With and without the tie: the network now, and the change.
+            let (triangles, stars) = self.totals(net, level);
+            let mut common = 0.0;
+            for_each_common(net.neighbours(i), net.neighbours(j), |w| {
+                if self.counts(level, i, w) {
+                    common += 1.0;
+                }
+            });
+            let degree = |v: u32| net.neighbours(v).iter().filter(|&&u| u != i && u != j && self.counts(level, v, u)).count() as f64;
+            // Two-stars the tie centres on i or j: its other ties there.
+            let (with, without) = if sign > 0.0 {
+                ((triangles + common, stars + degree(i) + degree(j)), (triangles, stars))
+            } else {
+                ((triangles, stars), (triangles - common, stars - degree(i) - degree(j)))
+            };
+            *stat += sign * 100.0 * (tripercent_ratio(with.0, with.1) - tripercent_ratio(without.0, without.1));
+        }
+    }
+}
+
+/// For each pair of the second mode's vertices, the number of first-mode
+/// vertices tied to both (ergm's coincidence; bipartite networks).
+struct Coincidence {
+    /// Each vertex's position in the second mode, or -1 (first mode).
+    position: Vec<i64>,
+    m: usize,
+    /// The statistic of each pair (a < b) of positions, at a * m + b; -1 if not counted.
+    stat_of: Vec<i64>,
+    n_stats: usize,
+}
+
+impl Term for Coincidence {
+    fn n_stats(&self) -> usize {
+        self.n_stats
+    }
+
+    fn change(&self, net: &Network, i: u32, j: u32, sign: f64, out: &mut [f64]) {
+        let (actor, event) = if self.position[i as usize] < 0 { (i, j) } else { (j, i) };
+        let a = self.position[event as usize] as usize;
+        for &other in net.neighbours(actor) {
+            if other == event {
+                continue;
+            }
+            let b = self.position[other as usize] as usize;
+            let stat = self.stat_of[a.min(b) * self.m + a.max(b)];
+            if stat >= 0 {
+                out[stat as usize] += sign;
+            }
+        }
+    }
+}
+
 /// The terms of this module by name, or None if `name` isn't one of them.
 pub fn build(n: usize, directed: bool, spec: &TermSpec, build_child: &BuildTerm) -> Option<Result<Box<dyn Term>, String>> {
     let TermSpec(name, reals, ints, children) = spec;
@@ -1533,6 +1669,31 @@ pub fn build(n: usize, directed: bool, spec: &TermSpec, build_child: &BuildTerm)
                 let n_left = left.iter().map(|t| t.n_stats()).sum();
                 let n_right = right.iter().map(|t| t.n_stats()).sum();
                 Box::new(Interaction { left, right, n_left, n_right })
+            }
+            // reals: [scale, constant]
+            "degreecross" => {
+                only(false)?;
+                let [scale, constant] = reals[..] else { return Err("degreecross: expected the scale and constant".into()) };
+                Box::new(DegreeCross { scale, constant })
+            }
+            // chunks: [codes], [levels]
+            "tripercent" => {
+                only(false)?;
+                let p = parts()?;
+                Box::new(TriPercent { codes: optional_codes(part(&p, 0))?, levels: part(&p, 1) })
+            }
+            // chunks: [each vertex's position in the second mode, -1 for the first], [the pairs' statistics, m x m]
+            "coincidence" => {
+                only(false)?;
+                let p = parts()?;
+                let position = vertex_values(part(&p, 0))?;
+                let m = position.iter().filter(|&&x| x >= 0).count();
+                let stat_of = part(&p, 1);
+                if stat_of.len() != m * m {
+                    return Err(format!("coincidence: expected {} pair values", m * m));
+                }
+                let n_stats = (stat_of.iter().copied().max().unwrap_or(-1) + 1).max(0) as usize;
+                Box::new(Coincidence { position, m, stat_of, n_stats })
             }
             _ => return Err(String::new()),
         })

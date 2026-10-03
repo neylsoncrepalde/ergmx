@@ -17,11 +17,14 @@ constraints
 missing-data
 multilevel
 bipartite
+valued
 multiple-networks
+egocentric
 temporal
 diagnostics
 goodness-of-fit
 model-comparison
+bayesian
 interpretation
 simulation
 ```

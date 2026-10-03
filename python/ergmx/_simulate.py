@@ -14,7 +14,7 @@ from ._model import bind
 from ._network import to_graphs
 
 
-def summary_stats(network, formula, *, bipartite=None) -> dict[str, float]:
+def summary_stats(network, formula, *, bipartite=None, response=None) -> dict[str, float]:
     """Statistics of a network, like R's ``summary(net ~ formula)``.
 
     Missing dyads (edges with ``na=True``) count as non-ties, as in ergm.
@@ -27,13 +27,23 @@ def summary_stats(network, formula, *, bipartite=None) -> dict[str, float]:
     bipartite : str or bool, optional
         For a bipartite network, the vertex attribute with each vertex's mode,
         as in :func:`ergm`.
+    response : str, optional
+        For a valued network, the edge attribute with the dyads' values, as
+        ergm's ``response=``: the formula's terms are then ergm's valued
+        terms (``"sum + nonzero + nodematch('group', form='sum')"``).
     """
+    if response is not None:
+        from ._valued import bind_valued
+
+        model = bind_valued(network, formula, response, bipartite=bipartite)
+        return dict(zip(model.names, model.observed().tolist()))
     model = bind(network, formula, bipartite=bipartite)
     return dict(zip(model.stat_names, model.observed().tolist()))
 
 
 def ergm(network, formula, *, constraints=None, offset_coef=None, bipartite=None,
          estimate: str = "MLE", init=None, seed=None, eval_loglik: bool = True,
+         target_stats=None, san_control=None, response=None, reference="Bernoulli",
          control: Control | None = None, **control_args) -> ErgmFit:
     """Fit an exponential-family random graph model.
 
@@ -78,6 +88,23 @@ def ergm(network, formula, *, constraints=None, offset_coef=None, bipartite=None
         Estimate the log-likelihood of dyad-dependent models, for AIC and BIC,
         by path sampling (as ergm does by default). Dyad-independent models
         always get their exact log-likelihood.
+    target_stats : array-like or dict, optional
+        Fit the model to these statistics (of the non-offset terms, in order
+        or by name) rather than to the network's, as ergm's ``target.stats``:
+        the network is first replaced by one simulated towards them by
+        simulated annealing (:func:`ergmx.san`, with ``san_control``, a
+        :class:`SanControl`), and the estimate is the one whose expected
+        statistics are the targets. Dyad-independent models get the exact
+        MLE for the targets.
+    response : str, optional
+        For a valued network (ergm.count's), the edge attribute with the
+        dyads' counts; the formula's terms are then ergm's valued terms, and
+        the fit is by contrastive divergence and the Monte Carlo MLE.
+    reference : str
+        The reference measure of the dyads' values: ``"Bernoulli"`` (binary
+        networks), or, with ``response``, ``"Poisson"``, ``"Geometric"``,
+        ``"Binomial(trials)"`` or ``"DiscUnif(a, b)"``, as ergm's
+        ``reference=~Poisson``.
     control : Control, optional
         MCMC and estimation settings. Keyword arguments (``samplesize=...``,
         ``interval=...``, ``n_chains=...``) override single settings.
@@ -89,9 +116,27 @@ def ergm(network, formula, *, constraints=None, offset_coef=None, bipartite=None
     if estimate not in ("MLE", "MPLE", "CD"):
         raise ValueError(f"estimate must be 'MLE', 'MPLE' or 'CD', not {estimate!r}")
     control = dataclasses.replace(control or Control(), **control_args)
+    if response is not None or str(reference).lstrip("~").strip() != "Bernoulli":
+        from ._valued import bind_valued, fit_valued
+
+        if response is None:
+            raise ValueError("a valued reference needs response=, the edge attribute with the values")
+        if str(reference).lstrip("~").strip() == "Bernoulli":
+            raise ValueError("valued networks need a reference measure: reference='Poisson', "
+                             "'Geometric', 'Binomial(trials)' or 'DiscUnif(a, b)'")
+        if target_stats is not None:
+            raise ValueError("target_stats are not supported for valued networks")
+        model = bind_valued(network, formula, response, reference, constraints=constraints,
+                            offset_coef=offset_coef, bipartite=bipartite, fitting=True)
+        return fit_valued(model, estimate, init, control, np.random.default_rng(seed), seed, eval_loglik)
     model = bind(network, formula, constraints, offset_coef, fitting=True, bipartite=bipartite)
-    pseudo = _estimation.mple(model)
     rng = np.random.default_rng(seed)
+    if target_stats is not None:
+        from ._san import SanControl, target_model
+
+        model = target_model(model, target_stats, san_control or SanControl(), rng, formula, constraints,
+                             offset_coef, bipartite)
+    pseudo = _estimation.mple(model)
     if model.exact:
         return ErgmFit(model, dataclasses.replace(pseudo, method="MLE"), pseudo, control, seed)
     if estimate == "MPLE":
@@ -124,7 +169,8 @@ def ergm(network, formula, *, constraints=None, offset_coef=None, bipartite=None
 
 def simulate(network, formula, coef, nsim: int = 1, *, constraints=None, bipartite=None,
              seed=None, output: str = "network", burnin: int | None = None,
-             interval: int | None = None, triadic_weight: float | None = None):
+             interval: int | None = None, triadic_weight: float | None = None,
+             response=None, reference="Bernoulli"):
     """Simulate networks from an ERGM, starting from ``network``.
 
     Parameters
@@ -157,9 +203,22 @@ def simulate(network, formula, coef, nsim: int = 1, *, constraints=None, biparti
     triadic_weight : float, optional
         Share of MCMC proposals that close or open a triangle. Defaults to 0.5
         for models with triangle or shared partner terms, 0 otherwise.
+    response, reference : str, optional
+        For valued networks, as in :func:`ergm`: the networks returned have
+        their values in the edge attribute ``response``.
     """
     if output not in ("network", "stats"):
         raise ValueError(f"output must be 'network' or 'stats', not {output!r}")
+    if response is not None:
+        from ._valued import bind_valued, simulate_valued
+
+        if str(reference).lstrip("~").strip() == "Bernoulli":
+            raise ValueError("valued networks need a reference measure, such as reference='Poisson'")
+        model = bind_valued(network, formula, response, reference, constraints=constraints,
+                            bipartite=bipartite, offset_coef=None)
+        if isinstance(coef, dict):
+            coef = [coef[name] for name in model.names]
+        return simulate_valued(model, coef, nsim, seed, burnin, interval, output, response)
     model = bind(network, formula, constraints, bipartite=bipartite)
     if isinstance(coef, dict):
         coef = [coef[name] for name in model.names]

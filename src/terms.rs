@@ -781,7 +781,7 @@ fn chunks(name: &str, ints: &[i64]) -> Result<Vec<Vec<i64>>, String> {
     Ok(out)
 }
 
-fn build_term(n: usize, directed: bool, spec: &TermSpec) -> Result<Box<dyn Term>, String> {
+pub(crate) fn build_term(n: usize, directed: bool, spec: &TermSpec) -> Result<Box<dyn Term>, String> {
     let TermSpec(name, reals, ints, _) = spec;
     let expect = |len: usize, what: &str, want: usize| {
         if len == want { Ok(()) } else { Err(format!("{name}: expected {want} {what}, got {len}")) }

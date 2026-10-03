@@ -91,6 +91,10 @@ for (a in c("Grade", "Race", "Sex")) {
   network::set.vertex.attribute(faux.mesa.within, a, (faux.mesa.high %v% a)[by_grade])
 }
 
+# Egos for egocentric(): the seventh graders.
+faux.mesa.high %v% "ego" <- (faux.mesa.high %v% "Grade") == 7
+faux.dixon.high %v% "ego" <- (faux.dixon.high %v% "grade") == 7
+
 networks <- list(flomarriage = flomarriage, samplk1 = samplk1, samplk2 = samplk2,
                  samplk3 = samplk3, linked_sim = linked_sim,
                  davis = davis, bipartite_sim = bipartite_sim,
@@ -153,7 +157,8 @@ combined <- list(
   samplk123.na.next = NetSeries(samplk1.na, samplk2.na, samplk3.nonresponse, NA.impute = "next"),
   samplk123.na.previous = NetSeries(samplk1.na, samplk2.na, samplk3.nonresponse,
                                     NA.impute = c("previous", "majority")),
-  Goeyvaerts.weekday = Networks(Filter(function(g) (g %n% "included") && (g %n% "weekday"), Goeyvaerts))
+  Goeyvaerts.weekday = Networks(Filter(function(g) (g %n% "included") && (g %n% "weekday"), Goeyvaerts)),
+  Goeyvaerts.included = Networks(Filter(function(g) g %n% "included", Goeyvaerts))
 )
 
 # The same formula strings are parsed by ergmx.
@@ -494,7 +499,39 @@ models <- list(
   series_na_next = list(network = "samplk123.na.next", checks = c("stats", "mle"),
                         formula = "Form(~edges + mutual) + Persist(~edges + mutual)"),
   series_na_previous = list(network = "samplk123.na.previous", checks = all_checks,
-                            formula = "Form(~edges + nodematch('group')) + Diss(~edges)")
+                            formula = "Form(~edges + nodematch('group')) + Diss(~edges)"),
+
+  # Degree correlation, triangle percentage and coincidence; the degree
+  # distribution and egocentric constraints; N()'s contrasts.
+  flo_degcor = list(network = "flomarriage", checks = c("stats", "mple"), formula = "edges + degcor + tripercent"),
+  mesa_tripercent = list(network = "faux.mesa.high", checks = c("stats", "mple"),
+                         formula = "edges + degcor + tripercent('Grade') + tripercent('Sex', diff=TRUE)"),
+  davis_coincidence = list(network = "davis", checks = c("stats", "mple"),
+                           formula = "edges + coincidence(levels=c(1, 2, 5, 40))"),
+  bip_coincidence = list(network = "bipartite_sim", checks = "stats", formula = "coincidence"),
+  mesa_degreedist = list(network = "faux.mesa.high", checks = c("stats", "mle"),
+                         formula = "nodematch('Grade') + nodematch('Race') + gwesp(0.5, fixed=TRUE)",
+                         constraints = "degreedist"),
+  mesa_egocentric = list(network = "faux.mesa.high", checks = all_checks,
+                         formula = "edges + nodematch('Grade') + nodefactor('Sex')",
+                         constraints = "egocentric('ego')"),
+  dixon_egocentric_out = list(network = "faux.dixon.high", checks = all_checks,
+                              formula = "edges + nodematch('race') + nodeofactor('sex') + nodeifactor('sex')",
+                              constraints = "egocentric('ego', direction='out')"),
+  # Fitted to target statistics (simulated annealing, then the MLE).
+  flo_target = list(network = "flomarriage", checks = "mle", formula = "edges + nodecov('wealth')",
+                    target_stats = c(25, 3000)),
+  mesa_target = list(network = "faux.mesa.high", checks = "mle",
+                     formula = "edges + nodematch('Grade') + gwesp(0.5, fixed=TRUE)",
+                     target_stats = c(250, 190, 200)),
+  goey_contrasts_sum = list(network = "Goeyvaerts.included", checks = all_checks,
+                            formula = "N(~edges + nodematch('gender'), lm=~weekday, contrasts=list(weekday='contr.sum'))"),
+  goey_contrasts_helmert = list(network = "Goeyvaerts.included", checks = all_checks,
+                                formula = paste("N(~edges, lm=~factor(n), subset=~n>=3 & n<=5,",
+                                                "contrasts=list(`factor(n)`='contr.helmert'))")),
+  goey_contrasts_poly = list(network = "Goeyvaerts.included", checks = all_checks,
+                             formula = paste("N(~edges + nodematch('gender'), lm=~factor(n), subset=~n>=3,",
+                                             "contrasts=list(`factor(n)`='contr.poly'))"))
 )
 
 named <- function(x) as.list(x)
@@ -510,13 +547,13 @@ for (name in names(models)) {
   environment(f) <- environment()
   constraints <- as.formula(paste("~", if (is.null(m$constraints)) "." else m$constraints))
   fit_ergm <- function(...) {
-    if (is.null(m$constraints)) ergm(f, offset.coef = m$offset_coef, ...)
-    else ergm(f, constraints = constraints, offset.coef = m$offset_coef, ...)
+    if (is.null(m$constraints)) ergm(f, offset.coef = m$offset_coef, target.stats = m$target_stats, ...)
+    else ergm(f, constraints = constraints, offset.coef = m$offset_coef, target.stats = m$target_stats, ...)
   }
   fit_control <- if (is.null(m$init_method)) control.ergm(seed = 1)
                  else control.ergm(seed = 1, init.method = m$init_method)
   result <- list(network = m$network, formula = m$formula, checks = as.list(m$checks),
-                 constraints = m$constraints, offset_coef = m$offset_coef,
+                 constraints = m$constraints, offset_coef = m$offset_coef, target_stats = m$target_stats,
                  py_formula = m$py_formula, py_constraints = m$py_constraints,
                  bipartite = network::is.bipartite(net), stats = named(summary(f)))
   if ("mple" %in% m$checks) {
@@ -600,6 +637,22 @@ intransitive <- lapply(list(samplk3 = samplk3, faux.dixon.high = faux.dixon.high
        triads = sum(census[c("111D", "201", "111U", "021C", "030C")]))
 })
 
+# 5. degcrossprod is documented as the mean over ties of the product of their
+#    degrees, but ergm computes half of it; and coincidence(active=) is
+#    documented as keeping the pairs with at least active partners in common,
+#    but keeps those with more.
+cross_products <- {
+  deg <- summary(flomarriage ~ sociality(nodes = TRUE))
+  el <- network::as.edgelist(flomarriage)
+  list(ergm_degcrossprod = as.numeric(summary(flomarriage ~ degcrossprod)),
+       mean = mean(deg[el[, 1]] * deg[el[, 2]]))
+}
+coincidence_active <- {
+  counts <- summary(davis ~ coincidence)
+  list(active = 3, ergm = names(summary(davis ~ coincidence(active = 3))),
+       at_least = names(counts)[counts >= 3])
+}
+
 # ergm.multi's gofN() on the households (a dyad-independent fit, whose MLE
 # ergmx reproduces exactly): each network's observed statistics, and the mean
 # and variance of 2000 simulated ones, for the model's statistics (the
@@ -617,16 +670,28 @@ gofn <- if (nzchar(only)) NULL else {
   set.seed(2)
   other <- suppressMessages(gofN(gofn_fit, GOF = as.formula(paste("~", gof_formula)),
                                  control = control.gofN.ergm(nsim = 2000)))
+  # lm.gofN() of R's gofN: the linear models of the residuals ergmx refits
+  # from the same table.
+  lm_formula <- "c('edges', 'triangle', 'degree1') ~ n + I(n^2)"
+  lms <- lm.gofN(as.formula(lm_formula), data = other)
+  lm_results <- lapply(lms, function(l) {
+    s <- summary(l)
+    list(coef = named(coef(l)), se = named(s$coefficients[, "Std. Error"]), sigma = s$sigma,
+         df = s$df[2], r_squared = s$r.squared, adj_r_squared = s$adj.r.squared,
+         fstatistic = as.numeric(s$fstatistic), dropped = length(l$na.action))
+  })
   list(network = "Goeyvaerts.weekday", formula = gofn_formula, coef = named(coef(gofn_fit)), nsim = 2000,
        default = per_network(default), gof_formula = gof_formula, gof = per_network(other),
-       network_size = sapply(subnetwork_templates(goey), network.size))
+       network_size = sapply(subnetwork_templates(goey), network.size),
+       lm_formula = lm_formula, lm = lm_results)
 }
 
 jsonlite::write_json(
   list(ergm_version = as.character(packageVersion("ergm")),
        r_version = R.version.string, models = results, gofn = gofn,
        ergm_differences = list(rtp = rtp_direct, transitive = transitive, intransitive = intransitive,
-                               dyadcov_lower_to_higher_tie = dyadcov_states)),
+                               dyadcov_lower_to_higher_tie = dyadcov_states,
+                               degcrossprod = cross_products, coincidence_active = coincidence_active)),
   file.path(out_dir, if (nzchar(only)) "r_reference.only.json" else "r_reference.json"),
   auto_unbox = TRUE, digits = NA, pretty = TRUE
 )

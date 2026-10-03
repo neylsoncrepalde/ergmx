@@ -1,6 +1,7 @@
 # Validation
 
-`ergmx` is tested against R's ergm 4.12, ergm.multi 0.3.0 and tergm 4.2.2 on
+`ergmx` is tested against R's ergm 4.12, ergm.multi 0.3.0, tergm 4.2.2, ergm.count
+4.1.3, ergm.ego 1.1.4 and Bergm 5.0.7 on
 ergm's own networks (flomarriage, samplk1 to samplk3, faux.mesa.high and
 faux.dixon.high, the latter two also with missing dyads), multinets'
 `linked_sim`, Davis's Southern Women, a simulated bipartite network,
@@ -13,16 +14,16 @@ networks small enough to enumerate every possible network. The R scripts in
 
 | Check | Result |
 |---|---|
-| Statistics of ergm's terms and operators, with their options (`levels=`, `by=`, `homophily=`, `attr=`, `nodes=`...), and interactions, 97 models | identical to R's `summary()` (to 1e-12), names included, except `transitive`, `intransitive`, `dyadcov`'s `utri` and `ltri`, and the edgewise RTP statistics (below) |
-| MPLE, 60 models, with offsets, interactions, `F()`, `S()`, `N()` (with `subset`, `offset` and `label`), tergm's operators (also with missing dyads imputed by `NA.impute`), `blocks`, `Dyads`, `fixedas`, `fixallbut`, `blockdiag`, bipartite networks and curved terms | identical to R (to 1e-6; curved models to 1e-3, where R's optimizer stops on a flat optimum: ergmx's pseudo-likelihood is at least R's) |
-| Dyad-independent MLE, standard errors, log-likelihood and BIC, 25 models, with offsets, interactions, `N()`'s `subset` and `offset`, `NA.impute`, `blocks`, `Dyads`, `fixedas`, `fixallbut`, `blockdiag`, `S()`, missing dyads, bipartite networks, samples and series of networks | identical to R (to 1e-6; standard errors to 1e-3, the tolerance of R's `glm`) |
-| Monte Carlo MLE, 7 models (4 undirected, 3 directed), 3 to 10 seeds each | within 0.12 standard errors of R's estimates; standard errors 0.89 to 1.12 times R's |
-| Monte Carlo MLE with constraints (`bd`, `blocks`, `degrees`, `odegrees`), missing dyads, offsets, `F()`, `esp` and multilevel models, 12 models x 5 seeds | all converged, within 0.17 standard errors of R's estimates; standard errors 0.91 to 1.09 times R's |
-| Monte Carlo MLE of `concurrent`, `twopath`, OSP shared partners, bipartite models and curved models (gwesp, directed and undirected, and gwb1degree), 10 models x 3 to 5 seeds | all converged, within 0.2 standard errors of R's estimates; standard errors 0.90 to 1.12 times R's, except the curved bipartite model, whose likelihood is nearly flat in the decay (R's standard error of the decay is twice its estimate) |
-| Monte Carlo MLE of samples of networks (Sampson's monks; 225 households with `N()` linear models) and of series (tergm's CMLE, one and two transitions), 4 models x 5 seeds | all converged, within 0.10 standard errors of R's estimates; standard errors 0.94 to 1.05 times R's |
-| Monte Carlo MLE with `N()`'s `subset` and `label`, and of a series with missing dyads imputed (`NA.impute="next"`) and missing in the networks transitioned to, 2 models x 5 seeds | all converged, within 0.09 standard errors of R's estimates; standard errors 0.93 to 1.03 times R's |
-| Monte Carlo MLE of a multilevel model with `S()` (each level and the ties between them, with gwesp and gwb1dsp), 5 seeds | all converged, within 0.08 standard errors of R's estimates; standard errors 0.96 to 1.04 times R's |
-| Monte Carlo MLE with `degree(by=)`, and the constraints `edges`, `b1degrees` and `bd(attribs=)`, 4 models x 5 seeds | all converged, within 0.16 standard errors of R's estimates; standard errors 0.93 to 1.11 times R's |
+| Statistics of ergm's terms and operators, with their options (`levels=`, `by=`, `homophily=`, `attr=`, `nodes=`...), and interactions, 109 models | identical to R's `summary()` (to 1e-12; `tripercent` to 1e-7, as ergm computes its ratios in single precision), names included, except `transitive`, `intransitive`, `dyadcov`'s `utri` and `ltri`, and the edgewise RTP statistics (below) |
+| MPLE, 68 models, with offsets, interactions, `F()`, `S()`, `N()` (with `subset`, `offset`, `label` and `contrasts`), tergm's operators (also with missing dyads imputed by `NA.impute`), `blocks`, `Dyads`, `fixedas`, `fixallbut`, `blockdiag`, bipartite networks and curved terms | identical to R (to 1e-6; curved models to 1e-3, where R's optimizer stops on a flat optimum: ergmx's pseudo-likelihood is at least R's) |
+| Dyad-independent MLE, standard errors, log-likelihood and BIC, 31 models, with offsets, interactions, `N()`'s `subset`, `offset` and `contrasts`, target statistics, `egocentric`, `NA.impute`, `blocks`, `Dyads`, `fixedas`, `fixallbut`, `blockdiag`, `S()`, missing dyads, bipartite networks, samples and series of networks | identical to R (to 1e-6; standard errors to 1e-3, the tolerance of R's `glm`) |
+| Monte Carlo MLE, 41 dyad-dependent models x 5 seeds (`scripts/mcmle_seeds.py`): directed and undirected, with constraints (`bd`, also by alter class, `blocks`, `degrees`, `odegrees`, `degreedist`, `edges`, `b1degrees`), missing dyads, offsets, `F()`, `S()` and multilevel models, `esp`, OSP shared partners, `concurrent`, `twopath`, `degree(by=)`, curved models (gwesp, directed and undirected, gwb1degree), bipartite models, samples of networks (Sampson's monks; 225 households with `N()` linear models, `subset` and `label`) and series (tergm's CMLE, also with missing dyads imputed) | all 205 fits converged, within 0.23 standard errors of R's estimates; standard errors 0.87 to 1.16 times R's |
+| Valued networks (ergm.count): 28 statistics on the karate club's counts and 18 on the monks' summed liking (directed) | identical to R's (to 1e-10), but undirected `transitiveties` (below) |
+| Valued Monte Carlo MLE, 4 models (Poisson and binomial references, `nonzero`, `nodefactor`, `nodematch`, `mutual`, `transitiveweights`) | within 0.3 standard errors of R's estimates; standard errors within 25% of R's |
+| Egocentric data (ergm.ego): 37 estimated statistics on faux.mesa.high's census and a sample of 100 egos, with the survey, asymptotic, naive and jackknife variances | identical to R's (to 1e-9) |
+| `ergm.ego()`, 5 models, census and sample, per capita and for a population of 205 | within 0.1 standard errors of R's estimates (0.25 for the Monte Carlo ones); standard errors within 20% of R's (R estimates the information by MCMC, ergmx exactly where it can) |
+| Bayesian ERGMs (Bergm), 3 models (undirected, directed, gwesp on 205 vertices), 4 to 6 chains of 2000 draws | posterior means within 4 Monte Carlo standard errors of R's, standard deviations within 20% |
+| `san()` and `ergm(target_stats=)`, dyad-independent and with gwesp | the fit to target statistics is R's exactly (dyad-independent) or within its Monte Carlo error |
 | Goodness of fit, directed and undirected | observed distributions and p-values identical to R's; simulated distributions agree within Monte Carlo error |
 | ergm.multi's `gofN()`, 225 households, the model's statistics and five others, 2,000 simulations | observed statistics identical to R's (but `degree0` and `isolates`, below); fitted values, variances and Pearson residuals agree within R's Monte Carlo error |
 | tergm's EGMME, formation and persistence of edges with a mean duration, and with `degree(1)` too | within 0.4 standard errors of the mean of R's estimates over 3 seeds; standard errors within R's range, which spans a factor of 1.7 between its seeds; the edges model's estimate is also the exact one (below) |
@@ -81,6 +82,22 @@ them are checked below.
   faux.mesa.high with grades at most 2 apart, against 178 strictly less);
   ergmx follows the code, as the argument's description, "maximum", does.
 
+- **`degcrossprod`** is documented as the mean over ties of the product of
+  their degrees, but computed as half of it (5.25 on flomarriage, whose mean
+  is 10.5). ergmx follows the documentation and warns.
+- **`coincidence(active=)`** is documented as keeping the pairs with at least
+  `active` partners in common, but keeps those with more (21 pairs of
+  Davis's events with `active=3`, where 42 have at least 3). ergmx follows
+  the documentation and warns.
+- **`degreedist`, `odegreedist`, `idegreedist`** are documented as keeping
+  the degree distributions, but ergm's proposals for directed networks keep
+  every vertex's out-degree (moving heads) or in-degree (moving tails).
+  ergmx keeps only the distributions.
+- **Valued `transitiveties`** of an undirected network counts every tie above
+  the threshold (all 78 of zach's) rather than those with a two-path above
+  it (67); ergmx counts the latter, as the binary term and the directed
+  valued term do, and warns.
+
 ## Against exact results
 
 | Check | Result |
@@ -106,6 +123,11 @@ them are checked below.
 | Goodness of fit by level | the observed distributions within each level and of the affiliations equal igraph's |
 | MPNet's 16 multilevel configurations, which no R package has | equal to their definitions computed from the levels' adjacency matrices (to 1e-12), on random two-level networks and `linked_sim`, for three decays; the MCMC matches exact enumeration of every network on 6 vertices of two levels (and one of neither), with S() too |
 | Log-likelihood, directed and undirected | unbiased against exact enumeration (6 and 4 vertices), with standard errors that match the spread across seeds |
+| Valued MCMC, Poisson, binomial, geometric and discrete uniform references, with `transitiveweights` and `CMP` | expected statistics match exact enumeration of every valued network on 3 vertices (truncated where the reference's tail is negligible); the statistics the sampler tracks equal those recomputed (to 1e-9); the Poisson and binomial `sum` models give their exact MLEs and log-likelihood |
+| Bayesian ERGMs: the exchange algorithm on dyad-independent models, also with missing dyads imputed by the chains | the posterior means and standard deviations of the exact posterior (the likelihood times the prior on a grid), within Monte Carlo error |
+| Simulated annealing (`san()`) | reaches reachable targets exactly, within the constraints and infinite offsets |
+| Constraints `degreedist`, `odegreedist`, `idegreedist` and `egocentric` | every simulated network keeps the distributions (each mode's, if bipartite) or the egos' dyads, and the degrees themselves move |
+| The Monte Carlo MLE's trust region | curved fits inside `N()` that stalled on some numbers of chains converge on all of them (2, 3 and 4 chains x 5 seeds, the decay within 0.01 of each other) |
 
 ## The log-likelihood
 

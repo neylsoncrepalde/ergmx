@@ -13,6 +13,29 @@ Fitting and simulating
    simulate
    summary_stats
    Control
+   san
+   SanControl
+
+Bayesian ERGMs
+--------------
+
+.. autosummary::
+   :toctree: generated/
+
+   bergm
+   BergmFit
+   BergmSummary
+
+Egocentric data
+---------------
+
+.. autosummary::
+   :toctree: generated/
+
+   EgoData
+   ego_stats
+   ergm_ego
+   EgoFit
 
 Several networks, and networks over time
 ----------------------------------------
@@ -62,6 +85,8 @@ Checking and comparing models
    GofNResult
    GofNTable
    GofNSummary
+   lm_gofN
+   LmFit
    McmcDiagnostics
    compare
    ModelComparison
@@ -138,6 +163,8 @@ statistics.
    odegree1_5
    concurrentties
    isolatededges
+   degcor
+   degcrossprod
    altkstar
    triadcensus
    balance
@@ -149,6 +176,7 @@ statistics.
    cyclicalties
    threetrail
    opentriad
+   tripercent
    localtriangle
    m2star
    desp
@@ -199,6 +227,7 @@ about the first mode, ``b2`` terms the second.
    b2covrange
    b1factordistinct
    b2factordistinct
+   coincidence
 
 Operators
 ---------

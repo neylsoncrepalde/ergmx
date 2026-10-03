@@ -62,3 +62,43 @@ coefficients and starting network, with the ties that form and dissolve,
 their durations, and `monitor=` statistics of each network, tie ages
 included: see [](temporal.md#simulating-the-process).
 
+
+## Networks with given statistics
+
+{func}`ergmx.san`, as ergm's `san()`, searches for a network whose statistics
+are given targets, by simulated annealing: proposals (the MCMC's, within the
+constraints) that bring the statistics nearer the targets are accepted, and,
+while the temperature is high, some that take them farther. It is a search,
+not a draw from a distribution. Starting from an empty network of 50
+vertices:
+
+```{code-cell} ipython3
+import igraph as ig
+
+empty = ig.Graph(n=50)
+target = ergmx.san(empty, "edges + triangle", [100, 20], seed=1)
+ergmx.summary_stats(target, "edges + triangle")
+```
+
+Terms in `offset()` are not targeted: their coefficients (`offset_coef`)
+bias the search, and a coefficient of `-inf` forbids the ties they count.
+{class}`ergmx.SanControl` holds ergm's settings (`nsteps`, `maxit`, `tau`...).
+
+### Fitting to target statistics
+
+`ergmx.ergm(..., target_stats=...)`, as ergm's `target.stats`, fits a model
+to statistics rather than to an observed network: the estimate whose
+expected statistics are the targets, for instance a population's known
+density and clustering. It anneals a network towards the targets, then fits
+the model with the targets as the observed statistics; dyad-independent
+models get the exact MLE.
+
+```{code-cell} ipython3
+mesa = datasets.load("faux.mesa.high")
+fit = ergmx.ergm(mesa, "edges + nodematch('Grade') + gwesp(0.5, fixed=TRUE)",
+                 target_stats=[250, 190, 200], seed=1, eval_loglik=False)
+fit.summary()
+```
+
+This is the cross-sectional half of how EpiModel parameterizes network
+models; the dynamic half is the EGMME of [](temporal.md#a-process-from-one-network-the-egmme).

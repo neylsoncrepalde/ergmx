@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from conftest import formula, REFERENCE, estimated, load, models_with, options
+from conftest import formula, REFERENCE, estimated, load, models_with, options, single_precision
 
 import ergmx
 
@@ -22,7 +22,8 @@ def test_mple_matches_r(name):
     assert fit.names == list(model["mple"])
     r_mple = np.array(list(model["mple"].values()))
     if not fit._model.curved:
-        np.testing.assert_allclose(list(fit.mple.values()), r_mple, rtol=1e-6, atol=1e-8)
+        rtol = 1e-4 if single_precision(model) else 1e-6
+        np.testing.assert_allclose(list(fit.mple.values()), r_mple, rtol=rtol, atol=1e-8)
         return
     # Curved: R's optimizer stops near a flat optimum; ergmx's is at least as high.
     from ergmx._estimation import _pseudo_loglik, fixed_part

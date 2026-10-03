@@ -30,7 +30,10 @@ ergmx.ergm(network, formula, constraints="bd(maxout=4) + blocks('level', levels2
 | `degrees` | Every vertex keeps its degree (its in- and out-degrees, if directed). |
 | `odegrees`, `idegrees` | Every vertex keeps its out-degree, or its in-degree (directed networks). |
 | `b1degrees`, `b2degrees` | The vertices of the first (second) mode of a bipartite network keep their degrees. |
+| `degreedist` | The degree distribution is kept (the in- and out-degree distributions, if directed; each mode's, if bipartite): how many vertices have each degree, not which. |
+| `odegreedist`, `idegreedist` | The out-degree, or in-degree, distribution is kept (directed networks). |
 | `edges` | The number of edges is kept. |
+| `egocentric(attr=, direction='both')` | The dyads of the vertices whose `attr` (a logical vertex attribute) is true are fixed: those with such a vertex at either end, or, in directed networks, those they send (`'out'`) or receive (`'in'`). Without `attr`, of the vertices whose `na` attribute is false. |
 
 Dyads are given as an edge list of R's vertex numbers, from 1
 (`matrix(c(1, 9, 2, 6), ncol=2, byrow=TRUE)`, or a list of pairs), a
@@ -97,9 +100,21 @@ ties and, in directed networks, also reverses cyclic triples ($i \to j \to k
 other. Under `b1degrees` (`b2degrees`) it moves the other end of a tie to
 another vertex of that mode, and under `edges` it swaps a tie for a non-tie.
 
+`degreedist` conditions on less: networks whose vertices have the same
+degrees between them, in any arrangement. Besides the moves of `degrees`,
+the MCMC moves an end of a tie from a vertex to one with one tie fewer, so
+that the two swap degrees (in directed networks, the head of a tie to swap
+in-degrees, or its tail to swap out-degrees). Statistics of the degree
+distribution alone (`edges`, `kstar`, `degree`, `gwdegree`, `isolates`...)
+are constant, but not those of particular vertices' degrees (`sociality`,
+`nodefactor`). That is how ergm documents `degreedist`, `idegreedist` and
+`odegreedist`; ergm 4.12's MCMC keeps every vertex's out-degree when it swaps
+in-degrees and the reverse, so its `odegreedist` and `idegreedist` keep the
+out- or in-degrees themselves, as `odegrees` and `idegrees`.
+
 ## What changes with dyad-dependent constraints
 
-`bd`, `edges` and the degree constraints are *dyad-dependent*: whether a
+`bd`, `edges` and the degree and degree distribution constraints are *dyad-dependent*: whether a
 dyad may change depends on the others. Then:
 
 - the MPLE ignores the constraint, so `estimate="MPLE"` is not available, and

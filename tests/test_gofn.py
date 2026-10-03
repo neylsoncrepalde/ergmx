@@ -156,3 +156,31 @@ def test_gofn_matches_r(households, which):
         assert abs(np.median(ratio)) < 0.05 and np.quantile(np.abs(ratio), 0.9) < 0.3, name
         r_pearson = _r(r["pearson"])
         assert np.nanstd(t.pearson[both] - r_pearson[both]) < 0.2, name
+
+
+def test_lm_gofn_matches_r():
+    """ergmx's linear models of R's gofN() table are R's lm.gofN()'s."""
+    from ergmx._gofn import GofNResult
+    from ergmx._network import as_network
+
+    names = list(R["gof"])
+    table = {ours: np.column_stack([_r(R["gof"][n][theirs]) for n in names])
+             for ours, theirs in (("observed", "observed"), ("fitted", "fitted"), ("var", "var"),
+                                  ("var_obs", "var.obs"), ("pearson", "pearson"))}
+    blocks = as_network(load(R["network"])).blocks
+    gof = GofNResult(names, table, np.arange(1, len(blocks) + 1), [b.attributes for b in blocks], R["nsim"])
+    fits = ergmx.lm_gofN(R["lm_formula"], gof)
+    assert list(fits) == list(R["lm"])
+    for name, r in R["lm"].items():
+        fit = fits[name]
+        np.testing.assert_allclose(list(fit.coef.values()), list(r["coef"].values()), rtol=1e-9)
+        np.testing.assert_allclose(list(fit.stderr.values()), list(r["se"].values()), rtol=1e-9)
+        assert fit.sigma == pytest.approx(r["sigma"]) and fit.df == r["df"]
+        assert fit.r_squared == pytest.approx(r["r_squared"]) and fit.adj_r_squared == pytest.approx(r["adj_r_squared"])
+        np.testing.assert_allclose(fit.fstatistic, r["fstatistic"])
+        assert fit.dropped == r["dropped"]
+    assert "Residual standard error" in str(fits["edges"])
+    # Backquoted names and indices pick the statistics too.
+    assert list(gof.lm("`edges` ~ n")) == ["edges"] and list(ergmx.lm_gofN("1:2 ~ n", gof)) == names[:2]
+    with pytest.raises(ValueError, match="no statistics"):
+        ergmx.lm_gofN("esp1 ~ n", gof)

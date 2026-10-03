@@ -8,8 +8,9 @@
 They are the networks of ergm's documentation and tutorials, distributed
 with ergm under the GPL-3, ergm.multi's household networks ``Goeyvaerts`` (a
 list of networks), multinets' multilevel network ``linked_sim``, Davis's
-Southern Women, from networkx, and ``labs_sim``, a multilevel network
-simulated by ergmx from a known model.
+Southern Women, from networkx, ergm.count's valued karate club ``zach``,
+and ``labs_sim``, a multilevel network simulated by ergmx from a known
+model.
 """
 
 from __future__ import annotations
@@ -73,6 +74,15 @@ _DESCRIPTIONS = {
         "c4axb('level'), with coefficients -3.6, 0.3, -2.8, 1.5, 1.5 and 0.4, to fit with the "
         "constraints blocks('level', levels2=2). Undirected. Vertex attributes: type (True for "
         "laboratories, as in multinets) and level ('researcher' or 'laboratory')."
+    ),
+    "zach": (
+        "Zachary's (1977, doi:10.1086/jfr.33.4.3629752) karate club, as R's ergm.count has it: 34 "
+        "members of a university karate club, and the number of contexts (of 8: classes, the "
+        "instructor's studio, bars, tournaments...) in which each pair interacted, in the edge "
+        "attribute contexts. A valued network: fit it with response='contexts'. Undirected. Vertex "
+        "attributes: club (the club the member joined after the split), faction (as Zachary recorded "
+        "it) and faction.id (-2, strongly the instructor's, to 2, strongly the president's), and role "
+        "(Instructor, President or Member)."
     ),
     "faux.magnolia.high": (
         "A simulated friendship network of 1,461 students in a high school in the "

@@ -4,6 +4,7 @@
          xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
          http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
 <!-- Created by igraph -->
+  <key id="v_ego" for="node" attr.name="ego" attr.type="boolean"/>
   <key id="v_Grade" for="node" attr.name="Grade" attr.type="double"/>
   <key id="v_Race" for="node" attr.name="Race" attr.type="string"/>
   <key id="v_Sex" for="node" attr.name="Sex" attr.type="string"/>
@@ -11,1230 +12,1435 @@
   <key id="e_na" for="edge" attr.name="na" attr.type="boolean"/>
   <graph id="G" edgedefault="undirected">
     <node id="n0">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">1</data>
     </node>
     <node id="n1">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">2</data>
     </node>
     <node id="n2">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">3</data>
     </node>
     <node id="n3">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">4</data>
     </node>
     <node id="n4">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">F</data>
       <data key="v_name">5</data>
     </node>
     <node id="n5">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">6</data>
     </node>
     <node id="n6">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">7</data>
     </node>
     <node id="n7">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">8</data>
     </node>
     <node id="n8">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">M</data>
       <data key="v_name">9</data>
     </node>
     <node id="n9">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">10</data>
     </node>
     <node id="n10">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">11</data>
     </node>
     <node id="n11">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">12</data>
     </node>
     <node id="n12">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">13</data>
     </node>
     <node id="n13">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">14</data>
     </node>
     <node id="n14">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">15</data>
     </node>
     <node id="n15">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">16</data>
     </node>
     <node id="n16">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">17</data>
     </node>
     <node id="n17">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">18</data>
     </node>
     <node id="n18">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">M</data>
       <data key="v_name">19</data>
     </node>
     <node id="n19">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">20</data>
     </node>
     <node id="n20">
+      <data key="v_ego">false</data>
       <data key="v_Grade">12</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">21</data>
     </node>
     <node id="n21">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">22</data>
     </node>
     <node id="n22">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">23</data>
     </node>
     <node id="n23">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">24</data>
     </node>
     <node id="n24">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">F</data>
       <data key="v_name">25</data>
     </node>
     <node id="n25">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">26</data>
     </node>
     <node id="n26">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">27</data>
     </node>
     <node id="n27">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">28</data>
     </node>
     <node id="n28">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">29</data>
     </node>
     <node id="n29">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">30</data>
     </node>
     <node id="n30">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">31</data>
     </node>
     <node id="n31">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">32</data>
     </node>
     <node id="n32">
+      <data key="v_ego">false</data>
       <data key="v_Grade">12</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">33</data>
     </node>
     <node id="n33">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">F</data>
       <data key="v_name">34</data>
     </node>
     <node id="n34">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">35</data>
     </node>
     <node id="n35">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">36</data>
     </node>
     <node id="n36">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">37</data>
     </node>
     <node id="n37">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">38</data>
     </node>
     <node id="n38">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">39</data>
     </node>
     <node id="n39">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">F</data>
       <data key="v_name">40</data>
     </node>
     <node id="n40">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">41</data>
     </node>
     <node id="n41">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Other</data>
       <data key="v_Sex">M</data>
       <data key="v_name">42</data>
     </node>
     <node id="n42">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">M</data>
       <data key="v_name">43</data>
     </node>
     <node id="n43">
+      <data key="v_ego">false</data>
       <data key="v_Grade">12</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">44</data>
     </node>
     <node id="n44">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">45</data>
     </node>
     <node id="n45">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">46</data>
     </node>
     <node id="n46">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">47</data>
     </node>
     <node id="n47">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">48</data>
     </node>
     <node id="n48">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">49</data>
     </node>
     <node id="n49">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">50</data>
     </node>
     <node id="n50">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">51</data>
     </node>
     <node id="n51">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">52</data>
     </node>
     <node id="n52">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">53</data>
     </node>
     <node id="n53">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Black</data>
       <data key="v_Sex">F</data>
       <data key="v_name">54</data>
     </node>
     <node id="n54">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">55</data>
     </node>
     <node id="n55">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">56</data>
     </node>
     <node id="n56">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">57</data>
     </node>
     <node id="n57">
+      <data key="v_ego">false</data>
       <data key="v_Grade">12</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">58</data>
     </node>
     <node id="n58">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">59</data>
     </node>
     <node id="n59">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">60</data>
     </node>
     <node id="n60">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">61</data>
     </node>
     <node id="n61">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">62</data>
     </node>
     <node id="n62">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">F</data>
       <data key="v_name">63</data>
     </node>
     <node id="n63">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">64</data>
     </node>
     <node id="n64">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">65</data>
     </node>
     <node id="n65">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">66</data>
     </node>
     <node id="n66">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">67</data>
     </node>
     <node id="n67">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">68</data>
     </node>
     <node id="n68">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">69</data>
     </node>
     <node id="n69">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">70</data>
     </node>
     <node id="n70">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">71</data>
     </node>
     <node id="n71">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">72</data>
     </node>
     <node id="n72">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">73</data>
     </node>
     <node id="n73">
+      <data key="v_ego">false</data>
       <data key="v_Grade">12</data>
       <data key="v_Race">Black</data>
       <data key="v_Sex">M</data>
       <data key="v_name">74</data>
     </node>
     <node id="n74">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">75</data>
     </node>
     <node id="n75">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">76</data>
     </node>
     <node id="n76">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">77</data>
     </node>
     <node id="n77">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">78</data>
     </node>
     <node id="n78">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">79</data>
     </node>
     <node id="n79">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">80</data>
     </node>
     <node id="n80">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">81</data>
     </node>
     <node id="n81">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">82</data>
     </node>
     <node id="n82">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">83</data>
     </node>
     <node id="n83">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">84</data>
     </node>
     <node id="n84">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">85</data>
     </node>
     <node id="n85">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">86</data>
     </node>
     <node id="n86">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">F</data>
       <data key="v_name">87</data>
     </node>
     <node id="n87">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">88</data>
     </node>
     <node id="n88">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">M</data>
       <data key="v_name">89</data>
     </node>
     <node id="n89">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">90</data>
     </node>
     <node id="n90">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">91</data>
     </node>
     <node id="n91">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">92</data>
     </node>
     <node id="n92">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">93</data>
     </node>
     <node id="n93">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">94</data>
     </node>
     <node id="n94">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">95</data>
     </node>
     <node id="n95">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">96</data>
     </node>
     <node id="n96">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">97</data>
     </node>
     <node id="n97">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">98</data>
     </node>
     <node id="n98">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">99</data>
     </node>
     <node id="n99">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">100</data>
     </node>
     <node id="n100">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">F</data>
       <data key="v_name">101</data>
     </node>
     <node id="n101">
+      <data key="v_ego">false</data>
       <data key="v_Grade">12</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">102</data>
     </node>
     <node id="n102">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">103</data>
     </node>
     <node id="n103">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">F</data>
       <data key="v_name">104</data>
     </node>
     <node id="n104">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">105</data>
     </node>
     <node id="n105">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">106</data>
     </node>
     <node id="n106">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">107</data>
     </node>
     <node id="n107">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">108</data>
     </node>
     <node id="n108">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">109</data>
     </node>
     <node id="n109">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">110</data>
     </node>
     <node id="n110">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">111</data>
     </node>
     <node id="n111">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">112</data>
     </node>
     <node id="n112">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">113</data>
     </node>
     <node id="n113">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">114</data>
     </node>
     <node id="n114">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">115</data>
     </node>
     <node id="n115">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">116</data>
     </node>
     <node id="n116">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">117</data>
     </node>
     <node id="n117">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Black</data>
       <data key="v_Sex">F</data>
       <data key="v_name">118</data>
     </node>
     <node id="n118">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">M</data>
       <data key="v_name">119</data>
     </node>
     <node id="n119">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">120</data>
     </node>
     <node id="n120">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">121</data>
     </node>
     <node id="n121">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">122</data>
     </node>
     <node id="n122">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Black</data>
       <data key="v_Sex">M</data>
       <data key="v_name">123</data>
     </node>
     <node id="n123">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">124</data>
     </node>
     <node id="n124">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">125</data>
     </node>
     <node id="n125">
+      <data key="v_ego">false</data>
       <data key="v_Grade">12</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">126</data>
     </node>
     <node id="n126">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">127</data>
     </node>
     <node id="n127">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">128</data>
     </node>
     <node id="n128">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">129</data>
     </node>
     <node id="n129">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">130</data>
     </node>
     <node id="n130">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">131</data>
     </node>
     <node id="n131">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">132</data>
     </node>
     <node id="n132">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">133</data>
     </node>
     <node id="n133">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">134</data>
     </node>
     <node id="n134">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">135</data>
     </node>
     <node id="n135">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">136</data>
     </node>
     <node id="n136">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">137</data>
     </node>
     <node id="n137">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">138</data>
     </node>
     <node id="n138">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">139</data>
     </node>
     <node id="n139">
+      <data key="v_ego">false</data>
       <data key="v_Grade">12</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">140</data>
     </node>
     <node id="n140">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">M</data>
       <data key="v_name">141</data>
     </node>
     <node id="n141">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">142</data>
     </node>
     <node id="n142">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">143</data>
     </node>
     <node id="n143">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">144</data>
     </node>
     <node id="n144">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">145</data>
     </node>
     <node id="n145">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Other</data>
       <data key="v_Sex">F</data>
       <data key="v_name">146</data>
     </node>
     <node id="n146">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">147</data>
     </node>
     <node id="n147">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">148</data>
     </node>
     <node id="n148">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">149</data>
     </node>
     <node id="n149">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">150</data>
     </node>
     <node id="n150">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">151</data>
     </node>
     <node id="n151">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">152</data>
     </node>
     <node id="n152">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">153</data>
     </node>
     <node id="n153">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Other</data>
       <data key="v_Sex">F</data>
       <data key="v_name">154</data>
     </node>
     <node id="n154">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">155</data>
     </node>
     <node id="n155">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">F</data>
       <data key="v_name">156</data>
     </node>
     <node id="n156">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">157</data>
     </node>
     <node id="n157">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">158</data>
     </node>
     <node id="n158">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Other</data>
       <data key="v_Sex">F</data>
       <data key="v_name">159</data>
     </node>
     <node id="n159">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">Black</data>
       <data key="v_Sex">F</data>
       <data key="v_name">160</data>
     </node>
     <node id="n160">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">161</data>
     </node>
     <node id="n161">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">162</data>
     </node>
     <node id="n162">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">163</data>
     </node>
     <node id="n163">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">164</data>
     </node>
     <node id="n164">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">165</data>
     </node>
     <node id="n165">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">M</data>
       <data key="v_name">166</data>
     </node>
     <node id="n166">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">167</data>
     </node>
     <node id="n167">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">168</data>
     </node>
     <node id="n168">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">169</data>
     </node>
     <node id="n169">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">170</data>
     </node>
     <node id="n170">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">171</data>
     </node>
     <node id="n171">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">M</data>
       <data key="v_name">172</data>
     </node>
     <node id="n172">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">173</data>
     </node>
     <node id="n173">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">174</data>
     </node>
     <node id="n174">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">175</data>
     </node>
     <node id="n175">
+      <data key="v_ego">false</data>
       <data key="v_Grade">12</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">176</data>
     </node>
     <node id="n176">
+      <data key="v_ego">false</data>
       <data key="v_Grade">12</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">177</data>
     </node>
     <node id="n177">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">178</data>
     </node>
     <node id="n178">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">179</data>
     </node>
     <node id="n179">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">180</data>
     </node>
     <node id="n180">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">181</data>
     </node>
     <node id="n181">
+      <data key="v_ego">false</data>
       <data key="v_Grade">12</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">182</data>
     </node>
     <node id="n182">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">183</data>
     </node>
     <node id="n183">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">184</data>
     </node>
     <node id="n184">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">185</data>
     </node>
     <node id="n185">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">186</data>
     </node>
     <node id="n186">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">187</data>
     </node>
     <node id="n187">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">188</data>
     </node>
     <node id="n188">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">189</data>
     </node>
     <node id="n189">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">190</data>
     </node>
     <node id="n190">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">191</data>
     </node>
     <node id="n191">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">192</data>
     </node>
     <node id="n192">
+      <data key="v_ego">false</data>
       <data key="v_Grade">8</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">193</data>
     </node>
     <node id="n193">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">White</data>
       <data key="v_Sex">F</data>
       <data key="v_name">194</data>
     </node>
     <node id="n194">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">195</data>
     </node>
     <node id="n195">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">196</data>
     </node>
     <node id="n196">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">197</data>
     </node>
     <node id="n197">
+      <data key="v_ego">true</data>
       <data key="v_Grade">7</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">M</data>
       <data key="v_name">198</data>
     </node>
     <node id="n198">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">199</data>
     </node>
     <node id="n199">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">200</data>
     </node>
     <node id="n200">
+      <data key="v_ego">false</data>
       <data key="v_Grade">12</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>
       <data key="v_name">201</data>
     </node>
     <node id="n201">
+      <data key="v_ego">false</data>
       <data key="v_Grade">11</data>
       <data key="v_Race">Hisp</data>
       <data key="v_Sex">F</data>
       <data key="v_name">202</data>
     </node>
     <node id="n202">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">F</data>
       <data key="v_name">203</data>
     </node>
     <node id="n203">
+      <data key="v_ego">false</data>
       <data key="v_Grade">10</data>
       <data key="v_Race">Black</data>
       <data key="v_Sex">M</data>
       <data key="v_name">204</data>
     </node>
     <node id="n204">
+      <data key="v_ego">false</data>
       <data key="v_Grade">9</data>
       <data key="v_Race">NatAm</data>
       <data key="v_Sex">M</data>

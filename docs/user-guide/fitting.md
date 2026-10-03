@@ -42,8 +42,24 @@ every possible network, so `ergmx` estimates it by MCMC, as ergm does:
    and moves the coefficients towards values whose simulated networks have,
    on average, the observed statistics ([Hummel et al. 2012](https://doi.org/10.1080/10618600.2012.679224) step lengths with
    a log-normal approximation).
-3. It stops when two consecutive steps are full steps, then draws a larger
-   final sample for the standard errors.
+3. It stops, as ergm does by default, when an equivalence test shows with
+   99% confidence that the simulated mean statistics are within the
+   tolerance region of the observed (within about a fifth of a standard
+   deviation, in the metric of their covariance), drawing larger samples
+   when the test can't tell yet. `termination="Hummel"` stops instead after
+   two consecutive full steps, then draws a larger final sample for the
+   standard errors, as ergm's `MCMLE.termination="Hummel"`.
+
+Each new sample also checks the step that led to it: the log-likelihood the
+step gained, estimated from the samples before and after it. A step that
+lost significantly (an approximation that misled, far from its sample) is
+replaced by one half as long, and the next steps are at most as long until
+steps succeed: a trust region, measured in standard errors. It starts at
+one standard error for curved models, whose approximation is least reliable
+far from its sample; those are also fitted in two stages, first with their
+decays held at the starting values, then with the decays too, from there. No step is taken from a sample with fewer effective
+draws than `effective_size`: the chains run again, with a longer interval,
+as ergm samples until it has enough.
 
 ```{code-cell} ipython3
 mesa = datasets.load("faux.mesa.high")

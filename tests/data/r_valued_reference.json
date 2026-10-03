@@ -1,0 +1,79 @@
+{
+  "ergm_count_version": "4.1.3",
+  "stats": {
+    "zach": {
+      "names": ["sum", "nonzero", "nodematch.sum.role", "nodematch.nonzero.role", "nodefactor.sum.role.Member", "nodefactor.sum.role.President", "nodecov.sum.faction.id", "absdiff.sum.faction.id", "atleast.2", "atmost.1", "atmost.3", "greaterthan.4", "smallerthan.2", "equalto.3.pm.0", "ininterval(1,3)", "ininterval[1,3)", "sum0.5", "CMP", "transitiveweights.min.max.min", "transitiveweights.geomean.sum.geomean", "cyclicalweights.min.max.min", "nodecovar", "nodecovar", "mm.sum[role=Instructor,role=Member]", "mm.sum[role=Member,role=Member]", "mm.sum[role=Instructor,role=President]", "mm.sum[role=Member,role=President]", "mm.sum[role=President,role=President]"],
+      "values": [231, 78, 141, 45, 372, 48, 25, 171, 72, 489, 540, 9, 489, 27, 24, 30, 131.45421419766, 151.766538739321, 172, 288.979267733721, 172, 145.53125, 16.1724818328908, 42, 141, 0, 48, 0]
+    },
+    "nominations": {
+      "names": ["sum", "nonzero", "mutual.min", "mutual.nabsdiff", "mutual.product", "mutual.geom.mean", "transitiveweights.min.max.min", "cyclicalweights.min.max.min", "transitiveweights.geomean.sum.geomean", "cyclicalweights.geomean.sum.min", "nodeocovar", "nodeicovar", "nodeocovar", "nodeicovar", "transitiveties", "transitiveties", "nodematch.sum.group", "sender.nonzero2", "sender.nonzero3", "sender.nonzero4", "sender.nonzero5", "sender.nonzero6", "sender.nonzero7", "sender.nonzero8", "sender.nonzero9", "sender.nonzero10", "sender.nonzero11", "sender.nonzero12", "sender.nonzero13", "sender.nonzero14", "sender.nonzero15", "sender.nonzero16", "sender.nonzero17", "sender.nonzero18"],
+      "values": [168, 88, 47, -74, 129, 56.9276381019568, 96, 84, 180.190587659087, 106.680189388041, 74.125, 107.25, -18.1102941176471, 52.905035711432, 69, 22, 106, 5, 5, 4, 5, 4, 5, 6, 4, 6, 5, 4, 3, 5, 6, 5, 4, 6]
+    }
+  },
+  "fits": {
+    "zach_sum": {
+      "network": "zach",
+      "reference": "Poisson",
+      "formula": "sum",
+      "coef": {
+        "sum": -0.884432959410865
+      },
+      "se": {
+        "sum": 0.0699214330199854
+      },
+      "seconds": 0.332
+    },
+    "zach_dyadind": {
+      "network": "zach",
+      "reference": "Poisson",
+      "formula": "sum + nonzero + nodefactor('role', levels=-2) + nodematch('faction.id')",
+      "coef": {
+        "sum": 0.647772200623551,
+        "nonzero": -4.134533671935,
+        "nodefactor.sum.role.Instructor": 0.427763017040447,
+        "nodefactor.sum.role.President": 0.442534376778482,
+        "nodematch.sum.faction.id": 0.411423481206678
+      },
+      "se": {
+        "sum": 0.107427679228465,
+        "nonzero": 0.252538493574322,
+        "nodefactor.sum.role.Instructor": 0.102239929187077,
+        "nodefactor.sum.role.President": 0.0957176181001768,
+        "nodematch.sum.faction.id": 0.0834089911721334
+      },
+      "seconds": 4.861
+    },
+    "nominations_mutual": {
+      "network": "nominations",
+      "reference": "Binomial(3)",
+      "formula": "sum + nonzero + mutual",
+      "coef": {
+        "sum": -0.0264559063109207,
+        "nonzero": -3.5405447684638,
+        "mutual.min": 1.31141698729584
+      },
+      "se": {
+        "sum": 0.179362498696173,
+        "nonzero": 0.305799787005749,
+        "mutual.min": 0.23695938233599
+      },
+      "seconds": 1.062
+    },
+    "zach_transitive": {
+      "network": "zach",
+      "reference": "Poisson",
+      "formula": "sum + nonzero + transitiveweights('min','max','min')",
+      "coef": {
+        "sum": 0.59849515141733,
+        "nonzero": -4.78466086702917,
+        "transitiveweights.min.max.min": 0.56024908305999
+      },
+      "se": {
+        "sum": 0.120511440488238,
+        "nonzero": 0.24097643311244,
+        "transitiveweights.min.max.min": 0.097637129292183
+      },
+      "seconds": 62.951
+    }
+  }
+}

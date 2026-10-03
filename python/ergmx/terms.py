@@ -30,11 +30,20 @@ class Term:
     #: degrees of undirected networks), so that it is constant when they are
     #: preserved; None if it is not a function of degrees.
     degree_dependence: frozenset | None = None
+    #: Whether the statistic is a function of the degree distributions only
+    #: (of the degrees in degree_dependence), so that it is constant when they
+    #: are preserved (degreedist).
+    of_distribution = False
     #: Whether the coefficient is fixed by offset() rather than estimated.
     is_offset = False
     #: Whether the term is curved: its statistics' coefficients are a nonlinear
     #: function of fewer parameters (gwesp with an estimated decay).
     curved = False
+
+    @property
+    def distribution_dependence(self) -> frozenset | None:
+        """The degree distributions the statistic is a function of, or None."""
+        return self.degree_dependence if self.of_distribution else None
 
     def names(self, network: Network) -> list[str]:
         """Names of the term's statistics."""
@@ -139,7 +148,8 @@ def _sp_type(type: str) -> str:
 _DEGREES = frozenset({"in", "out"})
 _IN, _OUT = frozenset({"in"}), frozenset({"out"})
 # Terms R deparses without parentheses when they have no arguments (~edges).
-_NO_PARENS = {"edges", "mutual", "triangle", "ttriple", "ctriple", "isolates"}
+_NO_PARENS = {"edges", "mutual", "triangle", "ttriple", "ctriple", "isolates", "degcor", "degcrossprod",
+              "tripercent", "coincidence"}
 
 
 def _r_literal(value) -> str:
@@ -178,6 +188,7 @@ def _curved_or_fixed(term, fixed: bool, cutoff: int):
 
 
 class Edges(Term):
+    of_distribution = True
     degree_dependence = frozenset()  # constant whenever any degrees are preserved
 
 
@@ -190,6 +201,7 @@ class Mutual(Term):
 
 
 class _Stars(Term):
+    of_distribution = True
     dyad_independent = False
 
     def __init__(self, k):
@@ -256,12 +268,14 @@ class ODegree(_DegreeCount):
 
 
 class Isolates(Term):
+    of_distribution = True
     dyad_independent = False
     degree_dependence = _DEGREES
 
 
 class Concurrent(Term):
     """Number of vertices with degree 2 or more."""
+    of_distribution = True
 
     dyad_independent = False
     directed = False
@@ -300,6 +314,7 @@ class _Decay(Term):
 
 class _GwDegreeBase(_Decay):
     """What a geometrically weighted degree term needs to be curved."""
+    of_distribution = True
 
     #: The Rust degree histogram and ergm's name of the curved term.
     histogram_rust = "degree"
@@ -1101,6 +1116,7 @@ class _DegreeRange(Term):
     """Vertices with degree in [from, to), for each range: degree(d, by=,
     homophily=) and degrange(), their in-, out- and bipartite versions,
     b1mindegree and concurrent(by=)."""
+    of_distribution = property(lambda self: self.by is None)
 
     dyad_independent = False
 
@@ -1197,6 +1213,7 @@ def _ranges(frm, to):
 
 class _DegreePower(Term):
     """Sum over vertices of their degree to the power 1.5 (degree1.5)."""
+    of_distribution = True
 
     dyad_independent = False
 
@@ -1220,6 +1237,7 @@ class _DegreePower(Term):
 
 class ConcurrentTies(Term):
     """Ties of each vertex beyond its first, by level of ``by``."""
+    of_distribution = property(lambda self: self.by is None)
 
     dyad_independent = False
     directed = False
@@ -1247,6 +1265,7 @@ class ConcurrentTies(Term):
 
 class Density(Term):
     """The density: edges over the number of dyads."""
+    of_distribution = True
 
     degree_dependence = frozenset()
 
@@ -1261,6 +1280,7 @@ class Density(Term):
 
 class MeanDeg(Term):
     """The mean degree: twice the edges over the vertices (the edges, if directed)."""
+    of_distribution = True
 
     degree_dependence = frozenset()
 
@@ -1273,6 +1293,162 @@ class IsolatedEdges(Term):
 
     dyad_independent = False
     directed = False
+
+
+def _tie_degrees(network: Network) -> tuple[np.ndarray, np.ndarray]:
+    """The degrees of the two ends of each tie (undirected networks)."""
+    degree = network.degrees()[0].astype(float)
+    return degree[network.edges[:, 0]], degree[network.edges[:, 1]]
+
+
+class DegCor(Term):
+    """The correlation of the degrees of tied vertices (undirected), as
+    ergm's degcor: its value in the network, with change statistics
+    linearized there, as ergm's are."""
+
+    dyad_independent = False
+    directed = False
+
+    def spec(self, network):
+        a, b = _tie_degrees(network)
+        ends = np.concatenate([a, b])
+        mean = ends.mean() if len(ends) else 0.0
+        squares = float(np.sum((ends - mean) ** 2))  # ergm's sigma2
+        if squares <= 0:
+            raise ValueError("degcor is undefined for a network without ties, or whose tied "
+                             "vertices all have the same degree")
+        variance = squares / len(ends)
+        return ("degreecross", [2.0 / squares, -mean**2 / variance], [])
+
+
+class DegCrossProd(Term):
+    """The mean over ties of the product of their vertices' degrees
+    (undirected), with change statistics linearized at the observed network
+    (as ergm's: over its number of ties)."""
+
+    dyad_independent = False
+    directed = False
+
+    def check(self, network):
+        super().check(network)
+        warnings.warn(
+            "degcrossprod is the mean over ties of the product of their vertices' degrees, as "
+            "R's ergm documents; ergm 4.12 computes half of it (the sum over twice the number "
+            "of ties), so its coefficients are twice ergmx's.",
+            ErgmDifferenceWarning, stacklevel=5,
+        )
+
+    def spec(self, network):
+        if not len(network.edges):
+            raise ValueError("degcrossprod is undefined for a network without ties")
+        return ("degreecross", [1.0 / len(network.edges), 0.0], [])
+
+
+class TriPercent(Term):
+    """100 times the share of triangles among triangles and two-paths not in
+    a triangle (undirected); with ``attr``, of the ties between vertices with
+    the same value, and with ``diff``, within each value."""
+
+    dyad_independent = False
+    triadic = True
+    directed = False
+
+    def __init__(self, attr=None, diff=False, levels=None):
+        self.attr, self.diff, self.levels = attr, bool(diff), levels
+
+    def _chosen(self, network):
+        values = _values(network, self.attr)
+        return values, _select_levels(_sorted_levels(values), self.levels)
+
+    def names(self, network):
+        if self.attr is None:
+            return ["tripercent"]
+        if not self.diff:
+            return [f"tripercent.{self.attr}"]
+        return [f"tripercent.{self.attr}.{_level_name(v)}" for v in self._chosen(network)[1]]
+
+    def spec(self, network):
+        if self.attr is None:
+            return ("tripercent", [], _chunks([], []))
+        values, chosen = self._chosen(network)
+        # Vertices of other values share one code, as in ergm.
+        codes = [len(chosen) if c < 0 else c for c in _level_codes(values, chosen)]
+        return ("tripercent", [], _chunks(codes, list(range(len(chosen))) if self.diff else []))
+
+    def __repr__(self) -> str:
+        if self.attr is None:
+            return "tripercent"
+        return f"tripercent({self.attr!r}{', diff=True' if self.diff else ''})"
+
+
+class Coincidence(Term):
+    """For each pair of the second mode's vertices, the number of first-mode
+    vertices tied to both (bipartite networks), as ergm's coincidence."""
+
+    dyad_independent = False
+    directed = False
+
+    def __init__(self, levels=None, active=0):
+        self.levels, self.active = levels, active
+
+    def check(self, network):
+        super().check(network)
+        if not network.bipartite:
+            raise ValueError("coincidence needs a bipartite network")
+
+    def _pairs(self, network) -> list[tuple[int, int]]:
+        """The pairs (1-based positions in the second mode) with a statistic."""
+        m = int(np.sum(network.mode == 2))
+        pairs = [(a, b) for a in range(1, m + 1) for b in range(a + 1, m + 1)]
+        if self.levels is not None:
+            spec = self.levels
+            if isinstance(spec, (list, tuple)) and spec and all(isinstance(p, (list, tuple)) for p in spec):
+                chosen = {tuple(int(v) for v in p) for p in spec}
+                return [p for p in pairs if p in chosen]
+            return [pairs[i] for i in _select(spec if isinstance(spec, (list, tuple)) else [spec], len(pairs), "levels")]
+        if self.active > 0:
+            counts = self._counts(network)
+            if any(counts[p] == self.active for p in pairs):
+                warnings.warn(
+                    f"coincidence(active={self.active:g}) keeps the pairs with at least {self.active:g} "
+                    "partners in common, as R's ergm documents; ergm 4.12 keeps those with more.",
+                    ErgmDifferenceWarning, stacklevel=5,
+                )
+            return [p for p in pairs if counts[p] >= self.active]
+        return pairs
+
+    @staticmethod
+    def _counts(network) -> dict:
+        second = np.flatnonzero(network.mode == 2)
+        position = {v: k + 1 for k, v in enumerate(second)}
+        events: dict[int, list[int]] = {}
+        for a, b in network.edges:
+            actor, event = (a, b) if network.mode[a] == 1 else (b, a)
+            events.setdefault(int(actor), []).append(position[int(event)])
+        counts: dict = {}
+        for evs in events.values():
+            evs = sorted(evs)
+            for x in range(len(evs)):
+                for y in range(x + 1, len(evs)):
+                    counts[(evs[x], evs[y])] = counts.get((evs[x], evs[y]), 0) + 1
+        m = len(second)
+        return {(a, b): counts.get((a, b), 0) for a in range(1, m + 1) for b in range(a + 1, m + 1)}
+
+    def names(self, network):
+        return [f"coincidence.{a}.{b}" for a, b in self._pairs(network)]
+
+    def spec(self, network):
+        second = network.mode == 2
+        m = int(second.sum())
+        position = np.full(network.n, -1, dtype=np.int64)
+        position[second] = np.arange(m)
+        stat_of = np.full(m * m, -1, dtype=np.int64)
+        for k, (a, b) in enumerate(self._pairs(network)):
+            stat_of[(a - 1) * m + (b - 1)] = k
+        return ("coincidence", [], _chunks(position.tolist(), stat_of.tolist()))
+
+    def __repr__(self) -> str:
+        return "coincidence"
 
 
 def _matrix_argument(network: Network, x, what: str) -> tuple[np.ndarray, str | None]:
@@ -1594,6 +1770,7 @@ class SmallDiff(_AttributeTerm):
 
 class AltKStar(Term):
     """Alternating k-stars with a fixed lambda."""
+    of_distribution = True
 
     dyad_independent = False
     directed = False
@@ -1886,6 +2063,7 @@ class LocalTriangle(Term):
 
 class _StarsMatch(_Stars):
     """k-stars whose vertices all have the same level of ``attr``."""
+    of_distribution = False
 
     rust = "kstarmatch"
 
@@ -2264,6 +2442,7 @@ class Curved(Term):
     triadic = property(lambda self: self.term.triadic)
     directed = property(lambda self: self.term.directed)
     degree_dependence = property(lambda self: self.term.degree_dependence)
+    of_distribution = property(lambda self: self.term.of_distribution)
 
     def check(self, network):
         self.term.check(network)
@@ -2597,11 +2776,10 @@ class BlockOperator(Term):
                  offset=None, label=None):
         if op not in _VIEWS:
             raise ValueError(f"unknown block operator {op!r}")
-        if weights is not None and not (np.isscalar(weights) and str(weights).lstrip("~").strip() in ("1", "1.0")):
-            raise NotImplementedError(f"{op}(): network weights other than 1 are not supported, "
-                                      "as in ergm.multi")
-        if contrasts is not None:
-            raise NotImplementedError(f"{op}(): the contrasts argument is not supported yet")
+        if contrasts is not None and not isinstance(contrasts, dict):
+            raise TypeError(f"{op}(): contrasts must be a dict (R's list(term = \"contr.sum\")), "
+                            f"not {contrasts!r}")
+        self.weights, self.contrasts = weights, contrasts
         if label is not None and not (isinstance(label, str) or callable(label)):
             raise TypeError(f"{op}(): label must be a string, or a function of a statistic's name "
                             "and a column of the linear model")
@@ -2646,7 +2824,13 @@ class BlockOperator(Term):
             if not kept.any():
                 raise LmError("subset keeps no network")
             chosen = [a for a, k in zip(attributes, kept) if k]
-            x, columns, offset = model_frame(self.lm, chosen)
+            x, columns, offset = model_frame(self.lm, chosen, self.contrasts)
+            if self.weights is not None:
+                weights = evaluate(self.weights, chosen) if isinstance(self.weights, str) \
+                    else np.broadcast_to(np.asarray(self.weights, dtype=float), (len(chosen),))
+                if not np.all(np.asarray(weights, dtype=float) == 1):
+                    raise NotImplementedError(f"{self.op}(): network weights other than 1 are not "
+                                              "supported, as in ergm.multi")
             if self.offset is not None:
                 value = evaluate(self.offset, chosen) if isinstance(self.offset, str) \
                     else np.broadcast_to(np.asarray(self.offset, dtype=float), (len(chosen),))
@@ -2796,7 +2980,8 @@ class BlockOperator(Term):
 
     def __repr__(self) -> str:
         extra = "" if self.lm is None else f", lm={self.lm!r}"
-        for name, value in (("subset", self.subset), ("offset", self.offset), ("label", self.name_label)):
+        for name, value in (("subset", self.subset), ("offset", self.offset), ("label", self.name_label),
+                            ("contrasts", self.contrasts)):
             if value is not None:
                 extra += f", {name}={value!r}"
         return f"{self.op}({self.formula!r}{extra})"
@@ -3308,8 +3493,11 @@ def N(formula, lm=None, subset=None, weights=None, contrasts=None, offset=None, 
     whose coefficient is fixed at 1, as in ergm.multi. ``label`` names the
     operator in the statistics' names (``N(label,1)~edges``), or, a function
     of a statistic's name and a column of the linear model, names them.
-    ``weights`` other than 1 and ``contrasts`` are not supported, as in
-    ergm.multi.
+    ``contrasts`` chooses the contrasts of the linear model's factors, by
+    term, as R's ``contrasts.arg``: ``contrasts=list(weekday="contr.sum")``
+    (``contr.treatment``, the default, ``contr.SAS``, ``contr.sum``,
+    ``contr.helmert``, ``contr.poly``, or a matrix with a row per level).
+    ``weights`` other than 1 are not supported, as in ergm.multi.
     """
     return BlockOperator("N", formula, lm, subset, weights, contrasts, offset, label)
 
@@ -3707,6 +3895,48 @@ def isolatededges() -> Term:
     return IsolatedEdges()
 
 
+def degcor() -> Term:
+    """The correlation of the degrees of tied vertices (undirected networks),
+    as ergm's degcor. Its value is the observed network's correlation, but,
+    as in ergm, its change statistics are linearized at the observed network:
+    the sum over ties of the product of their vertices' degrees, scaled by
+    the observed variance of the degrees. So simulated networks' values
+    (``output="stats"``) are those of that linear statistic, as R's are."""
+    return DegCor()
+
+
+def degcrossprod() -> Term:
+    """The mean over ties of the product of their vertices' degrees
+    (undirected networks): the sum over ties, over the observed network's
+    number of ties, which change statistics keep fixed, as ergm's do.
+
+    That mean is how R's ergm documents degcrossprod; ergm 4.12 computes half
+    of it, and degcrossprod warns with :class:`ErgmDifferenceWarning`."""
+    return DegCrossProd()
+
+
+def tripercent(attr=None, diff: bool = False, levels=None) -> Term:
+    """100 times the number of triangles over the number of triangles and of
+    two-paths not in a triangle (undirected networks), 0 without triangles,
+    as ergm's tripercent. With ``attr``, only ties between vertices with the
+    same value count; with ``diff``, one statistic per value (``levels``),
+    within the vertices of that value."""
+    return TriPercent(attr, diff, levels)
+
+
+def coincidence(levels=None, active=0) -> Term:
+    """For each pair of vertices of the second mode (bipartite networks), the
+    number of first-mode vertices tied to both, named
+    ``coincidence.<a>.<b>`` by the pair's positions in the second mode, as in
+    ergm. ``levels`` picks pairs: 1-based indices into the list of pairs, or
+    the pairs themselves (``[(1, 2), (2, 5)]``); ``active`` keeps the pairs with
+    at least that many first-mode vertices in common in the observed network.
+
+    That is how R's ergm documents ``active``; ergm 4.12 keeps the pairs with
+    more, and warns with :class:`ErgmDifferenceWarning` when that differs."""
+    return Coincidence(levels, active)
+
+
 def dyadcov(x) -> Term:
     """A dyadic covariate by dyad state, in directed networks: its sum over
     mutual dyads (``mutual``), over dyads with only the tie from the lower- to
@@ -3989,6 +4219,7 @@ _VOCABULARY = (
     nodefactordistinct, nodeofactordistinct, nodeifactordistinct, diff, smalldiff, altkstar,
     triadcensus, balance, intransitive, simmelian, nearsimmelian, simmelianties, transitiveties,
     cyclicalties, threetrail, opentriad, localtriangle, m2star, desp, ddsp, dnsp, dgwesp, dgwdsp, dgwnsp,
+    degcor, degcrossprod, tripercent, coincidence,
 )
 _MORE_BIPARTITE = (
     b1degrange, b2degrange, b1mindegree, b2mindegree, b1covrange, b2covrange, b1factordistinct,

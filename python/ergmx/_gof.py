@@ -352,18 +352,8 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
     if by is not None:
         return _gof_by(model, coef, by, stats, nsim, seed, interval, burnin, n_chains, triadic_weight,
                        fitted_interval)
-    if stats is None and network.bipartite:
-        stats = ["b1degree", "b2degree", "dspartners", "distance", "model"]  # as ergm
-    if stats is None:
-        degrees = ["idegree", "odegree"] if network.directed else ["degree"]
-        stats = degrees + ["espartners", "distance", "model"]
-    for stat in stats:
-        if stat not in _TITLES:
-            raise ValueError(f"unknown goodness-of-fit statistic {stat!r}; use {list(_TITLES)}")
-        if network.directed and stat == "degree" or not network.directed and stat in ("idegree", "odegree"):
-            raise ValueError(f"{stat!r} does not apply to {'' if network.directed else 'un'}directed networks")
-        if stat in ("b1degree", "b2degree") and not network.bipartite:
-            raise ValueError(f"{stat!r} needs a bipartite network")
+    stats = default_stats(network) if stats is None else stats
+    check_stats(network, stats)
 
     interval = interval or fitted_interval or Control.interval
     burnin = 16 * interval if burnin is None else burnin
@@ -384,6 +374,30 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
         imputed_edges, imputed_stats = draw(conditional=True)
     else:
         imputed_edges, imputed_stats = [network.edges], model.observed()[None, :]
+    return GofResult(_tables(model, stats, simulated_edges, model_stats, imputed_edges, imputed_stats), nsim)
+
+
+def check_stats(network, stats) -> None:
+    for stat in stats:
+        if stat not in _TITLES:
+            raise ValueError(f"unknown goodness-of-fit statistic {stat!r}; use {list(_TITLES)}")
+        if network.directed and stat == "degree" or not network.directed and stat in ("idegree", "odegree"):
+            raise ValueError(f"{stat!r} does not apply to {'' if network.directed else 'un'}directed networks")
+        if stat in ("b1degree", "b2degree") and not network.bipartite:
+            raise ValueError(f"{stat!r} needs a bipartite network")
+
+
+def default_stats(network) -> list[str]:
+    """ergm's goodness-of-fit statistics for a network."""
+    if network.bipartite:
+        return ["b1degree", "b2degree", "dspartners", "distance", "model"]
+    return (["idegree", "odegree"] if network.directed else ["degree"]) + ["espartners", "distance", "model"]
+
+
+def _tables(model, stats, simulated_edges, model_stats, imputed_edges, imputed_stats) -> dict:
+    """The goodness-of-fit tables of simulated networks against the observed
+    (or imputed) ones."""
+    network = model.network
 
     def distributions(edge_lists, stat):
         return _pooled_many(network, edge_lists, stat)
@@ -398,7 +412,7 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
         size = max(b.network.n for b in network.blocks) if network.combined else network.n
         tables[stat] = GofTable(stat, _labels(size, stat), observed,
                                 distributions(simulated_edges, stat))
-    return GofResult(tables, nsim)
+    return tables
 
 
 def _simulations(model, coef, nsim, seed, interval, burnin, n_chains, triadic_weight):

@@ -91,7 +91,12 @@ the first; `~0 + factor(.NetworkID)` gives each network its own coefficient.
 
 The `lm` formula accepts attributes, arithmetic, comparisons, `&`, `|`, `!`,
 `I()`, `log()`, `exp()`, `sqrt()`, `abs()`, `factor()` and `offset()`;
-interactions (`a:b`) are not supported yet.
+interactions (`a:b`) are not supported yet. `contrasts` sets the contrasts of
+factors, by term, as R's `contrasts.arg`: `contrasts=list(weekday='contr.sum')`
+gives the effect of weekday as a deviation from the mean of the two kinds of
+day, named `N(weekday1)~edges`; `contr.SAS`, `contr.helmert`, `contr.poly`
+and matrices work too, and backquotes name other terms, as in R:
+``contrasts=list(`factor(n)`='contr.poly')``.
 
 `N()`'s other arguments are ergm.multi's. `subset` restricts the terms to
 some networks, an expression of their attributes such as `~n >= 4` (or
@@ -167,6 +172,17 @@ by_household.plot(["edges", "triangle"]);
 `by="~n"`, and `subset=` keeps some networks. With missing dyads, the
 observed statistics are averaged over networks imputed from the model, as
 in ergm.multi.
+
+A trend in a statistic's residuals points to what the model misses about
+it. {func}`ergmx.lm_gofN`, as ergm.multi's `lm.gofN()`, fits linear models of
+the residuals on the networks' attributes, weighted by the inverse of their
+variances; it returns one {class}`~ergmx.LmFit` per statistic, which prints
+as R's `summary.lm()`:
+
+```{code-cell} ipython3
+trends = ergmx.lm_gofN("c(edges, triangle) ~ n", by_household)
+print(trends["triangle"])
+```
 
 ergm.multi's `gofN()` leaves out the statistics of the empty network, so it
 reports `degree0` and `isolates` minus the network size; ergmx reports the

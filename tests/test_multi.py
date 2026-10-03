@@ -79,9 +79,12 @@ def test_formulas_take_r_syntax():
     t, = ergmx.parse_formula("N(~edges, subset=c(TRUE, FALSE), offset=2)")
     assert (t.subset, t.offset) == ("c(TRUE, FALSE)", "2")
     with pytest.raises(NotImplementedError, match="weights"):
-        ergmx.parse_formula("N(~edges, weights=~n)")
-    with pytest.raises(NotImplementedError, match="contrasts"):
+        ergmx.summary_stats(ergmx.Networks(monks()), "N(~edges, weights=~n)")
+    assert len(ergmx.summary_stats(ergmx.Networks(monks()), "N(~edges, weights=~1)")) == 1
+    with pytest.raises(ergmx.FormulaError, match="contrasts must be a dict"):
         ergmx.parse_formula("N(~edges, contrasts=1)")
+    t, = ergmx.parse_formula("N(~edges, ~factor(n), contrasts=list(`factor(n)`=contr.sum, x='contr.poly'))")
+    assert t.contrasts == {"factor(n)": "contr.sum", "x": "contr.poly"}
 
 
 def _sized():

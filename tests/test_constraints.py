@@ -215,8 +215,10 @@ def test_constraints_parse_like_r():
     assert parse_constraints("edges").preserves == frozenset({"edges"})
     with pytest.raises(ValueError, match="one degree-preserving"):
         parse_constraints("degrees + odegrees")
+    assert parse_constraints("degreedist").preserves_distribution == frozenset({"in", "out", "b1", "b2"})
+    assert parse_constraints("degrees").preserves_distribution == frozenset({"in", "out", "b1", "b2"})
     with pytest.raises(ergmx.FormulaError, match="unknown constraint"):
-        parse_constraints("degreedist")
+        parse_constraints("degreedistribution")
 
 
 def test_observed_network_must_satisfy_the_constraints():

@@ -80,7 +80,11 @@ def bridge_loglik(model: BoundModel, theta: np.ndarray, control: Control, interv
     whether it is relative to the null model."""
     relative = model.constraints.dyad_dependent
     augmented = model
-    if not relative and "edges" not in model.names and "offset(edges)" not in model.names:
+    valued = getattr(model, "valued", False)
+    if valued:
+        # From the reference measure itself, whose log-likelihood is known.
+        relative = False
+    elif not relative and "edges" not in model.names and "offset(edges)" not in model.names:
         augmented = bind(model.network, model.formula + edges(), model.constraints,
                          model.fixed_values[model.fixed & ~model.constant] if model.fixed.any() else None)
     # The path runs between the statistics' coefficients (eta), in which the
@@ -88,6 +92,8 @@ def bridge_loglik(model: BoundModel, theta: np.ndarray, control: Control, interv
     theta_to = augmented.eta(np.append(theta, np.zeros(augmented.n_params - model.n_params)))
     if relative:
         theta_from, loglik_from = np.zeros(augmented.n_stats), 0.0
+    elif valued:
+        theta_from, loglik_from = np.zeros(augmented.n_stats), model.null_loglik()
     else:
         start, loglik_from = _dyad_independent_start(augmented)
         theta_from = augmented.eta(start)

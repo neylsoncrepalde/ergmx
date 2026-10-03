@@ -2,7 +2,8 @@
 //! change (`blocks`, `Dyads`, `fixedas`..., observed dyads when sampling
 //! missing ones), bounds on degrees (`bd`, also by the alters' attributes),
 //! and what is preserved (`edges`, `degrees`, `odegrees`, `idegrees`,
-//! `b1degrees`, `b2degrees`).
+//! `b1degrees`, `b2degrees`, and the degree distributions: `degreedist`,
+//! `odegreedist`, `idegreedist`).
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -21,6 +22,10 @@ pub enum Preserve {
     /// The degrees of the first (or second) mode of a bipartite network.
     FirstModeDegrees,
     SecondModeDegrees,
+    /// The degree distribution (of in- and out-degrees, if directed).
+    DegreeDist,
+    OutDegreeDist,
+    InDegreeDist,
 }
 
 /// Bounds on degrees; undirected networks use the `out` bounds for degrees.

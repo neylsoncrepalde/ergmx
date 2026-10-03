@@ -368,6 +368,10 @@ class GofNResult:
         return GofNSummary(self, {f"{str(by).lstrip('~').strip()} = {_level_label(v)}": np.flatnonzero(values == v)
                                   for v in _levels(np.asarray(values, dtype=object))})
 
+    def lm(self, formula: str) -> dict[str, LmFit]:
+        """Linear models of the residuals: :func:`lm_gofN` (``formula``, self)."""
+        return lm_gofN(formula, self)
+
     def __str__(self) -> str:
         return (f"Goodness of fit by network: {len(self.names)} statistics in {len(self.networks)} "
                 f"networks, {self.nsim} simulations\n\n{self.summary()}")
@@ -444,3 +448,159 @@ class GofNResult:
             ax.set_title(f"{titles[kind]}: {name}", fontsize=10)
         fig.tight_layout()
         return fig
+
+
+def _items(text: str) -> list[str]:
+    """The comma-separated items of R's c(...), at the top level."""
+    out, depth, quote, start = [], 0, None, 0
+    for k, ch in enumerate(text):
+        if quote:
+            quote = None if ch == quote else quote
+        elif ch in "'\"`":
+            quote = ch
+        elif ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth -= 1
+        elif ch == "," and depth == 0:
+            out.append(text[start:k])
+            start = k + 1
+    return [x.strip() for x in out + [text[start:]] if x.strip()]
+
+
+def _responses(lhs: str, names: list[str]) -> list[str]:
+    """The statistics on the left of an lm.gofN() formula: a name (quoted in
+    backquotes or quotes if it isn't an R name), R's c() of names, or 1-based
+    indices and ranges into the statistics."""
+    text = lhs.strip()
+    parts = _items(text[2:-1]) if text.startswith("c(") and text.endswith(")") else [text]
+    out = []
+    for part in parts:
+        if part[:1] in "`'\"" and part[-1:] == part[:1]:
+            out.append(part[1:-1])
+        elif ":" in part and all(p.strip().isdigit() for p in part.split(":")):
+            a, b = (int(p) for p in part.split(":"))
+            out += names[a - 1:b] if a <= b else names[b - 1:a][::-1]
+        elif part.isdigit():
+            out.append(names[int(part) - 1])
+        else:
+            out.append(part)
+    unknown = [n for n in out if n not in names]
+    if unknown:
+        raise ValueError(f"lm_gofN(): no statistics {unknown}; the statistics are {names}")
+    return out
+
+
+class LmFit:
+    """A weighted least squares fit, as R's ``lm()``, with the summary of R's
+    ``summary.lm()``: ``coef``, ``stderr``, ``tvalue`` and ``pvalue`` by
+    column of the design, ``sigma`` (the residual standard error), ``df``,
+    ``r_squared``, ``adj_r_squared`` and ``fstatistic`` (value, numerator
+    and denominator degrees of freedom), and the observations ``dropped``
+    for missing values."""
+
+    def __init__(self, response: str, formula: str, x: np.ndarray, columns: list[str], y: np.ndarray,
+                 w: np.ndarray, dropped: int):
+        from scipy import stats
+
+        self.response, self.formula, self.dropped = response, formula, dropped
+        self.columns = ["(Intercept)" if c == "1" else c for c in columns]
+        n, p = x.shape
+        root = np.sqrt(w)
+        q, r = np.linalg.qr(x * root[:, None])
+        beta = np.linalg.solve(r, q.T @ (y * root))
+        fitted = x @ beta
+        residuals = y - fitted
+        self.df = n - p
+        rss = float(np.sum(w * residuals**2))
+        self.sigma = float(np.sqrt(rss / self.df)) if self.df > 0 else np.nan
+        inverse = np.linalg.inv(r)
+        cov = inverse @ inverse.T * self.sigma**2
+        se = np.sqrt(np.diag(cov))
+        intercept = "1" in columns
+        if intercept:
+            mss = float(np.sum(w * (fitted - np.sum(w * fitted) / np.sum(w)) ** 2))
+        else:
+            mss = float(np.sum(w * fitted**2))
+        self.r_squared = mss / (mss + rss)
+        offset = 1 if intercept else 0
+        self.adj_r_squared = 1 - (1 - self.r_squared) * ((n - offset) / self.df) if self.df > 0 else np.nan
+        numerator = p - offset
+        self.fstatistic = ((mss / numerator) / self.sigma**2, numerator, self.df) if numerator > 0 else None
+        self.coef = dict(zip(self.columns, beta))
+        self.stderr = dict(zip(self.columns, se))
+        t = beta / se
+        self.tvalue = dict(zip(self.columns, t))
+        self.pvalue = dict(zip(self.columns, 2 * stats.t.sf(np.abs(t), self.df)))
+        self.weighted_residuals = root * residuals
+        self.cov = cov
+
+    def summary(self) -> str:
+        """The fit as R's ``summary.lm()`` prints it."""
+        from scipy import stats
+
+        q = np.quantile(self.weighted_residuals, [0, 0.25, 0.5, 0.75, 1])
+        width = max(len(c) for c in self.columns)
+        lines = [f"Linear model of the residuals of {self.response}: ~{self.formula}", "",
+                 "Weighted residuals:",
+                 "     Min       1Q   Median       3Q      Max",
+                 "  ".join(f"{v:7.4g}" for v in q), "",
+                 "Coefficients:",
+                 f"{'':<{width}}  {'Estimate':>10}  {'Std. Error':>10}  {'t value':>8}  {'Pr(>|t|)':>9}"]
+        for c in self.columns:
+            lines.append(f"{c:<{width}}  {self.coef[c]:10.5g}  {self.stderr[c]:10.5g}  "
+                         f"{self.tvalue[c]:8.3f}  {self.pvalue[c]:9.3g}")
+        lines += ["", f"Residual standard error: {self.sigma:.4g} on {self.df} degrees of freedom"]
+        if self.dropped:
+            lines.append(f"  ({self.dropped} observation{'s' if self.dropped > 1 else ''} deleted due to missingness)")
+        lines.append(f"Multiple R-squared: {self.r_squared:.4g}, Adjusted R-squared: {self.adj_r_squared:.4g}")
+        if self.fstatistic is not None:
+            f, d1, d2 = self.fstatistic
+            lines.append(f"F-statistic: {f:.4g} on {d1} and {d2} DF, p-value: {stats.f.sf(f, d1, d2):.4g}")
+        return "\n".join(lines)
+
+    def __str__(self) -> str:
+        return self.summary()
+
+    __repr__ = __str__
+
+
+def lm_gofN(formula: str, data: GofNResult) -> dict[str, LmFit]:  # noqa: N802 (R's name)
+    """Linear models of :func:`gofN`'s residuals, as ergm.multi's
+    ``lm.gofN()``: for each statistic on the left of ``formula``, a weighted
+    least squares fit of its residuals (observed minus fitted) on the right
+    side, an R formula of the networks' attributes, weighted by the inverse
+    of their variances (``var - var_obs``). A trend in a statistic's
+    residuals points to what the model misses about it.
+
+    The left side names one statistic or several (``c(edges, triangle)``),
+    by name (in backquotes if it isn't an R name: `` `N(1)~edges` ``) or by
+    1-based index. Networks where the statistic doesn't vary are left out,
+    as R's ``na.omit``. Returns a dict of :class:`LmFit` by statistic::
+
+        fits = ergmx.lm_gofN("c(edges, triangle) ~ n + I(n^2)", gof)
+        print(fits["edges"].summary())
+    """
+    from ._lm import LmError, _split_formula, design
+
+    if not isinstance(data, GofNResult):
+        raise TypeError("lm_gofN() needs the result of ergmx.gofN() as data")
+    lhs, rhs = _split_formula(str(formula))
+    if lhs is None:
+        raise ValueError("lm_gofN(): the formula needs statistics on its left side")
+    fits = {}
+    for name in _responses(lhs, data.names):
+        t = data[name]
+        y = t.observed - t.fitted
+        with np.errstate(divide="ignore", invalid="ignore"):
+            w = 1.0 / (t.var - t.var_obs)
+        keep = np.isfinite(y) & np.isfinite(w) & (w > 0)
+        # The other statistics' residuals are data too, as in ergm.multi.
+        rows = [{**a, **{n: data[n].observed[k] - data[n].fitted[k] for n in data.names}}
+                for k, a in enumerate(data.attributes)]
+        try:
+            x, columns = design(rhs, [r for r, k in zip(rows, keep) if k])
+        except LmError as e:
+            raise ValueError(f"lm_gofN(): {e}") from None
+        fits[name] = LmFit(name, rhs.strip(), x, columns, y[keep], w[keep], int((~keep).sum()))
+    return fits

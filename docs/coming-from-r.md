@@ -49,6 +49,14 @@ tables compared line by line.
 | `tergm(g ~ Form(~edges) + Persist(~edges), targets = ~edges + mean.age, target.stats = c(20, 10), estimate = "EGMME")` | `ergmx.tergm(g, "Form(~edges) + Persist(~edges)", estimate="EGMME", targets="edges + mean.age", target_stats=[20, 10])` |
 | `tergm(..., control = control.tergm(CMLE.NA.impute = "next"))`, `NetSeries(..., NA.impute = "next")` | `ergmx.tergm(..., na_impute="next")`, `ergmx.NetSeries(..., na_impute="next")` |
 | `gofN(fit, GOF = ~edges + triangle)` (ergm.multi) | {func}`ergmx.gofN(fit, "edges + triangle") <ergmx.gofN>` |
+| `lm.gofN(edges ~ n, data = g)` (ergm.multi) | {func}`ergmx.lm_gofN("edges ~ n", g) <ergmx.lm_gofN>` |
+| `ergm(net ~ sum + nonzero, response = "contexts", reference = ~Poisson)` (ergm.count) | `ergmx.ergm(g, "sum + nonzero", response="contexts", reference="Poisson")` |
+| `bergm(net ~ edges + kstar(2))`, `summary(b)`, `plot(b)`, `bgof(b)` (Bergm) | {func}`ergmx.bergm(g, "edges + kstar(2)") <ergmx.bergm>`, `.summary()`, `.plot()`, `.gof()` |
+| `san(net ~ edges + triangle, target.stats = c(100, 20))` | {func}`ergmx.san(g, "edges + triangle", [100, 20]) <ergmx.san>` |
+| `ergm(net ~ edges + triangle, target.stats = c(100, 20))` | `ergmx.ergm(g, "edges + triangle", target_stats=[100, 20])` |
+| `as.egor(net)` (egor) | {meth}`ergmx.EgoData.from_network(g) <ergmx.EgoData.from_network>`; `egor(egos, alters, aaties)`: `ergmx.EgoData(egos, alters, aaties)` |
+| `summary(egor ~ edges + degree(0), scaleto = 1000)` (ergm.ego) | {func}`ergmx.ego_stats("edges + degree(0)", data, scaleto=1000) <ergmx.ego_stats>` |
+| `ergm.ego(egor ~ edges + nodematch("sex"), popsize = 1000)` | {func}`ergmx.ergm_ego("edges + nodematch('sex')", data, popsize=1000) <ergmx.ergm_ego>` |
 | `saveRDS(fit, "fit.rds")`, `readRDS("fit.rds")` | {meth}`fit.save("fit.pkl") <ergmx.ErgmFit.save>`, {func}`ergmx.load_fit("fit.pkl") <ergmx.load_fit>` |
 | `data(Goeyvaerts)` (ergm.multi) | `ergmx.datasets.load("Goeyvaerts")`, a list of graphs |
 | `predict(fit)`, `predict(fit, conditional = FALSE)` | {meth}`fit.predict() <ergmx.ErgmFit.predict>`, `fit.predict(conditional=False)` |
@@ -134,6 +142,31 @@ accepted: R expressions such as `log(n)` must be computed first.
   vertex, in the upper triangle of the adjacency matrix, as `ltri`. ergmx
   follows the documentation and warns: its `utri` is ergm's `ltri`.
 
+**`degcrossprod` is the mean cross-product of degrees, as ergm documents.**
+: ergm documents `degcrossprod` as the mean over ties of the product of
+  their vertices' degrees, but computes half of it. ergmx follows the
+  documentation and warns: its coefficients are half of ergm's.
+
+**`coincidence(active=)` keeps the pairs with at least `active` partners, as ergm documents.**
+: ergm's code keeps those with more than `active`; ergmx warns when the two
+  differ.
+
+**`degreedist`, `odegreedist` and `idegreedist` keep the distributions, as ergm documents.**
+: ergm's MCMC for these constraints, in directed networks, moves the head of
+  a tie keeping every out-degree, or its tail keeping every in-degree, so its
+  `odegreedist` and `idegreedist` keep the out- or in-degrees themselves
+  (as `odegrees`, `idegrees`). ergmx's keep only the distributions, as
+  documented; undirected `degreedist` samples the same networks in both.
+
+**The Monte Carlo MLE has a trust region.**
+: Both stop by ergm's confidence test (`MCMLE.termination = "confidence"`,
+  ergmx's `termination="confidence"`; `"Hummel"` is there too). ergmx also
+  checks each step with the next sample: a step that lost log-likelihood is
+  replaced by a shorter one, and the next steps are bounded, the bound
+  growing back as steps succeed. ergm takes every step, so curved fits that
+  ergm leaves stalled in a degenerate region, from a step that overshot,
+  converge in ergmx. Decays are bounded below by 0, as ergm's.
+
 **`smalldiff` counts differences up to the cutoff, as ergm's code.**
 : ergm's documentation says less than the cutoff, but its code, and so
   ergmx, counts the ties whose difference is at most the cutoff.
@@ -157,10 +190,11 @@ accepted: R expressions such as `log(n)` must be computed first.
 **N()'s linear models cover the common cases.**
 : `lm` formulas take attributes, arithmetic, comparisons, `&`, `|`, `!`,
   `I()`, `log()`, `exp()`, `sqrt()`, `abs()`, `factor()` and `offset()`, with
-  R's column names; not interactions (`a:b`). `subset`, `offset` and `label`
-  are ergm.multi's, but `label` as a function is a Python function of one
-  statistic's name and one column (R's is vectorized), and a numeric
-  `offset` may be a single number (R requires one per network).
+  R's column names; not interactions (`a:b`). `subset`, `offset`, `label`
+  and `contrasts` are ergm.multi's, but `label` as a function is a Python
+  function of one statistic's name and one column (R's is vectorized), and a
+  numeric `offset` may be a single number (R requires one per network).
+  `weights` must be 1, as in ergm.multi.
 
 **gofN() reports degree0 and isolates themselves, from nearly independent draws.**
 : ergm.multi's `gofN()` leaves out the empty network's statistics, so its
@@ -210,10 +244,37 @@ accepted: R expressions such as `log(n)` must be computed first.
   change with the coefficients. The effects are the same; the standard
   errors differ, by up to a quarter on the models tested.
 
+**ergm.ego's dyad-independent fits are exact.**
+: ergm.ego fits every model by Monte Carlo MLE; ergmx fits dyad-independent
+  ones exactly (from the egos' estimated statistics), so their estimates
+  differ from R's by R's Monte Carlo error, and their standard errors use
+  the exact information. Its size adjustment is `offset(edges)` (and
+  `offset(transitiveties)`, with triadic terms) where ergm.ego has one
+  `offset(netsize.adj)`; `adjust_size=False` is R's `popsize = I(...)`. R
+  reports no covariance of non-scaling statistics (`meandeg`) with the others;
+  ergmx does.
+
+**Valued `transitiveties` follows the binary term in undirected networks.**
+: ergm 4.12's valued `transitiveties(threshold=)` counts every tie above the
+  threshold in an undirected network (78 of zach's 78, where 67 have a
+  shared partner); ergmx counts those with a two-path above it, as the
+  binary term and directed networks do, and warns. ergm's valued
+  `cyclicalties` has no change statistic (it stops with an error); ergmx's
+  counts the ties with a two-path back. Valued models have no MPLE in either.
+
+**Bergm's auxiliary networks are longer by default.**
+: Bergm draws each auxiliary network with 1000 MCMC proposals, which leaves
+  those of networks beyond about 50 vertices close to the observed one, and
+  the posterior wider and shifted. ergmx's `aux_iters` default is at least
+  one proposal per dyad; `aux_iters=1000` reproduces Bergm's. ergmx updates
+  half the chains at a time (Bergm, one at a time), with the auxiliary
+  networks of each half drawn in parallel; the samplers differ, the
+  posterior is the same. `bergm()` takes missing dyads directly (Bergm's
+  `bergmM()`). Bergm's `evidence()`, `bergmC()` and `ergmAPL()` are not
+  available.
+
 **Not yet available.**
-: Valued networks; ergm.multi's `lm.gofN()` and N()'s `weights` and
-  `contrasts`; tergm's durational *model* terms (as opposed to EGMME
-  targets and monitors); among ergm's binary terms, `degcor`,
-  `degcrossprod`, `tripercent`, `coincidence` and the projection and
-  `Sum`/`Prod`/`Exp`-style operators; and the `degreedist` and `egocentric`
-  constraints.
+: Valued networks with continuous values (ergm's `StdNormal` reference),
+  missing dyads or several networks; tergm's durational *model* terms (as
+  opposed to EGMME targets and monitors); and among ergm's binary terms,
+  the projection and `Sum`/`Prod`/`Exp`-style operators.

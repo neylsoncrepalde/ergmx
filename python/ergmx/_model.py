@@ -36,6 +36,8 @@ class BoundModel:
     #: Parameters of terms that the constraints keep constant.
     constant: np.ndarray = None
     stat_names: list[str] = None
+    #: The statistics fitted to, if not the network's (ergm's target.stats).
+    target: np.ndarray | None = None
 
     # Pickling (saving fits): the Rust core and the sample spaces are rebuilt
     # from the network and the formula when the model is loaded.
@@ -128,7 +130,10 @@ class BoundModel:
         return np.where(self.fixed, self.fixed_values, theta)
 
     def observed(self) -> np.ndarray:
-        """Statistics of the observed network, with missing dyads as non-ties."""
+        """Statistics of the observed network, with missing dyads as non-ties,
+        or the target statistics the model is fitted to."""
+        if self.target is not None:
+            return self.target.copy()
         return np.array(self.core.summary(self.network.edges))
 
     def theta(self, free_values) -> np.ndarray:
@@ -311,12 +316,14 @@ def bind(network, formula, constraints=None, offset_coef=None, fitting=False,
 
     offsets = np.zeros(len(names), dtype=bool)
     constant = np.zeros(len(names), dtype=bool)
-    kept = constraints.preserves
+    kept, distributions = constraints.preserves, constraints.preserves_distribution
     for term, start in zip(formula, np.cumsum([0] + [len(t.param_names(network)) for t in formula])):
         count = len(term.param_names(network))
         if term.is_offset:
             offsets[start:start + count] = True
-        elif kept is not None and term.degree_dependence is not None and term.degree_dependence <= kept:
+        elif kept is not None and (
+                (term.degree_dependence is not None and term.degree_dependence <= kept)
+                or (term.distribution_dependence is not None and term.distribution_dependence <= distributions)):
             constant[start:start + count] = True
     values = np.zeros(len(names))
     if offsets.any() and (fitting or offset_coef is not None):

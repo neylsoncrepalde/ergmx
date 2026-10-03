@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import re
 
 from .terms import BLOCK_OPERATORS, TERMS, Formula, Interaction
@@ -13,6 +14,20 @@ _R_CONSTANTS = {"TRUE": True, "FALSE": False, "T": True, "F": False, "NA": None,
 
 class FormulaError(ValueError):
     """The formula can't be parsed."""
+
+
+#: The terms formulas are parsed with (another registry, for valued networks).
+_REGISTRY = [TERMS]
+
+
+@contextlib.contextmanager
+def use_terms(registry: dict):
+    """Parse formulas with these terms (the valued networks' registry)."""
+    _REGISTRY.append(registry)
+    try:
+        yield
+    finally:
+        _REGISTRY.pop()
 
 
 def parse_formula(formula: str) -> Formula:
@@ -245,6 +260,8 @@ def _r_syntax(text: str) -> str:
     lambda_=."""
     parts = re.split(r"('[^']*'|\"[^\"]*\")", text)
     for i in range(0, len(parts), 2):
+        # Backquoted names (list(`factor(n)` = ...)) become identifiers that _literal decodes.
+        parts[i] = re.sub(r"`([^`]*)`", lambda m: _QUOTED + m[1].encode().hex(), parts[i])
         parts[i] = re.sub(
             r"(?<![\w.])(\d+)\s*:\s*(\d+)(?![\w.])",
             lambda m: str(list(range(int(m[1]), int(m[2]) + 1))),
@@ -256,6 +273,14 @@ def _r_syntax(text: str) -> str:
         parts[i] = re.sub(r"(?<![\w.])([A-Za-z]\w*)\.([A-Za-z]\w*)(?=\s*=(?!=))", r"\1_\2", parts[i])
         parts[i] = re.sub(r"(?<![\w.])lambda(?=\s*=(?!=))", "lambda_", parts[i])
     return "".join(parts)
+
+
+#: The prefix of backquoted R names, rewritten as identifiers.
+_QUOTED = "_backquoted_"
+
+
+def _unquoted(name: str) -> str:
+    return bytes.fromhex(name[len(_QUOTED):]).decode() if name.startswith(_QUOTED) else name
 
 
 def _literal(node: ast.expr):
@@ -272,6 +297,11 @@ def _literal(node: ast.expr):
         return [_literal(a) for a in node.args]  # R's c(...)
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "matrix":
         return _r_matrix(node)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "list" and not node.args:
+        # R's list(a = ...), as N()'s contrasts.
+        return {_unquoted(k.arg): _literal(k.value) for k in node.keywords}
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "contr":
+        return f"contr.{node.attr}"  # R's contrast functions, contr.sum...
     try:
         return ast.literal_eval(node)
     except ValueError:
@@ -298,10 +328,14 @@ def _r_matrix(node: ast.Call) -> list:
 
 
 def _make(name: str, args: list, kwargs: dict):
+    registry = _REGISTRY[-1]
+    if name == "offset" and name not in registry:
+        registry = TERMS
     try:
-        factory = TERMS[name]
+        factory = registry[name]
     except KeyError:
-        raise FormulaError(f"unknown term {name!r}; available terms: {', '.join(TERMS)}") from None
+        kind = "valued " if registry is not TERMS else ""
+        raise FormulaError(f"unknown {kind}term {name!r}; available terms: {', '.join(registry)}") from None
     try:
         return factory(*args, **kwargs)
     except TypeError as e:

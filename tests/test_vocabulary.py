@@ -35,6 +35,8 @@ TRACKED = [
      "ttriple(attr='sex', diff=TRUE) + ctriple(attr='race') + gwodegree(0.5, fixed=TRUE, attr='race') + "
      "triangle(attr='race') + balance"),
     ("samplk3", None, "edges + threetrail + hamming('wave2') + localtriangle('nbhd_samplk') + simmelianties"),
+    ("faux.mesa.high", None, "edges + tripercent + tripercent('Grade') + tripercent('Sex', diff=TRUE)"),
+    ("davis", "type", "edges + coincidence(levels=c(1, 2, 5, 40))"),
     ("bipartite_sim", "type",
      "edges + b1twostar('g') + b2starmix(2, 'g') + b1nodematch('g', beta=0.5) + b2nodematch('g', alpha=0.25) + "
      "b1nodematch('g', diff=TRUE, byb2attr='g') + b2degrange(0, 2, by='g', homophily=TRUE) + b1covrange('x') + "
@@ -221,3 +223,106 @@ def test_constrained_reference_models_are_in_the_reference():
     for name in ("mesa_dyads_fix", "mesa_dyads_vary", "flo_fixedas", "flo_fixallbut", "mesa_blockdiag",
                  "mesa_edges_constraint", "bip_b1degrees", "dixon_bd_attribs"):
         assert name in REFERENCE
+
+
+def test_degcor_and_degcrossprod_are_linearized_at_the_network():
+    """Their values are the network's correlation and mean, but their change
+    statistics, as ergm's, are those of the sum over ties of the product of
+    the degrees, scaled at the network."""
+    g = load("flomarriage")
+    degree = np.array(g.degree(), dtype=float)
+    a, b = np.array(g.get_edgelist()).T
+    ends = np.concatenate([degree[a], degree[b]])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ErgmDifferenceWarning)
+        stats = ergmx.summary_stats(g, "degcor + degcrossprod")
+        assert stats["degcor"] == pytest.approx(np.corrcoef(ends, np.concatenate([degree[b], degree[a]]))[0, 1])
+        assert stats["degcrossprod"] == pytest.approx(np.mean(degree[a] * degree[b]))
+        sims = ergmx.simulate(g, "edges + degcor + degcrossprod", [-1.5, 0, 0], 5, seed=1)
+        tracked = ergmx.simulate(g, "edges + degcor + degcrossprod", [-1.5, 0, 0], 5, seed=1, output="stats")
+    squares = np.sum((ends - ends.mean()) ** 2)
+    for h, row in zip(sims, tracked):
+        d = np.array(h.degree(), dtype=float)
+        x, y = np.array(h.get_edgelist()).T
+        cross = np.sum(d[x] * d[y])
+        assert row[1] == pytest.approx(2 / squares * cross - ends.mean() ** 2 / (squares / len(ends)))
+        assert row[2] == pytest.approx(cross / g.ecount())
+
+
+def test_degcrossprod_and_coincidence_follow_ergms_documentation():
+    r = DIFFERENCES["degcrossprod"]
+    with pytest.warns(ErgmDifferenceWarning, match="half"):
+        ours = ergmx.summary_stats(load("flomarriage"), "degcrossprod")["degcrossprod"]
+    assert ours == pytest.approx(r["mean"]) == pytest.approx(2 * r["ergm_degcrossprod"])
+    r = DIFFERENCES["coincidence_active"]
+    with pytest.warns(ErgmDifferenceWarning, match="at least"):
+        names = list(ergmx.summary_stats(load("davis"), f"coincidence(active={r['active']})", bipartite="type"))
+    assert names == r["at_least"] and set(r["ergm"]) < set(names)
+
+
+def test_tripercent_counts_triangles_among_two_paths():
+    g = load("faux.mesa.high")
+    stats = ergmx.summary_stats(g, "tripercent + triangle + kstar(2)")
+    t, s = stats["triangle"], stats["kstar2"]
+    assert stats["tripercent"] == pytest.approx(100 * t / (s - 2 * t))
+    assert ergmx.summary_stats(ig.Graph.Ring(5), "tripercent")["tripercent"] == 0
+    with pytest.raises(ValueError, match="undirected"):
+        ergmx.summary_stats(load("samplk3"), "tripercent")
+    with pytest.raises(ValueError, match="bipartite"):
+        ergmx.summary_stats(g, "coincidence")
+
+
+@pytest.mark.parametrize(("network", "constraint", "kept", "free"), [
+    ("faux.mesa.high", "degreedist", ("all",), ("all",)),
+    ("faux.dixon.high", "degreedist", ("out", "in"), ("out", "in")),
+    ("faux.dixon.high", "odegreedist", ("out",), ("out", "in")),
+    ("faux.dixon.high", "idegreedist", ("in",), ("out", "in")),
+    ("bipartite_sim", "degreedist", ("all",), ("all",)),
+])
+def test_degree_distributions_are_kept_but_not_the_degrees(network, constraint, kept, free):
+    """ergm documents degreedist as keeping the degree distribution: the
+    vertices' degrees change, and, in directed networks, both distributions
+    are kept; odegreedist and idegreedist keep only theirs."""
+    from collections import Counter
+
+    g = load(network)
+    bip = {"bipartite": "type"} if network == "bipartite_sim" else {}
+    sims = ergmx.simulate(g, "edges + triangle" if not bip else "edges", [0.0, 0.1] if not bip else [0.0],
+                          5, seed=3, constraints=constraint, interval=10000, **bip)
+    for h in sims:
+        assert h.ecount() == g.ecount()
+        for mode in kept:
+            assert Counter(h.degree(mode=mode)) == Counter(g.degree(mode=mode)), mode
+        for mode in free:
+            assert h.degree(mode=mode) != g.degree(mode=mode), mode
+        if bip:
+            t = g.vs["type"]
+            assert all(t[a] != t[b] for a, b in h.get_edgelist())
+            for side in (False, True):
+                assert Counter(d for d, x in zip(h.degree(), t) if x == side) == \
+                    Counter(d for d, x in zip(g.degree(), t) if x == side)
+
+
+def test_degree_distribution_statistics_are_constant_under_degreedist():
+    g = load("faux.mesa.high")
+    with pytest.warns(UserWarning, match="constant under the constraints"):
+        fit = ergmx.ergm(g, "edges + kstar(2) + degree(1:2) + gwdegree(0.5, fixed=TRUE) + nodematch('Grade') "
+                            "+ sociality(nodes=c(2, 5))", constraints="degreedist", seed=1, eval_loglik=False)
+    assert all(fit.coef[k] == 0 for k in ("edges", "kstar2", "degree1", "degree2", "gwdeg.fixed.0.5"))
+    assert fit.coef["nodematch.Grade"] != 0 and fit.coef["sociality2"] != 0
+
+
+def test_egocentric_fixes_the_egos_dyads():
+    g = load("faux.dixon.high")
+    ego = np.array(g.vs["ego"], dtype=bool)
+    ties = set(g.get_edgelist())
+    for direction, fixed in (("both", lambda a, b: ego[a] or ego[b]), ("out", lambda a, b: ego[a]),
+                             ("in", lambda a, b: ego[b])):
+        for h in _simulate(g, "edges", [-3.0], f"egocentric('ego', direction='{direction}')"):
+            mine = set(h.get_edgelist())
+            assert {e for e in mine if fixed(*e)} == {e for e in ties if fixed(*e)}
+            assert mine != ties
+    with pytest.raises(ValueError, match="direction"):
+        ergmx.simulate(load("faux.mesa.high"), "edges", [-3.0], constraints="egocentric('ego', direction='out')")
+    with pytest.raises(ValueError, match="logical"):
+        ergmx.simulate(g, "edges", [-3.0], constraints="egocentric('grade')")

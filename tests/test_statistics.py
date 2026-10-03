@@ -4,7 +4,7 @@ import igraph as ig
 import networkx as nx
 import numpy as np
 import pytest
-from conftest import formula, DATA, REFERENCE, load, options, without_overflow
+from conftest import formula, DATA, REFERENCE, load, options, single_precision, without_overflow
 
 import ergmx
 
@@ -13,7 +13,8 @@ def test_statistics_match_r(reference):
     _, model, g = reference
     stats = without_overflow(ergmx.summary_stats(g, formula(model), **_bipartite(model)))
     assert list(stats) == list(model["stats"])  # same names, same order
-    np.testing.assert_allclose(list(stats.values()), list(model["stats"].values()), rtol=1e-12)
+    np.testing.assert_allclose(list(stats.values()), list(model["stats"].values()),
+                               rtol=1e-7 if single_precision(model) else 1e-12)
 
 
 def _bipartite(model):

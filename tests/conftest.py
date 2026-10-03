@@ -1,5 +1,6 @@
 import functools
 import json
+import os
 from pathlib import Path
 
 import igraph as ig
@@ -9,6 +10,14 @@ import pytest
 import ergmx
 
 DATA = Path(__file__).parent / "data"
+
+# ERGMX_TEST_CHAINS=c runs the tests as on a machine with c cores: Monte
+# Carlo fits use min(4, c) chains, and so take the random paths they take
+# there (set RAYON_NUM_THREADS=c too). The continuous integration runs the
+# tests with 2 and 3 chains, besides the runners' own counts.
+if os.environ.get("ERGMX_TEST_CHAINS"):
+    _cores = int(os.environ["ERGMX_TEST_CHAINS"])
+    os.cpu_count = lambda: _cores
 
 def _as_ergmx(models: dict) -> dict:
     """R's results as ergmx computes them where ergmx follows ergm's
@@ -40,6 +49,7 @@ COMBINED = {
                                                      na_impute=["previous", "majority"]),
     "Goeyvaerts.weekday": lambda: ergmx.Networks(
         [g for g in ergmx.datasets.load("Goeyvaerts") if g["included"] and g["weekday"]]),
+    "Goeyvaerts.included": lambda: ergmx.Networks([g for g in ergmx.datasets.load("Goeyvaerts") if g["included"]]),
 }
 
 
@@ -76,12 +86,18 @@ def options(model: dict) -> dict:
     """The constraints, offset coefficients and bipartite modes of a reference
     model, as ergm() arguments (ergmx's version of the constraints, if they differ)."""
     # jsonlite writes R's NULL as {}.
-    out = {k: model[k] for k in ("constraints", "offset_coef") if model.get(k) not in (None, {}, [])}
+    out = {k: model[k] for k in ("constraints", "offset_coef", "target_stats") if model.get(k) not in (None, {}, [])}
     if model.get("py_constraints") not in (None, {}, []):
         out["constraints"] = model["py_constraints"]
     if model.get("bipartite") is True:
         out["bipartite"] = "type"
     return out
+
+
+def single_precision(model: dict) -> bool:
+    """Whether R computes some of the model's statistics in single precision
+    (tripercent's ratios are C floats): accurate to ~1e-7, the MPLE to ~1e-5."""
+    return "tripercent" in model["formula"]
 
 
 def without_overflow(stats: dict) -> dict:

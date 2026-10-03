@@ -7,7 +7,7 @@ the spirit of R's [ergm](https://github.com/statnet/ergm) and statnet: R-style
 formulas, the same term names and statistics, and `summary()` and `gof()`
 that read like R's.
 
-> 167 terms and 9 operators for directed, undirected and bipartite
+> 171 terms and 9 operators for directed, undirected and bipartite
 > networks, and interactions; curved ERGMs; sample space constraints; missing
 > ties; multilevel networks (as MPNet); samples of networks (as ergm.multi);
 > temporal ERGMs, EGMME and dynamic simulation (as tergm); MPLE, contrastive
@@ -104,8 +104,9 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
 - **Constraints**, as in ergm: `bd` (bounded degrees, for fixed-choice
   designs, also by the alters' attributes), `blocks` (fix the dyads of some
   mixing types), `blockdiag`, `Dyads(fix=, vary=)`, `fixedas`, `fixallbut`,
-  `observed`, and `degrees`, `odegrees`, `idegrees`, `b1degrees`,
-  `b2degrees` and `edges`, with moves that preserve them.
+  `observed`, `egocentric`, and `degrees`, `odegrees`, `idegrees`,
+  `b1degrees`, `b2degrees`, `degreedist` (and its in- and out- versions) and
+  `edges`, with moves that preserve them.
 - **Missing ties**: likelihood inference conditional on the observed dyads
   ([Handcock and Gile 2010](https://doi.org/10.1214/08-AOAS221)), assuming they are missing at random, for the
   estimates, standard errors, log-likelihood and goodness of fit.
@@ -126,7 +127,23 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
   models many networks (classrooms, households) jointly, and
   `N(~terms, lm=~log(n) + weekday)` lets the coefficients depend on
   network-level attributes, with R's syntax and names (and N()'s `subset`,
-  `offset` and `label`); `ergmx.gofN(fit)` checks the fit network by network.
+  `offset`, `label` and `contrasts`); `ergmx.gofN(fit)` checks the fit
+  network by network, and `ergmx.lm_gofN()` models its residuals.
+- **Egocentric data**, as R's ergm.ego: `ergmx.ergm_ego(formula, data)` fits
+  a population's ERGM from a sample of egos, their alters and the ties among
+  them (`ergmx.EgoData`), with the network size adjustment and standard
+  errors from the egos' sampling variance.
+- **Valued networks**, as R's ergm.count: counts on the dyads
+  (`response="contexts"`) with Poisson, binomial, geometric or uniform
+  reference measures (`reference="Poisson"`) and ergm's valued terms (`sum`,
+  `nonzero`, `nodematch(..., form="sum")`, `mutual`, `transitiveweights`,
+  `nodecovar`, `CMP`...).
+- **Bayesian ERGMs**, as R's Bergm: `ergmx.bergm(g, formula)` samples the
+  posterior by the exchange algorithm, with posterior summaries, diagnostics,
+  plots and posterior predictive goodness of fit.
+- **Networks with given statistics**: `ergmx.san()`, ergm's simulated
+  annealing, and models fitted to target statistics,
+  `ergmx.ergm(..., target_stats=[...])`.
 - **Temporal ERGMs**, as R's tergm: `ergmx.tergm([wave1, wave2, wave3],
   "Form(~edges + mutual) + Persist(~edges)")` fits the conditional MLE of a
   series of networks, with `Form()`, `Persist()`, `Diss()`, `Cross()` and
@@ -140,9 +157,10 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
     log-likelihood, AIC and BIC;
   - other models: Monte Carlo MLE starting from the MPLE (or from the
     contrastive divergence estimate, `init="CD"`), with [Hummel et al. (2012)](https://doi.org/10.1080/10618600.2012.679224)
-    step lengths, the log-normal approximation, an adaptive MCMC interval that
-    targets an effective sample size, and standard errors that include the
-    MCMC error;
+    step lengths, the log-normal approximation, ergm's confidence test to
+    stop, a trust region that undoes steps that lose likelihood, an adaptive
+    MCMC interval that targets an effective sample size, and standard errors
+    that include the MCMC error;
   - `estimate="MPLE"` or `estimate="CD"` for those estimates only;
   - degenerate models stop with a `DegeneracyError` that says why: a density
     guard (as in ergm) and a check that the estimate is still moving, with the
@@ -285,10 +303,9 @@ describing it in `python/ergmx/terms.py`.
 
 ## Not yet
 
-- A few of ergm's terms (`degcor`, `tripercent`, the projection operators)
-  and constraints (`degreedist`, `egocentric`).
-- Valued networks (ergm.count) and egocentric data (ergm.ego).
-- tergm's durational model terms; ergm.multi's `lm.gofN()`.
+- ergm's projection and `Sum`/`Prod`/`Exp`-style operators, and valued
+  networks with continuous values (ergm's `StdNormal` reference).
+- tergm's durational model terms.
 
 ## Installation
 

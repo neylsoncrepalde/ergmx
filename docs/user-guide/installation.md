@@ -76,7 +76,7 @@ uv add "ergmx[igraph,plot] @ git+https://github.com/neylsoncrepalde/ergmx"
 uv pip install "ergmx[igraph,plot] @ git+https://github.com/neylsoncrepalde/ergmx"
 ```
 
-Add `@v0.2.0` (a tag), `@main` or a commit after the URL to pick a version.
+Add `@v0.3.0` (a tag), `@main` or a commit after the URL to pick a version.
 This builds `ergmx` from source, as does installing on a platform without a
 wheel: uv runs [maturin](https://www.maturin.rs), the build tool of the Rust
 core, which compiles it with optimizations. The first build takes under a
@@ -248,7 +248,7 @@ one-time setup:
 
 Then, for each release: update the version in `pyproject.toml` and
 `Cargo.toml` and the changelog, commit, and create a release on GitHub with a
-tag such as `v0.2.0`. To build and test the wheels without publishing, run the
+tag such as `v0.3.0`. To build and test the wheels without publishing, run the
 workflow by hand from the *Actions* tab.
 
 ## Troubleshooting

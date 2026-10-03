@@ -243,7 +243,7 @@ def _split_formula(text: str) -> tuple[str | None, str]:
     for k, ch in enumerate(text):
         if quote:
             quote = None if ch == quote else quote
-        elif ch in "'\"":
+        elif ch in "'\"`":
             quote = ch
         elif ch in "([":
             depth += 1
@@ -296,11 +296,11 @@ def vertex_sets(attrs, attributes: dict[str, list], n: int):
     return sets[0], (sets[1] if len(sets) == 2 else None), ",".join(labels)
 
 
-def design(lm, attributes: list[dict]) -> tuple[np.ndarray, list[str]]:
+def design(lm, attributes: list[dict], contrasts: dict | None = None) -> tuple[np.ndarray, list[str]]:
     """The design matrix (networks x columns) of a one-sided lm formula over
     the networks' attributes, and its column names as N() names them ("1"
     for the intercept)."""
-    x, labels, offset = model_frame(lm, attributes)
+    x, labels, offset = model_frame(lm, attributes, contrasts)
     if offset is not None:
         raise LmError("offset() is only supported in the linear models of N()")
     return x, labels
@@ -352,9 +352,47 @@ def network_subset(subset, attributes: list[dict]) -> np.ndarray:
     raise LmError(f"subset {subset!r} is neither logical nor network indices")
 
 
-def model_frame(lm, attributes: list[dict]) -> tuple[np.ndarray, list[str], np.ndarray | None]:
+_CONTRASTS = ("contr.treatment", "contr.SAS", "contr.sum", "contr.helmert", "contr.poly")
+
+
+def _contrast(kind, labels: list[str], name: str) -> tuple[np.ndarray, list[str]]:
+    """R's contrast matrix (levels x columns) of a factor with these level
+    labels, and the suffixes of its columns' names: contr.treatment (the
+    default), contr.SAS, contr.sum, contr.helmert, contr.poly, or a matrix."""
+    k = len(labels)
+    if not isinstance(kind, str):
+        m = np.asarray(kind, dtype=float)
+        if m.ndim != 2 or m.shape[0] != k:
+            raise LmError(f"the contrasts of {name} must have one row per level ({k})")
+        return m, [str(j + 1) for j in range(m.shape[1])]
+    if kind == "contr.treatment":
+        return np.eye(k)[:, 1:], labels[1:]
+    if kind == "contr.SAS":
+        return np.eye(k)[:, :-1], labels[:-1]
+    if kind == "contr.sum":
+        return np.vstack([np.eye(k - 1), -np.ones(k - 1)]), [str(j + 1) for j in range(k - 1)]
+    if kind == "contr.helmert":
+        m = np.zeros((k, k - 1))
+        for j in range(k - 1):
+            m[:j + 1, j], m[j + 1, j] = -1.0, j + 1
+        return m, [str(j + 1) for j in range(k - 1)]
+    if kind == "contr.poly":
+        # Orthonormal polynomials of the scores 1..k, as R's make.poly: Q
+        # times the diagonal of R (whatever the signs QR picks), normalized.
+        y = np.arange(1, k + 1) - (k + 1) / 2
+        q, r = np.linalg.qr(np.vander(y, k, increasing=True))
+        raw = q * np.diag(r)
+        z = raw / np.sqrt((raw**2).sum(axis=0))
+        names = [".L", ".Q", ".C"] + [f"^{j}" for j in range(4, k)]
+        return z[:, 1:], names[:k - 1]
+    raise LmError(f"unknown contrasts {kind!r} for {name}; use one of {', '.join(_CONTRASTS)} or a matrix")
+
+
+def model_frame(lm, attributes: list[dict], contrasts: dict | None = None) -> tuple[np.ndarray, list[str], np.ndarray | None]:
     """The design matrix and column names of a linear model, and the sum of
-    its offset() terms (None without any)."""
+    its offset() terms (None without any). Factors (and logical and character
+    attributes) get treatment contrasts, or those of ``contrasts``, by term
+    (``{"weekday": "contr.sum"}``), as R's ``contrasts.arg``."""
     text = "~1" if lm is None else str(lm).strip()
     text = text[1:] if text.startswith("~") else text
     if not text.strip():
@@ -389,9 +427,16 @@ def model_frame(lm, attributes: list[dict]) -> tuple[np.ndarray, list[str], np.n
             if value.dtype == object and any(v is None for v in value):
                 raise LmError(f"{deparse(node)} is missing for some networks")
             levels = _levels(value)
-            for level in levels if full_levels else levels[1:]:
-                columns.append((value == level).astype(float))
-                labels.append(deparse(node) + _level_label(level))
+            indicators = np.column_stack([(value == level).astype(float) for level in levels])
+            name = deparse(node)
+            if full_levels:
+                matrix, suffixes = np.eye(len(levels)), [_level_label(v) for v in levels]
+            else:
+                kind = (contrasts or {}).get(name, "contr.treatment")
+                matrix, suffixes = _contrast(kind, [_level_label(v) for v in levels], name)
+            for column, suffix in zip((indicators @ matrix).T, suffixes):
+                columns.append(column)
+                labels.append(name + suffix)
             full_levels = False
         else:
             value = value.astype(float)
