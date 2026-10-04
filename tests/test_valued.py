@@ -148,6 +148,10 @@ def test_poisson_and_binomial_sums_get_their_exact_mles():
     assert fit.stderr["sum"] == pytest.approx(1 / math.sqrt(total), rel=0.1)
     exact = math.log(total / d) * total - total - sum(math.lgamma(v + 1) for v in g.es["contexts"])
     assert abs(fit.loglik - exact) < 4 * fit.loglik_se + 0.5
+    # exp(coef) of a valued model is no odds ratio of a tie.
+    ratios = fit.odds_ratios()
+    assert "exp(coef)" in ratios.columns and "a dyad's value relative to the value one lower" in str(ratios)
+    assert ratios.columns["exp(coef)"][0] == pytest.approx(total / d, rel=0.03)
     h = nominations()
     fit = ergmx.ergm(h, "sum", response="nominations", reference="Binomial(3)", seed=1)
     p = sum(h.es["nominations"]) / (3 * 18 * 17)

@@ -3,7 +3,8 @@
 # The egocentric census of faux.mesa.high (every student an ego, as egor's
 # as.egor()) and a sample of 100 of its egos: their estimated population
 # statistics and covariances (summary(egor ~ ..., scaleto=)), with each of
-# ergm.ego's variance estimators, and ergm.ego() fits. Writes
+# ergm.ego's variance estimators, and ergm.ego() fits, with the observed
+# statistics of one's gof(). Writes
 # tests/data/r_ego_reference.json.
 #
 # Run from the root of the ergmx repository:
@@ -56,7 +57,7 @@ fits <- list(
                           formula = "edges + nodefactor('Sex') + nodematch('Grade') + nodecov('Grade')"),
   sample_dyadind = list(data = "sample", popsize = 205,
                         formula = "edges + nodefactor('Sex') + nodematch('Grade') + nodecov('Grade')"),
-  sample_degree = list(data = "sample", popsize = 205,
+  sample_degree = list(data = "sample", popsize = 205, gof = TRUE,
                        formula = "edges + nodematch('Grade') + degree(1) + gwesp(0.5, fixed=TRUE)"),
   census_gwesp = list(data = "census", popsize = 1,
                       formula = "edges + nodematch('Grade') + nodematch('Race') + gwesp(0.5, fixed=TRUE)")
@@ -68,9 +69,18 @@ fit_results <- lapply(fits, function(m) {
   seconds <- system.time(fit <- ergm.ego(f, popsize = m$popsize,
                                          control = control.ergm.ego(ergm = control.ergm(seed = 1))))[["elapsed"]]
   cat(sprintf("%-18s %6.1f s\n", m$formula, seconds))
-  list(data = m$data, popsize = m$popsize, formula = m$formula, coef = named(coef(fit)),
-       se = named(sqrt(diag(vcov(fit)))), ppopsize = fit$ppopsize, stats = named(fit$m),
-       seconds = seconds)
+  out <- list(data = m$data, popsize = m$popsize, formula = m$formula, coef = named(coef(fit)),
+              se = named(sqrt(diag(vcov(fit)))), ppopsize = fit$ppopsize, stats = named(fit$m),
+              seconds = seconds)
+  if (isTRUE(m$gof)) {
+    # The observed (per capita) statistics of gof(), which the egos estimate.
+    out$gof <- lapply(c(model = "model", degree = "degree", espartners = "espartners"), function(G) {
+      g <- gof(fit, GOF = G, control = control.gof.ergm(seed = 1, nsim = 10))
+      obs <- g[[grep("^obs", names(g))[1]]]
+      list(names = names(obs), obs = unname(as.numeric(obs)))
+    })
+  }
+  out
 })
 
 jsonlite::write_json(

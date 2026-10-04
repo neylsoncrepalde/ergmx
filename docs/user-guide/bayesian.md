@@ -41,6 +41,10 @@ holds every draw, and `posterior.chains` each chain's.
 posterior.plot();
 ```
 
+[A complete Bayesian ERGM analysis](quickstart/bayesian.md) goes from the
+data to a table of results, with a constrained model and an informative
+prior.
+
 ## Settings
 
 `prior_mean` and `prior_sigma` set the normal prior (mean 0 and covariance

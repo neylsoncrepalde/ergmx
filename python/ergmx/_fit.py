@@ -309,7 +309,8 @@ class ErgmFit:
     def odds_ratios(self, level: float = 0.95):
         """Odds ratios, exp(coefficient), with Wald confidence intervals: the
         factor by which a unit increase in a term's statistic multiplies the
-        conditional odds of a tie."""
+        conditional odds of a tie (of valued models, the conditional
+        probability of a dyad's value relative to the value one lower)."""
         from ._interpret import odds_ratios
 
         return odds_ratios(self, level)

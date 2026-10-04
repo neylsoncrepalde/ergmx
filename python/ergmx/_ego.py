@@ -508,10 +508,11 @@ class EgoFit:
     egos' sampling variance. Most of :class:`ErgmFit`'s methods work on it."""
 
     def __init__(self, fit, stats: dict, stats_cov: np.ndarray, cov: np.ndarray, data: EgoData,
-                 ppopsize: int, popsize, adjusted: bool, stats_est: str):
+                 ppopsize: int, popsize, adjusted: bool, stats_est: str, scale: np.ndarray):
         self.fit, self.stats, self.stats_cov = fit, stats, stats_cov
         self._cov, self.data, self.ppopsize, self.popsize = cov, data, ppopsize, popsize
         self.adjusted, self.stats_est = adjusted, stats_est
+        self._scale = scale  # of each statistic, from per capita to the pseudo-population
 
     names = property(lambda self: self.fit.names)
     params = property(lambda self: self.fit.params)
@@ -521,6 +522,9 @@ class EgoFit:
     iterations = property(lambda self: self.fit.iterations)
     formula = property(lambda self: self.fit.formula)
     sample = property(lambda self: self.fit.sample)
+    _model = property(lambda self: self.fit._model)
+    # Egocentric fits have no log-likelihood (nor do ergm.ego's).
+    loglik = aic = bic = property(lambda self: None)
 
     @property
     def cov(self) -> np.ndarray:
@@ -539,9 +543,76 @@ class EgoFit:
     def mcmc_diagnostics(self):
         return self.fit.mcmc_diagnostics()
 
-    def gof(self, nsim: int = 100, **options):
-        """Goodness of fit on the pseudo-population. See :func:`ergmx.gof`."""
-        return self.fit.gof(nsim=nsim, **options)
+    def gof(self, nsim: int = 100, *, stats=None, seed=None, interval: int | None = None,
+            burnin: int | None = None):
+        """Goodness of fit, as ergm.ego's ``gof()``: the degree and edgewise
+        shared partner distributions and the model statistics that the egos
+        estimate, per capita, against those of ``nsim`` networks of the
+        pseudo-population simulated from the model.
+
+        ``stats`` are among ``"degree"``, ``"espartners"`` (with the ties
+        among alters) and ``"model"`` (by default all that apply): other
+        distributions, such as distances, can't be estimated from egocentric
+        data. As in ergm.ego, the degrees go up to twice the largest ego's
+        degree (at least 6), the last value counting all higher ones, and the
+        shared partners up to twice the largest degree, less 2.
+        """
+        from ._estimation import Control
+        from ._gof import GofResult, GofTable, _many
+
+        data = self.data
+        if stats is None:
+            stats = ["degree", "espartners", "model"] if data.has_aaties else ["degree", "model"]
+        for stat in stats:
+            if stat not in ("degree", "espartners", "model"):
+                raise ValueError(f"unknown egocentric goodness-of-fit statistic {stat!r}: use 'degree', "
+                                 "'espartners' and 'model' (other distributions, such as distances, can't "
+                                 "be estimated from egocentric data)")
+        if "espartners" in stats and not data.has_aaties:
+            raise ValueError("'espartners' needs the ties among the alters (aaties)")
+        model, network = self.fit._model, self.fit._model.network
+        interval = interval or self.fit._estimate.interval or Control.interval
+        burnin = 16 * interval if burnin is None else burnin
+        chains = max(1, min(self.fit.control.n_chains, nsim))
+        rng = np.random.default_rng(seed)
+        sample, _, networks = model.simulate(
+            [network.edges] * chains, self.params, burnin, interval, -(-nsim // chains),
+            int(rng.integers(2**63)), keep_networks=True,
+            triadic_weight=model.triadic_weight(self.fit.control.triadic_weight),
+        )
+        simulated = [e for chain in networks for e in chain][:nsim]
+        sample = sample.reshape(-1, model.n_stats)[:nsim]
+        n = network.n
+        w = np.ones(data.n) if data.weights is None else data.weights
+        w = w / w.sum()
+        largest = max(int(data.degree.max(initial=0)), 3)
+        tables = {}
+        for stat in stats:
+            if stat == "degree":
+                top = min(2 * largest, n - 1)
+                labels = [str(k) for k in range(top)] + [f"{top}+" if top < n - 1 else str(top)]
+                observed = np.bincount(np.minimum(data.degree, top), weights=w, minlength=top + 1)
+                sims = []
+                for edges in simulated:
+                    degree = np.bincount(np.asarray(edges, dtype=np.int64).ravel(), minlength=n)
+                    sims.append(np.bincount(np.minimum(degree, top), minlength=top + 1) / n)
+                tables[stat] = GofTable(stat, labels, observed, np.array(sims))
+            elif stat == "espartners":
+                top = 2 * (largest - 1)
+                # Each ego counts half of each of its ties with k shared partners.
+                sp = data.shared_partners()
+                indicator = (sp[:, None] == np.arange(top + 1)).astype(float)
+                observed = w @ data.per_ego(indicator) / 2
+                sims = np.zeros((len(simulated), top + 1))
+                counts = _many(n, False, simulated, stat)[:, :top + 1]
+                sims[:, :counts.shape[1]] = counts / n
+                tables[stat] = GofTable(stat, [str(k) for k in range(top + 1)], observed, sims)
+            else:
+                targeted = [k for term, ps, _ in model.blocks if not term.is_offset
+                            for k in range(ps.start, ps.stop)]
+                observed = np.array(list(self.stats.values())) / self._scale
+                tables[stat] = GofTable(stat, list(self.stats), observed, sample[:, targeted] / self._scale)
+        return GofResult(tables, nsim)
 
     def summary(self):
         from ._fit import _pvalue, _stars
@@ -649,4 +720,4 @@ def ergm_ego(formula, data: EgoData, *, popsize: float = 1, adjust_size: bool = 
     bread = info_inverse[np.ix_(free, free)]
     cov = np.full((model.n_params, model.n_params), np.nan)
     cov[np.ix_(free, free)] = bread @ jac.T @ v @ jac @ bread
-    return EgoFit(fit, dict(zip(names, m.tolist())), v, cov, data, ppopsize, popsize, adjusted, stats_est)
+    return EgoFit(fit, dict(zip(names, m.tolist())), v, cov, data, ppopsize, popsize, adjusted, stats_est, scale)

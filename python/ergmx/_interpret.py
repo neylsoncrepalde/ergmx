@@ -248,6 +248,13 @@ def odds_ratios(fit, level: float = 0.95) -> NumericTable:
     index = [intervals.index.index(n) for n in names]
     low, high = (np.exp(v[index]) for v in intervals.columns.values())
     columns = list(intervals.columns)
+    if getattr(fit._model, "valued", False):
+        # Valued models: the odds of a dyad's value against the value one lower.
+        return NumericTable(f"exp(coefficient), with {100 * level:g}% confidence intervals", names,
+                            {"exp(coef)": np.exp(fit.params[keep]), columns[0]: low, columns[1]: high},
+                            note="The factor by which a unit increase in the term's statistic multiplies "
+                                 "the conditional probability of a dyad's value relative to the value one "
+                                 "lower.")
     note = ("The factor by which a unit increase in the term's statistic multiplies the "
             "conditional odds of a tie.")
     return NumericTable(f"Odds ratios, with {100 * level:g}% confidence intervals", names,

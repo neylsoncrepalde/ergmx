@@ -82,8 +82,9 @@ class Control:
     density_guard: float = float(np.exp(3))
     #: Edges a simulated network may always have, whatever the density guard.
     density_guard_min: int = 10000
-    #: Stop after this many consecutive iterations with a step length below 0.1;
-    #: None never stops early.
+    #: Stop after this many consecutive iterations with a step length below 0.1,
+    #: or once longer intervals stop improving chains that barely mix (see
+    #: MIXING_WAITS); None never stops early.
     stall_iterations: int | None = 10
     #: Contrastive divergence: MCMC proposals from the observed network per sample.
     cd_steps: int = 8
@@ -577,14 +578,19 @@ def _simulate(model: BoundModel, starts, theta, burnin, interval, samples, rng, 
 
 
 def _stall_message(model: BoundModel, sample: np.ndarray, iterations: int, observed=None,
-                   theta=None) -> str:
+                   theta=None, waits=None) -> str:
     observed = model.observed() if observed is None else observed
-    lines = [
-        f"the Monte Carlo MLE is not making progress: for {iterations} iterations the "
-        "observed statistics were far outside the range of the simulated networks (step "
-        "lengths below 0.1). The model may be degenerate, or the starting coefficients poor.",
-        "",
-    ]
+    if waits is None:
+        reason = (f"for {iterations} iterations the observed statistics were far outside the range of "
+                  "the simulated networks (step lengths below 0.1). The model may be degenerate, or the "
+                  "starting coefficients poor.")
+    else:
+        sizes = ", ".join(f"{e:.0f}" for _, e in waits)
+        reason = (f"the chains barely mix, and longer intervals don't help (effective sizes {sizes} with "
+                  f"{waits[0][0]:,} to {waits[-1][0]:,} proposals between samples, at the same "
+                  "coefficients): the simulated networks move between very different regimes. The model "
+                  "is probably near-degenerate here.")
+    lines = [f"the Monte Carlo MLE is not making progress: {reason}", ""]
     if model.curved:
         # Many histogram counts: show the estimating functions instead.
         deviation = project(model, theta, sample).reshape(-1, int(model.free.sum())).mean(axis=0) \
@@ -604,9 +610,15 @@ def _stall_message(model: BoundModel, sample: np.ndarray, iterations: int, obser
     if np.nanmax(rhat) > 1.2:
         lines += ["", f"The chains disagree (R-hat up to {np.nanmax(rhat):.1f}): the simulated "
                       "networks jump between very different regimes, a typical sign of degeneracy."]
-    lines += ["", "Things to try: other terms (for example gwesp with a smaller decay instead of "
-                  "triangle), adding gwdegree or attribute terms, init='CD', or a longer MCMC "
-                  "(interval=...). Control(stall_iterations=None) keeps iterating."]
+    if getattr(model, "valued", False):
+        lines += ["", "Things to try: fewer or other dyad-dependent terms (nodecovar, for one, can make "
+                      "a valued model degenerate), CMP for the dispersion of the values, other starting "
+                      "coefficients (init=...), or a longer MCMC (interval=...). "
+                      "Control(stall_iterations=None) keeps iterating."]
+    else:
+        lines += ["", "Things to try: other terms (for example gwesp with a smaller decay instead of "
+                      "triangle), adding gwdegree or attribute terms, init='CD', or a longer MCMC "
+                      "(interval=...). Control(stall_iterations=None) keeps iterating."]
     return "\n".join(lines)
 
 
@@ -688,9 +700,11 @@ def _weighted_mean(x: np.ndarray, w: np.ndarray) -> tuple[np.ndarray, np.ndarray
     # the ratio of the determinants, per dimension, over the dimensions that vary.
     keep = (np.diag(v0) > 0) & (np.diag(v) > 0)
     if keep.any():
-        sign0, log0 = np.linalg.slogdet(v0[np.ix_(keep, keep)])
-        sign1, log1 = np.linalg.slogdet(v[np.ix_(keep, keep)])
-        inflation = np.exp((log1 - log0) / keep.sum()) if sign0 > 0 and sign1 > 0 else float(tau.max())
+        with np.errstate(all="ignore"):  # nearly singular covariances: the fallback below
+            sign0, log0 = np.linalg.slogdet(v0[np.ix_(keep, keep)])
+            sign1, log1 = np.linalg.slogdet(v[np.ix_(keep, keep)])
+        usable = sign0 > 0 and sign1 > 0 and np.isfinite(log1 - log0)
+        inflation = np.exp((log1 - log0) / keep.sum()) if usable else float(tau.max())
     else:
         inflation = 1.0
     return m, v / n, n / max(inflation, 1e-12)
@@ -808,6 +822,15 @@ HISTORY = 4
 #: mixed poorly (fewer than half the effective draws needed, where the last
 #: had enough); then the interval grows instead.
 POOR_STEPS = 3
+#: The chains of a near-degenerate model barely mix however long the
+#: interval: they move between very different regimes. Stop once this many
+#: consecutive samples at the same coefficients, each with too few effective
+#: draws to step from, gained less than MIXING_GAIN times the last one's
+#: effective size although the interval grew, and the interval is at least
+#: MIXING_INTERVAL times the starting one.
+MIXING_WAITS = 3
+MIXING_GAIN = 1.5
+MIXING_INTERVAL = 16
 
 
 def _loss(model: BoundModel, before: _Iterate, theta, sample, sample_obs, observed) -> float | None:
@@ -954,6 +977,7 @@ def mcmle(model: BoundModel, init: np.ndarray, control: Control, rng: np.random.
     radius = RADIUS if model.curved else None
     distance, not_closer = None, []  # "confidence": the distance from the tolerance region
     poor = 0  # consecutive steps undone because their samples barely mixed
+    waits = []  # (interval, effective size, coefficients) of the samples too poor to step from
     rejections, history = 0, []  # steps undone from the last point; the points before it
     for iteration in range(1, control.max_iter + 1):
         begun = (starts, starts_obs)
@@ -977,6 +1001,7 @@ def mcmle(model: BoundModel, init: np.ndarray, control: Control, rng: np.random.
                     loss, poor = 0.0, poor + 1
             if loss is not None:
                 rejections += 1
+                waits = []
                 if rejections > MAX_REJECTIONS and history:
                     # Even short steps from here fail: this point, though it
                     # passed, is itself where the trouble starts. Back to the
@@ -1029,6 +1054,13 @@ def mcmle(model: BoundModel, init: np.ndarray, control: Control, rng: np.random.
             # Too few effective samples to step from, unless the observed
             # statistics are far outside them (ergm samples until it has
             # enough): sample again, at the same coefficients, with a longer interval.
+            waits = [w for w in waits if np.array_equal(w[2], theta)] + [(interval, ess, theta.copy())]
+            recent = waits[-MIXING_WAITS:]
+            if (control.stall_iterations and len(recent) == MIXING_WAITS
+                    and interval >= MIXING_INTERVAL * control.interval
+                    and all(b[1] < MIXING_GAIN * a[1] for a, b in zip(recent, recent[1:]))):
+                raise DegeneracyError(_stall_message(model, sample, iteration, target(sample_obs), theta,
+                                                     waits=[(i, e) for i, e, _ in recent]))
             interval = min(control.max_interval,
                            interval * min(4, 1 << int(np.ceil(np.log2(control.effective_size / ess)))))
             burnin = max(burnin, 16 * interval)

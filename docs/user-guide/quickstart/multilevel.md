@@ -210,3 +210,6 @@ ergmx.table(
 [Multilevel networks](../multilevel.md) has every MPNet configuration, how
 each MPNet effect is written in `ergmx`, and other ways to model multilevel
 networks.
+
+Next, [A complete valued ERGM analysis](valued.md) models the counts on
+the ties of a network.

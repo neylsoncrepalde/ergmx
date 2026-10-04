@@ -140,6 +140,37 @@ def test_stalled_estimation_explains_why():
     assert "simulated" in str(error.value) and "observed" in str(error.value)
 
 
+def test_chains_that_never_mix_stop_the_estimation(monkeypatch):
+    """Samples whose effective size doesn't grow with the interval, as those of
+    a near-degenerate model that moves between regimes (ergm.count's
+    nodecovar on the karate club: a long fit), stop the Monte Carlo MLE with
+    a DegeneracyError, rather than growing the interval for hours."""
+    from ergmx import _estimation
+
+    g = load("samplk3")
+    observed = np.array(list(ergmx.summary_stats(g, "edges + mutual").values()))
+    intervals = []
+
+    def sticky(model, starts, theta, burnin, interval, samples, rng, control, **_):
+        # AR(1) noise around the observed statistics, as autocorrelated whatever the interval.
+        intervals.append(interval)
+        noise = np.zeros((len(starts), samples, 2))
+        shocks = rng.normal(size=noise.shape)
+        for k in range(1, samples):
+            noise[:, k] = 0.97 * noise[:, k - 1] + shocks[:, k]
+        return observed + 3 * noise, starts
+
+    monkeypatch.setattr(_estimation, "_simulate", sticky)
+    with pytest.raises(ergmx.DegeneracyError, match="longer intervals don't help") as error:
+        ergmx.ergm(g, "edges + mutual", init=[-2.0, 1.0], seed=1, n_chains=4)
+    assert "simulated" in str(error.value) and "16,384" in str(error.value)
+    assert max(intervals) == 16384
+    # stall_iterations=None keeps iterating.
+    with pytest.warns(UserWarning, match="did not converge"):
+        ergmx.ergm(g, "edges + mutual", init=[-2.0, 1.0], seed=1, n_chains=4, stall_iterations=None,
+                   eval_loglik=False, max_iter=8)
+
+
 def test_bad_init():
     with pytest.raises(ValueError, match="init must be"):
         ergmx.ergm(load("samplk3"), "edges + mutual", init="SA")

@@ -26,6 +26,9 @@ population network from such data:
 4. the standard errors come from the sampling variance of the egos'
    contributions, through the model.
 
+[A complete egocentric analysis](quickstart/egocentric.md) goes from a
+survey's tables to a table of results.
+
 ## The data
 
 {class}`ergmx.EgoData` holds the egos (one row each), their alters (one row
@@ -83,8 +86,12 @@ people, comparable with a fit of the whole network (`edges` near -6.4 for
 faux.mesa.high's 205 students). The pseudo-population has as many people
 as the population (or the egos, without `popsize`), times `ppopsize_mul`,
 each ego replicated in proportion to its weight. {meth}`EgoFit.simulate()
-<ergmx.EgoFit.simulate>` and {meth}`EgoFit.gof() <ergmx.EgoFit.gof>` work on
-the pseudo-population.
+<ergmx.EgoFit.simulate>` simulates networks of the pseudo-population.
+{meth}`EgoFit.gof() <ergmx.EgoFit.gof>`, as ergm.ego's, compares the
+degree and edgewise shared partner distributions and the model statistics
+that the egos estimate, per person, with those of such networks (other
+distributions, such as distances, can't be estimated from egocentric
+data). {func}`ergmx.table` takes egocentric fits too.
 
 ergm.ego fits even dyad-independent models by Monte Carlo MLE; ergmx fits
 them exactly, so their estimates differ from R's by R's Monte Carlo error.

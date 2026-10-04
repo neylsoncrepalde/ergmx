@@ -360,7 +360,7 @@
         "nodematch.Grade": 163,
         "nodecov.Grade": 3491
       },
-      "seconds": 2.641
+      "seconds": 1.376
     },
     "census_percapita": {
       "data": "census",
@@ -387,7 +387,7 @@
         "nodematch.Grade": 163,
         "nodecov.Grade": 3491
       },
-      "seconds": 2.379
+      "seconds": 1.237
     },
     "sample_dyadind": {
       "data": "sample",
@@ -414,7 +414,7 @@
         "nodematch.Grade": 154,
         "nodecov.Grade": 3247
       },
-      "seconds": 2.401
+      "seconds": 1.202
     },
     "sample_degree": {
       "data": "sample",
@@ -441,7 +441,21 @@
         "degree1": 60,
         "gwesp.fixed.0.5": 127.984048751543
       },
-      "seconds": 27.013
+      "seconds": 14.311,
+      "gof": {
+        "model": {
+          "names": ["edges", "nodematch.Grade", "degree1", "gwesp.fixed.0.5"],
+          "obs": [0.94, 0.77, 0.3, 0.639920243757715]
+        },
+        "degree": {
+          "names": ["degree0", "degree1", "degree2", "degree3", "degree4", "degree5", "degree6", "degree7", "degree8", "degree9", "degree10", "degree11", "degree12", "degree13", "degree14", "degree15", "degree16", "degree17", "degree18", "degree19", "degree20", "degree21", "degree22", "degree23", "degree24", "degree25", "deg26+"],
+          "obs": [0.26, 0.3, 0.11, 0.14, 0.11, 0.06, 0, 0.01, 0, 0, 0, 0, 0, 0.01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        "espartners": {
+          "names": ["esp0", "esp1", "esp2", "esp3", "esp4", "esp5", "esp6", "esp7", "esp8", "esp9", "esp10", "esp11", "esp12", "esp13", "esp14", "esp15", "esp16", "esp17", "esp18", "esp19", "esp20", "esp21", "esp22", "esp23", "esp24"],
+          "obs": [0.405, 0.295, 0.175, 0.06, 0, 0.005, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        }
+      }
     },
     "census_gwesp": {
       "data": "census",
@@ -468,7 +482,7 @@
         "nodematch.Race": 103,
         "gwesp.fixed.0.5": 141.925805553864
       },
-      "seconds": 6.787
+      "seconds": 3.607
     }
   }
 }

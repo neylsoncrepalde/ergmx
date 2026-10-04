@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.3.1 (2026-10-04)
+
+- **Quick start**: complete analyses of a valued network (the karate club's
+  counts of contexts), of egocentric data (a survey of half a high school,
+  against the whole network's model), of a Bayesian ERGM (Sampson's monks,
+  with fixed out-degrees and a prior from an earlier time), of a temporal
+  ERGM (the monks' three times: formation, persistence, a trend, the
+  survey's design and the process run forward) and of a bipartite ERGM
+  (the Southern Women: activity, popularity and the events' groups).
+- {meth}`EgoFit.gof() <ergmx.EgoFit.gof>` now follows ergm.ego's `gof()`:
+  its observed degree and edgewise shared partner distributions and model
+  statistics are those the egos estimate, per person, rather than those of
+  the pseudo-population network made to match the targets. It has
+  `"degree"`, `"espartners"` (with the ties among alters) and `"model"`;
+  checked against ergm.ego.
+- {func}`ergmx.table` takes egocentric fits.
+- Fits with many coefficients no longer print numpy's overflow warnings
+  from the convergence test.
+- The Monte Carlo MLE stops with a {class}`~ergmx.DegeneracyError` when
+  chains barely mix and longer intervals don't help (three samples at the
+  same coefficients without the effective size growing, the interval at
+  least 16 times the starting one): a near-degenerate model whose
+  simulated networks move between regimes. It used to keep growing the
+  interval, up to 2^20 proposals between samples, for hours. A valued model
+  of the karate club with `nodecovar(center=TRUE, transform='sqrt')` is one:
+  R's ergm reports a fit, but simulating from it gives networks with three
+  times the observed counts. `Control(stall_iterations=None)` keeps
+  iterating.
+- {meth}`~ergmx.ErgmFit.odds_ratios` of a valued model are labelled as what
+  they are: the factor of the probability of a dyad's value relative to the
+  value one lower, not the odds of a tie.
+
 ## 0.3.0 (2026-10-03)
 
 - **Robust Monte Carlo MLE.** It now stops by ergm's default convergence

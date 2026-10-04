@@ -21,6 +21,9 @@ zach = datasets.load("zach")  # Zachary's karate club, with counts of contexts
 ergmx.summary_stats(zach, "sum + nonzero + nodematch('faction.id')", response="contexts")
 ```
 
+[A complete valued ERGM analysis](quickstart/valued.md) goes from the data
+to a table of results.
+
 ## Reference measures
 
 | `reference` | Values | The model with no other terms |
@@ -52,7 +55,11 @@ The valued terms are ergm's:
 - `transitiveweights` and `cyclicalweights` (Krivitsky 2012, eq. 13), each
   value capped by its strongest two-path, and `transitiveties(threshold=)`;
 - `nodecovar` (`nodeocovar`, `nodeicovar`): the covariance of the values of
-  each vertex's dyads, a measure of heterogeneity in sociality;
+  each vertex's dyads, a measure of heterogeneity in sociality; like
+  `kstar`, it can make a model degenerate (with the karate club's other
+  terms, its networks drift to ones where the leaders interact with nearly
+  everyone; R's ergm reports a fit in that case, from chains that hadn't
+  left the observed network yet, and ergmx a {class}`~ergmx.DegeneracyError`);
 - `CMP`, the sum of log(y!), which turns the Poisson reference into the
   Conway-Maxwell-Poisson, for over- or underdispersion.
 

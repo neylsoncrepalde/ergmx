@@ -25,12 +25,13 @@ class ResultsTable:
     def __init__(self, fits, names=None, digits: int = 2, stars=(0.001, 0.01, 0.05),
                  include_aic: bool = True, include_bic: bool = True, include_loglik: bool = True,
                  rename: dict | None = None, omit: str | None = None):
+        from ._ego import EgoFit
         from ._fit import ErgmFit
 
         if len(fits) == 1 and isinstance(fits[0], (list, tuple)):
             fits = tuple(fits[0])
-        if not fits or not all(isinstance(f, ErgmFit) for f in fits):
-            raise TypeError("table() takes fitted models (ErgmFit), as arguments or a list")
+        if not fits or not all(isinstance(f, (ErgmFit, EgoFit)) for f in fits):
+            raise TypeError("table() takes fitted models (ErgmFit or EgoFit), as arguments or a list")
         if len(stars) > len(_SYMBOLS) or list(stars) != sorted(stars):
             raise ValueError(f"stars must be up to {len(_SYMBOLS)} increasing p-value thresholds")
         self.model_names = list(names) if names is not None else [f"Model {k + 1}" for k in range(len(fits))]
@@ -248,8 +249,9 @@ def table(*fits, names=None, digits: int = 2, stars=(0.001, 0.01, 0.05), include
 
     Parameters
     ----------
-    *fits : ErgmFit
-        The models, as arguments or one list.
+    *fits : ErgmFit or EgoFit
+        The models, as arguments or one list. Egocentric fits have no
+        log-likelihood, AIC or BIC.
     names : list of str, optional
         The models' column names ("Model 1", "Model 2"... by default).
     digits : int

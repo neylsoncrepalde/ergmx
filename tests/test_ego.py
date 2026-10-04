@@ -64,6 +64,32 @@ def test_ergm_ego_matches_r(name):
         # the sandwich amplifies: up to 15% off the exact one.
         assert fit.stderr[name_] == pytest.approx(r["se"][term], rel=0.2), term
     assert "egos" in str(fit.summary())
+    text = str(ergmx.table(fit, omit="offset"))
+    assert all(term in text for term in r["coef"] if not term.startswith("offset(")) and "AIC" not in text
+
+
+def test_ego_gof_observes_the_egos():
+    """gof()'s observed statistics are those the egos estimate, per capita, as
+    ergm.ego's; of a census, the network's own."""
+    r = next(f for f in R["fits"].values() if "gof" in f)
+    fit = ergmx.ergm_ego(r["formula"], _data(r["data"]), popsize=r["popsize"], seed=1)
+    gof = fit.gof(nsim=10, seed=1)
+    assert [t.name for t in gof] == ["degree", "espartners", "model"]
+    assert gof["degree"].labels[-1] == r["gof"]["degree"]["names"][-1].replace("deg", "")
+    for stat in ("model", "degree", "espartners"):
+        np.testing.assert_allclose(gof[stat].observed, r["gof"][stat]["obs"], rtol=1e-12, atol=1e-12, err_msg=stat)
+    assert gof["degree"].simulated.shape == (10, len(r["gof"]["degree"]["obs"]))
+    np.testing.assert_allclose(gof["degree"].simulated.sum(axis=1), 1)
+    g = load("faux.mesa.high")
+    census = ergmx.ergm_ego("edges + nodematch('Grade')", EgoData.from_network(g), seed=1).gof(nsim=5, seed=1)
+    top = len(census["degree"].observed) - 1
+    degrees = np.bincount(g.degree(), minlength=top + 1) / g.vcount()
+    np.testing.assert_allclose(census["degree"].observed, [*degrees[:top], degrees[top:].sum()], rtol=1e-12)
+    with pytest.raises(ValueError, match="can't be estimated from egocentric data"):
+        fit.gof(stats=["distance"])
+    no_ties = EgoData(_data("sample").egos, {".egoID": [1], "Grade": [7]})
+    with pytest.raises(ValueError, match="ties among the alters"):
+        ergmx.ergm_ego("edges", no_ties, seed=1).gof(stats=["espartners"])
 
 
 def test_ego_data_from_tables():

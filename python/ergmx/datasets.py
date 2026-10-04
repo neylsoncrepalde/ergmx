@@ -33,8 +33,9 @@ _DESCRIPTIONS = {
     "samplk1": (
         "Liking among 18 novice monks at a New England monastery (Sampson 1968, a PhD dissertation at Cornell University), "
         "at the first of three times: each monk named the three he liked most. "
-        "Directed. Vertex attributes: group (Turks, Loyal, Outcasts), group3, "
-        "group4 and cloisterville (attended the minor seminary of Cloisterville)."
+        "Directed. Vertex attributes: group (Sampson's Turks, Loyal opposition, Outcasts and "
+        "Waverers), group3 (the Waverers in the other groups), group4 and cloisterville "
+        "(attended the minor seminary of Cloisterville)."
     ),
     "samplk2": "Sampson's monks, liking at the second time. See samplk1.",
     "samplk3": "Sampson's monks, liking at the third time, just before the expulsions. See samplk1.",

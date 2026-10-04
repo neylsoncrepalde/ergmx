@@ -20,6 +20,10 @@ davis = datasets.load("davis")
 print(datasets.describe("davis"))
 ```
 
+[A complete bipartite ERGM analysis](quickstart/bipartite.md) goes from the
+attendance matrix to a table of results, with the networks the two modes
+induce on each other.
+
 ## Declaring the modes
 
 `ergmx` reads each vertex's mode from a vertex attribute: false (or 0) for the

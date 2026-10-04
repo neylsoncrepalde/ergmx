@@ -23,6 +23,10 @@ waves = [datasets.load(f"samplk{t}") for t in (1, 2, 3)]
 [g.ecount() for g in waves]
 ```
 
+[A complete temporal ERGM analysis](quickstart/temporal.md) goes from the
+three waves to a table of results, with the survey's fixed out-degrees and
+a simulation of the process.
+
 ## Formation and persistence
 
 tergm's operators evaluate terms on views of each transition, from a

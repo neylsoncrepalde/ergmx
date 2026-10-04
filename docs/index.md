@@ -64,8 +64,8 @@ those of 100 networks simulated from the model.
 :link: user-guide/quickstart/index
 :link-type: doc
 
-Two complete analyses, from the data to a table of results: an ERGM and a
-multilevel ERGM.
+Seven complete analyses, from the data to a table of results: an ERGM, and
+multilevel, valued, egocentric, Bayesian, temporal and bipartite ERGMs.
 :::
 
 :::{grid-item-card} {fas}`book` User guide
