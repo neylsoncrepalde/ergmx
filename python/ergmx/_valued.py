@@ -338,6 +338,10 @@ def parse_valued_formula(formula) -> Formula:
             terms = list(parse_formula(str(formula)))
     for t in terms:
         inner = t.term if t.is_offset else t
+        if getattr(inner, "op", None) in ("Form", "Persist", "Diss", "Cross", "Change"):
+            raise ValueError(f"{t!r}: tergm's operators are for binary series. A valued series' transitions take "
+                             "valued terms, with edgecov('.PrevNet', response) for the previous network's values "
+                             "(as in R)")
         if not getattr(inner, "valued", False):
             raise ValueError(f"{t!r} is a term of binary networks: valued networks take ergm's valued terms "
                              "(sum, nonzero, ... and dyad-independent terms with form=)")
@@ -392,10 +396,9 @@ def valued_network(network, response: str, bipartite=None) -> tuple[Network, np.
 
 
 def _combined_values(net: Network, response: str) -> tuple[Network, np.ndarray]:
-    """valued_network() of networks combined with Networks(): each network's
-    values, in the combined numbering."""
-    if net.series:
-        raise ValueError("valued models of series of networks (NetSeries()) are not supported")
+    """valued_network() of networks combined with Networks() or NetSeries()
+    (whose networks are the transitions'): each network's values, in the
+    combined numbering."""
     pairs, triples, missing = [], [], []
     for b in net.blocks:
         if b.network.source is None:
@@ -418,7 +421,7 @@ class _ValuedView:
     def __init__(self, binary: Network, triples: np.ndarray):
         self._binary, self.edges = binary, triples
         self.missing = binary.missing
-        self.combined, self.series, self.blocks = binary.combined, False, binary.blocks
+        self.combined, self.series, self.blocks = binary.combined, binary.series, binary.blocks
 
     def __getattr__(self, name):
         return getattr(self._binary, name)
@@ -443,6 +446,8 @@ class ValuedModel:
     target: np.ndarray | None = None
     #: The StdNormal reference's proposal steps' standard deviation.
     normal_sd: float = 0.2
+    #: The edge attribute with the values.
+    response: str | None = None
     network: _ValuedView = field(init=False)
 
     def __post_init__(self):
@@ -656,7 +661,7 @@ def bind_valued(network, formula, response: str, reference="Poisson", *, constra
         values[offsets] = coef
     return ValuedModel(binary, triples, formula, names, core, reference, constraints,
                        offsets, values, np.zeros(len(names), dtype=bool),
-                       None if reference is not None and reference[0] in CONTINUOUS else p0)
+                       None if reference is not None and reference[0] in CONTINUOUS else p0, response=response)
 
 
 def _start_missing(binary: Network, triples: np.ndarray, reference) -> np.ndarray:

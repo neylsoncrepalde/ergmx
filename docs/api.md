@@ -17,6 +17,7 @@ Fitting and simulating
    SanControl
    ergm_tapered
    TaperedFit
+   TaperingControl
 
 Large networks
 --------------

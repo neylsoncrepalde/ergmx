@@ -171,6 +171,9 @@ class ErgmFit:
             from ._temporal import simulate_dynamic
 
             network = self._model.network
+            if getattr(self._model, "valued", False):
+                raise ValueError("time_slices= is for binary series: a valued series' simulate() draws each "
+                                 "transition given the network before it")
             if not network.series:
                 raise ValueError("time_slices= needs a model fitted to a series of networks "
                                  "(ergmx.tergm() or a NetSeries())")
@@ -205,7 +208,7 @@ class ErgmFit:
 
             return simulate_valued(self._model, self.params, nsim, seed, options.get("burnin"),
                                    options.get("interval", self._estimate.interval), output,
-                                   options.get("response", "weight"))
+                                   options.get("response", self._model.response or "weight"))
         from ._simulate import simulate
 
         return simulate(

@@ -734,19 +734,41 @@ class AbsDiffCat(_AttributeTerm):
 
 
 class EdgeCov(Term):
-    """A dyadic covariate: a graph attribute holding an n x n matrix, or the matrix."""
+    """A dyadic covariate: a graph attribute holding an n x n matrix or a
+    network, or the matrix; with ``attrname``, a network's edge attribute's
+    values."""
 
-    def __init__(self, x):
-        self.x = x
+    def __init__(self, x, attrname=None):
+        self.x, self.attrname = x, attrname
 
     @property
     def label(self) -> str:
+        if self.attrname is not None:
+            return f"edgecov.{self.attrname}"
         return f"edgecov.{self.x}" if isinstance(self.x, str) else "edgecov"
 
+    def _value(self, network: Network):
+        if not isinstance(self.x, str):
+            return self.x
+        if self.x == ".PrevNet" and network.series:
+            from ._multi import PreviousNetworks
+
+            return PreviousNetworks(network)
+        return network.graph_attribute(self.x)
+
+    def names(self, network: Network) -> list[str]:
+        # ergm's: a graph attribute holding a network adds its name twice, or
+        # its name and the edge attribute's (edgecov..PrevNet.score).
+        if isinstance(self.x, str) and _is_graph(self._value(network)):
+            return [f"edgecov.{self.x}.{self.attrname or self.x}"]
+        return [self.label]
+
     def matrix(self, network: Network) -> np.ndarray:
-        x = network.graph_attribute(self.x) if isinstance(self.x, str) else self.x
-        if hasattr(x, "get_adjacency"):  # an igraph graph, as ergm accepts a network
-            x = x.get_adjacency().data
+        x = self._value(network)
+        if _is_graph(x):
+            x = _graph_matrix(x, self.attrname)
+        elif self.attrname is not None and not isinstance(self.x, str):
+            raise ValueError("edgecov(x, attrname): x must be a network (or a graph attribute holding one)")
         x = np.asarray(x, dtype=float)
         if network.bipartite and x.shape != (network.n, network.n):
             # ergm's bipartite edgecov: first-mode vertices by second-mode vertices.
@@ -763,7 +785,42 @@ class EdgeCov(Term):
         return ("edgecov", self.matrix(network).ravel().tolist(), [])
 
     def __repr__(self) -> str:
-        return f"edgecov({self.x!r})" if isinstance(self.x, str) else "edgecov(<matrix>)"
+        what = repr(self.x) if isinstance(self.x, str) else "<matrix>"
+        return f"edgecov({what}, {self.attrname!r})" if self.attrname is not None else f"edgecov({what})"
+
+
+def _is_graph(x) -> bool:
+    """Whether x is a network (igraph, networkx, or ergmx's) rather than a matrix."""
+    from ._multi import PreviousNetworks
+
+    return hasattr(x, "get_adjacency") or hasattr(x, "adj") or isinstance(x, (Network, PreviousNetworks))
+
+
+def _graph_matrix(x, attrname: str | None) -> np.ndarray:
+    """A network's adjacency matrix, with an edge attribute's values (ergm's
+    as.matrix(x, attrname=))."""
+    from ._multi import PreviousNetworks
+
+    if isinstance(x, PreviousNetworks):
+        return x.matrix(attrname)
+    from ._network import _read
+
+    net = x if isinstance(x, Network) else _read(x)
+    m = np.zeros((net.n, net.n))
+    if attrname is None:
+        e = net.edges.astype(int)
+        m[e[:, 0], e[:, 1]] = 1
+    else:
+        from ._valued import valued_network
+
+        if net.source is None:
+            raise ValueError(f"edgecov(attrname={attrname!r}): the network has no edge attributes")
+        _, triples = valued_network(net.source, attrname, None)
+        e = triples[:, :2].astype(int)
+        m[e[:, 0], e[:, 1]] = triples[:, 2]
+    if not net.directed:
+        m = np.where(m != 0, m, m.T)
+    return m
 
 
 # -- Bipartite terms ---------------------------------------------------------------------------
@@ -2807,8 +2864,10 @@ class BlockOperator(Term):
     dyad_independent = property(lambda self: all(t.dyad_independent for t in self.formula))
     triadic = property(lambda self: any(t.triadic for t in self.formula))
     _inner_curved = property(lambda self: any(t.curved for t in self.formula))
-    #: N() of valued terms, for valued models of several networks.
-    valued = property(lambda self: len(self.formula) > 0 and all(getattr(t, "valued", False) for t in self.formula))
+    #: N() of valued terms, for valued models of several networks (tergm's
+    #: operators are for binary networks, as in R).
+    valued = property(lambda self: self.op == "N" and len(self.formula) > 0
+                      and all(getattr(t, "valued", False) for t in self.formula))
 
     @property
     def _has_offset(self) -> bool:
@@ -3787,14 +3846,19 @@ for _f in _MULTILEVEL:
         .replace("{alt_doc}", inspect.cleandoc(_ALT_DOC)).replace("{directed_doc}", inspect.cleandoc(_DIRECTED_DOC))
 
 
-def edgecov(x) -> Term:
+def edgecov(x, attrname: str | None = None) -> Term:
     """Sum over ties of a dyadic covariate.
 
-    ``x`` is the name of a graph attribute holding an n x n matrix (in a
-    formula string: ``"edgecov('trade')"``), an n x n array, or an igraph
-    graph on the same vertices. Undirected networks use the upper triangle.
+    ``x`` is the name of a graph attribute holding an n x n matrix or a
+    network (in a formula string: ``"edgecov('trade')"``), an n x n array, or
+    an igraph graph on the same vertices. With ``attrname``, the covariate is
+    the network's edge attribute of that name (ergm's ``edgecov(x,
+    attrname)``). In a :func:`ergmx.NetSeries`, ``".PrevNet"`` is the
+    network before each transition: ``edgecov(".PrevNet")`` its ties,
+    ``edgecov(".PrevNet", "w")`` their values. Undirected networks use the
+    upper triangle.
     """
-    return EdgeCov(x)
+    return EdgeCov(x, attrname)
 
 
 def _with(term: Term, **attributes) -> Term:

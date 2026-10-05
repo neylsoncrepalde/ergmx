@@ -71,7 +71,7 @@ except ergmx.DegeneracyError as error:
 ```
 
 Here the starting coefficients are just poor, which `init="MPLE"` (the
-default) avoids. Two checks raise the error:
+default) avoids. Three checks raise the error:
 
 - **The density guard**, as in ergm: a simulated network with many more edges
   than the observed one (`Control.density_guard`, by default about 20 times,
@@ -81,6 +81,16 @@ default) avoids. Two checks raise the error:
   default) in which the observed statistics are far outside the range of the
   simulated ones. The time this takes depends on the model, as later
   iterations use longer chains. `stall_iterations=None` keeps iterating.
+- **Chains that barely mix**: the chains move between very different
+  regimes, so that longer intervals between samples hardly help. The
+  estimation stops rather than lengthen its chains past 16 times their
+  starting interval, to more than 2^26 (67 million) proposals per chain and
+  iteration, when each effective draw already costs more than `max_sweeps`
+  sweeps of the network (proposals per dyad; 300 by default, where
+  well-specified models of large networks need at most tens; a small
+  network's long chains are cheap, and go on), or when three samples at the
+  same coefficients gained little from longer intervals.
+  `max_sweeps=None` and `stall_iterations=None` keep sampling.
 
 Degeneracy is usually fixed by changing the model rather than the settings:
 `gwesp` with a smaller decay instead of `triangle`, adding `gwdegree` or

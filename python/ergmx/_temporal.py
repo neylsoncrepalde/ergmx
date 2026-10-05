@@ -18,7 +18,7 @@ from .terms import BlockOperator
 def tergm(networks, formula, *, estimate: str = "CMLE", times=None, constraints=None,
           offset_coef=None, bipartite=None, init=None, seed=None, eval_loglik: bool = True,
           control: Control | None = None, targets=None, target_stats=None, egmme=None,
-          na_impute=None, **control_args):
+          na_impute=None, response=None, reference="Bernoulli", **control_args):
     """Fit a temporal ERGM to a series of networks by conditional maximum
     likelihood, as R's ``tergm(..., estimate="CMLE")``.
 
@@ -64,6 +64,11 @@ def tergm(networks, formula, *, estimate: str = "CMLE", times=None, constraints=
     na_impute : str or list of str, optional
         How to impute the missing dyads of the networks transitioned from, as
         tergm's ``CMLE.NA.impute``: see :func:`ergmx.NetSeries`.
+    response, reference : str, optional
+        For valued networks, as in :func:`ergmx.ergm` (the conditional MLE
+        only): each transition's values, given the network before it, with
+        ergm's valued terms (``edgecov(".PrevNet", response)`` for the
+        previous network's values).
     constraints, offset_coef, bipartite, init, seed, eval_loglik, control
         As in :func:`ergmx.ergm`.
 
@@ -75,6 +80,9 @@ def tergm(networks, formula, *, estimate: str = "CMLE", times=None, constraints=
     """
     from ._simulate import ergm
 
+    valued = response is not None or str(reference).lstrip("~").strip() != "Bernoulli"
+    if valued and estimate != "CMLE":
+        raise ValueError("valued series take estimate='CMLE'")
     if estimate == "EGMME":
         return _egmme(networks, formula, targets, target_stats, constraints=constraints, init=init,
                       seed=seed, control=egmme)
@@ -83,7 +91,7 @@ def tergm(networks, formula, *, estimate: str = "CMLE", times=None, constraints=
     series = series_from(networks, times, bipartite, na_impute)
     return ergm(series, formula, constraints=constraints, offset_coef=offset_coef,
                 estimate="MLE" if estimate == "CMLE" else "MPLE", init=init, seed=seed,
-                eval_loglik=eval_loglik, control=control, **control_args)
+                eval_loglik=eval_loglik, control=control, response=response, reference=reference, **control_args)
 
 
 class DynamicSimulation:

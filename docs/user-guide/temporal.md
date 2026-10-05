@@ -45,6 +45,10 @@ persists or dissolves, so a model of only `Form()` and `Persist()` (or
 `Diss()`) is *separable* ([Krivitsky and Handcock 2014](https://doi.org/10.1111/rssb.12014)): formation and
 dissolution are independent given the previous network, each an ERGM of its
 own. Terms outside the operators describe the current network, as `Cross()`.
+Among them, `edgecov(".PrevNet")` counts the current ties that were ties
+before, as tergm's (and `edgecov(".PrevNet", "w")` sums the previous
+network's values `w` over them); for valued series, see
+[](valued.md).
 
 {func}`ergmx.tergm` fits the model to the transitions of a series by
 conditional maximum likelihood (CMLE), as `tergm(..., estimate="CMLE")`:

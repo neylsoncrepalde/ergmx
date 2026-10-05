@@ -105,8 +105,10 @@ accepted: R expressions such as `log(n)` must be computed first.
 
 **Degeneracy stops the fit with an explanation.**
 : A {class}`ergmx.DegeneracyError` shows the simulated and observed statistics
-  and suggests what to try, after a density guard like ergm's or when the
-  estimate stops moving.
+  and suggests what to try, after a density guard like ergm's, when the
+  estimate stops moving, or when costly chains would need more than 300
+  sweeps of the network per effective draw (`Control(max_sweeps=)`). ergm keeps
+  sampling, and after its iterations reports a fit that hasn't converged.
 
 **Missing dyads are not imputed for the MPLE.**
 : ergm imputes them at random before its MPLE, so its MPLE varies between
@@ -315,7 +317,10 @@ accepted: R expressions such as `log(n)` must be computed first.
   parameters (ergm.tapered corrects the linear ones only). ergm.tapered's
   `Taper()` reads a single coefficient as a multiplier, which rescales the
   documented $\tau$ of a single tapered statistic; ergmx uses the documented
-  one. Estimated tapering (`fixed=FALSE`) is not available.
+  one. With estimated tapering (`fixed=FALSE`), ergmx follows ergm.tapered's
+  algorithm, but a fit that stops for degeneracy moves the strength halfway
+  to the interval's top, where ergm.tapered's fits don't stop and their
+  samples from chains that hadn't mixed propose the next strength.
 
 **bigergm's simulations follow its models.**
 : bigergm 1.2.6's `simulate()` draws more ties between blocks than its
@@ -334,6 +339,7 @@ accepted: R expressions such as `log(n)` must be computed first.
   intercept takes twice their mean (latentnet's, once). Its chains are four
   by default, in parallel, each tuned as latentnet's.
 
-**Not yet available.**
-: ergm.tapered's estimated tapering (`fixed=FALSE`), and valued models of
-  series of networks.
+**Valued series take N() too.**
+: Valued models of a `NetSeries()` are R's (tergm's operators are for binary
+  series in both), and valued `N()` works on them, where R's valued `N()`
+  refuses any LHS but `Networks()`.

@@ -29,7 +29,7 @@ from ._gof import GofResult, GofTable, gof
 from ._bigergm import BigErgmFit, bigergm
 from ._latent import ErgmmFit, LatentControl, ergmm
 from ._layers import Layer
-from ._tapered import TaperedFit, ergm_tapered
+from ._tapered import TaperedFit, TaperingControl, ergm_tapered
 from ._userterms import UserTerm, register_term
 from ._gofn import GofNResult, GofNSummary, GofNTable, LmFit, gofN, lm_gofN
 from ._interpret import NumericTable, TiePredictions
@@ -225,7 +225,7 @@ from .terms import (
     txbxreciprocity,
 )
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 __all__ = [
     "AdjustedPL",
@@ -270,6 +270,7 @@ __all__ = [
     "S",
     "SanControl",
     "TaperedFit",
+    "TaperingControl",
     "Term",
     "TiePredictions",
     "UserTerm",

@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.6.0 (2026-10-05)
+
+- The Monte Carlo MLE stops with a {class}`~ergmx.DegeneracyError` rather
+  than lengthen its chains past 16 times their starting interval, to more
+  than 2^26 proposals per chain and iteration, when each effective draw
+  already costs more than 300 sweeps of the network
+  (`Control(max_sweeps=)`): chains that move between very different
+  regimes, near degeneracy. The tapered fit of faux.mesa.high's
+  `edges + triangle` used to grow the interval to 2^19 proposals between
+  samples for over an hour; it now stops after about a minute. The
+  reference fits need at most 80 sweeps.
+- Estimated tapering: {func}`ergmx.ergm_tapered` with `fixed=False`, as
+  ergm.tapered's. The tapering's strength, a multiplier of its
+  coefficients, is estimated by ergm.tapered's kurtosis-penalized profile
+  iterations, with its settings in {class}`ergmx.TaperingControl`. The
+  objective and the strength it proposes are ergm.tapered's to 1e-13 on
+  ergm.tapered's own samples (with R's `optimize()`, Brent's method, ported
+  exactly), and the estimates agree with ergm.tapered's on four models. A
+  fit that stops for degeneracy moves the strength towards the strongest
+  tapering. The error of a degenerate tapered fit suggests a stronger
+  tapering.
+- Valued models of series of networks: {func}`ergmx.NetSeries` and
+  {func}`ergmx.tergm` with `response=`, as tergm's: each transition's values
+  conditional on the network before it, with valued terms (tergm's
+  operators are for binary series, as in R). `edgecov(".PrevNet")` and
+  `edgecov(".PrevNet", attrname)`, the previous network's ties and values,
+  in binary series too; `edgecov(x, attrname)` takes a network's edge
+  attribute, as ergm's, with ergm's names. Valued `N()` works on series
+  (R's refuses them). Statistics identical to R's, fits within 0.08
+  standard errors of tergm's.
+- `simulate()` of valued fits keeps the values in the response's edge
+  attribute (it was `weight`).
+- The datasets `samplk1` to `samplk3` have the monks' rankings of their
+  choices (`score`), as ergm's.
+
 ## 0.5.0 (2026-10-05)
 
 - {func}`ergmx.ergmm`, R's latentnet: latent space models. `euclidean`,

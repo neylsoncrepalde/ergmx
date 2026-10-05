@@ -79,12 +79,17 @@ fastest), and `a*b` is `a + b + a:b`.
 : Sum over ties of the entry of `mat` (levels by levels of `attr`, sorted) of
   the pair of their vertices' levels. Name: `attrcov.<attr>`.
 
-`edgecov(x)` {octicon}`dot-fill`
+`edgecov(x, attrname=None)` {octicon}`dot-fill`
 : Sum of a dyadic covariate over ties, $\sum_D y_{ij} x_{ij}$. `x` is the name
-  of a graph attribute holding an $n \times n$ matrix (in a formula string:
-  `edgecov('trade')`), the matrix itself, or a graph on the same vertices.
+  of a graph attribute holding an $n \times n$ matrix or a network (in a
+  formula string: `edgecov('trade')`), the matrix itself, or a graph on the
+  same vertices; with `attrname`, the network's edge attribute of that name.
+  In a series of networks, `edgecov('.PrevNet')` is the network before each
+  transition (`edgecov('.PrevNet', 'w')`, its values `w`), as tergm's.
   Undirected networks use the upper triangle, $x_{\min(i,j)\max(i,j)}$.
-  Name: `edgecov.<attribute>`, or `edgecov` for a matrix.
+  Name: `edgecov.<attribute>`, `edgecov` for a matrix, and, as ergm's, for a
+  graph attribute holding a network `edgecov.<attribute>.<attribute>` or
+  `edgecov.<attribute>.<attrname>`.
 
 ## Degree terms
 

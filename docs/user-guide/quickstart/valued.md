@@ -200,7 +200,7 @@ pairs interact in a single context.
 
 Other distributions take a few lines of code.
 {meth}`fit.simulate() <ergmx.ErgmFit.simulate>` returns networks simulated
-from a valued model, with their counts in the edge attribute `weight`.
+from a valued model, with their counts in the response's edge attribute, `contexts`.
 Compare three distributions of 100 such networks with the club's: the pairs
 who interact by their number of contexts, the members by their number of
 partners, and the pairs who interact by their strongest two-path (the black
@@ -229,7 +229,7 @@ def check(**fits):
     labels = [[*map(str, range(1, 7)), "7+"], [*map(str, range(10)), "10+"], [*map(str, range(6)), "6+"]]
     fig, axes = plt.subplots(len(fits), 3, figsize=(13, 3.5 * len(fits)), squeeze=False)
     for row, (name, fit) in zip(axes, fits.items()):
-        simulated = [distributions(g, "weight") for g in fit.simulate(100, seed=1)]
+        simulated = [distributions(g, "contexts") for g in fit.simulate(100, seed=1)]
         for k, ax in enumerate(row):
             ax.boxplot(np.array([s[k] for s in simulated]), tick_labels=labels[k], showfliers=False,
                        medianprops={"color": "grey"})

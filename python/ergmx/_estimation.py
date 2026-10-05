@@ -90,6 +90,14 @@ class Control:
     #: or once longer intervals stop improving chains that barely mix (see
     #: MIXING_WAITS); None never stops early.
     stall_iterations: int | None = 10
+    #: Stop rather than lengthen the interval past MIXING_INTERVAL times its
+    #: start, to chains of more than COSTLY_CHAINS proposals per iteration,
+    #: when an effective draw already costs more than this many sweeps (MCMC
+    #: proposals per dyad): chains that move between very different regimes,
+    #: near degeneracy, whose fit could take hours. Well-specified models of
+    #: large networks need at most tens (small networks' long chains are
+    #: cheap, and not stopped). None never stops for this.
+    max_sweeps: float | None = 300
     #: Contrastive divergence: MCMC proposals from the observed network per sample.
     cd_steps: int = 8
     #: Contrastive divergence: samples per iteration.
@@ -597,10 +605,24 @@ def _simulate(model: BoundModel, starts, theta, burnin, interval, samples, rng, 
     return sample, last
 
 
+def _sweeps(model: BoundModel, sample: np.ndarray, interval: int, ess: float) -> float:
+    """MCMC proposals per effective draw of the sample, per dyad: its
+    autocorrelation time, in sweeps of the network."""
+    from ._valued import dyad_count
+
+    return interval * sample.shape[0] * sample.shape[1] / max(ess, 1e-300) / max(dyad_count(model.network), 1.0)
+
+
 def _stall_message(model: BoundModel, sample: np.ndarray, iterations: int, observed=None,
-                   theta=None, waits=None) -> str:
+                   theta=None, waits=None, sweeps=None) -> str:
     observed = model.observed() if observed is None else observed
-    if waits is None:
+    if sweeps is not None:
+        interval, cost = sweeps
+        reason = (f"the chains barely mix: each effective draw costs {cost:,.0f} sweeps of the network "
+                  f"({interval:,} proposals between samples), and the chains would have to be longer still. "
+                  "The simulated networks move between very different regimes: the model is probably "
+                  "near-degenerate here.")
+    elif waits is None:
         reason = (f"for {iterations} iterations the observed statistics were far outside the range of "
                   "the simulated networks (step lengths below 0.1). The model may be degenerate, or the "
                   "starting coefficients poor.")
@@ -634,11 +656,12 @@ def _stall_message(model: BoundModel, sample: np.ndarray, iterations: int, obser
         lines += ["", "Things to try: fewer or other dyad-dependent terms (nodecovar, for one, can make "
                       "a valued model degenerate), CMP for the dispersion of the values, other starting "
                       "coefficients (init=...), or a longer MCMC (interval=...). "
-                      "Control(stall_iterations=None) keeps iterating."]
+                      f"Control({'max_sweeps' if sweeps else 'stall_iterations'}=None) keeps iterating."]
     else:
         lines += ["", "Things to try: other terms (for example gwesp with a smaller decay instead of "
                       "triangle), adding gwdegree or attribute terms, init='CD', or a longer MCMC "
-                      "(interval=...). Control(stall_iterations=None) keeps iterating."]
+                      f"(interval=...). Control({'max_sweeps' if sweeps else 'stall_iterations'}=None) keeps "
+                      "iterating."]
     return "\n".join(lines)
 
 
@@ -851,6 +874,9 @@ POOR_STEPS = 3
 MIXING_WAITS = 3
 MIXING_GAIN = 1.5
 MIXING_INTERVAL = 16
+#: Proposals per chain and iteration past which chains that barely mix (see
+#: Control.max_sweeps) are not lengthened: some seconds of each chain's time.
+COSTLY_CHAINS = 2**26
 
 
 def _loss(model: BoundModel, before: _Iterate, theta, sample, sample_obs, observed) -> float | None:
@@ -990,6 +1016,19 @@ def mcmle(model: BoundModel, init: np.ndarray, control: Control, rng: np.random.
     def target(sample_obs):
         return observed if sample_obs is None else sample_obs.reshape(-1, model.n_stats).mean(axis=0)
 
+    def lengthen(factor, sample, sample_obs, ess, at):
+        """The interval `factor` times longer, unless an effective draw
+        already costs more than max_sweeps sweeps, the interval would pass
+        MIXING_INTERVAL times its start and each chain would run more than
+        COSTLY_CHAINS proposals: then near-degeneracy."""
+        new = min(control.max_interval, interval * factor)
+        cost = _sweeps(model, sample, interval, ess)
+        if (control.max_sweeps and new >= MIXING_INTERVAL * control.interval
+                and new * per_chain() > COSTLY_CHAINS and cost > control.max_sweeps):
+            raise DegeneracyError(_stall_message(model, sample, iteration, target(sample_obs), at,
+                                                 sweeps=(interval, cost)))
+        return new
+
     confidence = control.termination == "confidence"
     converged, full_steps, stalled = False, 0, 0
     accepted = None  # the last iteration whose step was kept: _Iterate
@@ -1081,8 +1120,8 @@ def mcmle(model: BoundModel, init: np.ndarray, control: Control, rng: np.random.
                     and all(b[1] < MIXING_GAIN * a[1] for a, b in zip(recent, recent[1:]))):
                 raise DegeneracyError(_stall_message(model, sample, iteration, target(sample_obs), theta,
                                                      waits=[(i, e) for i, e, _ in recent]))
-            interval = min(control.max_interval,
-                           interval * min(4, 1 << int(np.ceil(np.log2(control.effective_size / ess)))))
+            interval = lengthen(min(4, 1 << int(np.ceil(np.log2(control.effective_size / ess)))), sample,
+                                sample_obs, ess, theta)
             burnin = max(burnin, 16 * interval)
             log.info("iteration %d: effective size %.0f, too small to step from; interval %d",
                      iteration, ess, interval)
@@ -1120,8 +1159,8 @@ def mcmle(model: BoundModel, init: np.ndarray, control: Control, rng: np.random.
                 converged = True
                 break
         if ess_target and ess < ess_target and interval < control.max_interval:
-            factor = min(4, 1 << int(np.ceil(np.log2(ess_target / ess))))
-            interval = min(control.max_interval, interval * factor)
+            interval = lengthen(min(4, 1 << int(np.ceil(np.log2(ess_target / ess)))), sample, sample_obs, ess,
+                                previous)
             burnin = max(burnin, 16 * interval)
         elif ess_target and ess > 8 * ess_target and interval > control.interval:
             # Far more effective samples than needed (the chains mix again,

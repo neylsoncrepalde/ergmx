@@ -73,6 +73,38 @@ formula accounts for centers that are themselves the observed statistics.
 The `Taper()` operator itself, `Taper(~edges + triangle, coef = c(0.01, 0.1))`,
 adds the penalty as a statistic, `Taper_Penalty`, for models written by hand.
 
+## Estimating the tapering
+
+With `fixed=False`, the tapering's strength $s$, a multiplier of the
+coefficients $\tau_k$, is estimated as ergm.tapered's (Blackburn and Handcock
+2023). Each fit's sample proposes the strength that maximizes the
+log-likelihood ratio, plus a penalty of the statistics' kurtosis away from a
+normal distribution's (3), for the next fit; the iterations stop once a
+fit's sample proposes its own strength. The strength is estimated between
+1/3 and 3, and the likelihood favors the strongest tapering, so the estimate
+is often 3, where $r$ becomes $2/\sqrt{3} = 1.15$:
+
+```{code-cell} ipython3
+fit = ergmx.ergm_tapered(monks, "edges + ttriple + ctriple", fixed=False, seed=1)
+print(fit.summary())
+```
+
+`fit.tapering_strength` is the strength, and `fit.tapering_history` each
+iteration's strength and the one its sample proposed. The strength counts as
+a parameter in AIC and BIC. {class}`ergmx.TaperingControl` sets the
+iterations and the objective's penalty, as ergm.tapered's
+`control.ergm.tapered()`.
+
+## When tapering is not enough
+
+A weak tapering can leave a model near-degenerate: with $r = 2$,
+faux.mesa.high's `edges + triangle` still moves between regimes. Its fit
+stops with a {class}`~ergmx.DegeneracyError` once each effective draw of the
+MCMC costs hundreds of sweeps of the network, after about a minute; with
+`r=1`, or the estimated tapering, it fits in seconds. (ergm.tapered's ends
+after 60 iterations without converging, at coefficients whose networks have
+nearly five times the observed triangles.)
+
 ## Differences from ergm.tapered
 
 - With `taper.terms = "dependent"`, ergm.tapered takes its standard errors
@@ -85,5 +117,7 @@ adds the penalty as a statistic, `Taper_Penalty`, for models written by hand.
 - ergm.tapered's `Taper()` reads any single coefficient as a multiplier, so
   that tapering a single statistic divides its documented $\tau$ by $4m$
   once more. ergmx's `ergm_tapered()` uses the documented $\tau$.
-- The estimated tapering of ergm.tapered (`fixed=FALSE`, its `Kpenalty`) is
-  not available.
+- With the estimated tapering, a fit that stops for degeneracy (at the first
+  strength, 1, say) moves the strength halfway to the interval's top, the
+  strongest tapering. ergm.tapered's fits don't stop: they return samples
+  from chains that hadn't mixed, which then propose the next strength.

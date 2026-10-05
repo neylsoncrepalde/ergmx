@@ -24,7 +24,7 @@ that read like R's.
 > bigergm) and latent space models (as latentnet); MPLE, contrastive divergence and Monte Carlo MLE; MCMC
 > diagnostics, log-likelihoods, model comparison and goodness of fit; tie
 > probabilities, marginal effects and tables of results; networks of tens of
-> thousands of vertices; all validated against R. See [what's missing](#not-yet).
+> thousands of vertices; all validated against R.
 
 ```python
 import ergmx
@@ -154,7 +154,9 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
   reference measures (`reference="Poisson"`), continuous values
   (`"StdNormal"`, `"Unif(a, b)"`), ergm's valued terms (`sum`, `nonzero`,
   `nodematch(..., form="sum")`, `mutual`, `transitiveweights`, `nodecovar`,
-  `CMP`...), missing dyads, goodness of fit and `san()`.
+  `CMP`...), missing dyads, goodness of fit and `san()`; several valued
+  networks, and series of them (`ergmx.tergm(..., response="score")`, with
+  the previous network's values, `edgecov(".PrevNet", "score")`).
 - **Bayesian ERGMs**, as R's Bergm: `ergmx.bergm(g, formula)` samples the
   posterior by the exchange algorithm, with posterior summaries, diagnostics,
   plots and posterior predictive goodness of fit; `ergmx.evidence()` (the
@@ -178,7 +180,7 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
 - **Tapered ERGMs**, as R's ergm.tapered: `ergmx.ergm_tapered(g, formula)`
   penalizes the statistics' distance to the network's, which fits models
   that are degenerate as ERGMs, with the tapered likelihood's standard
-  errors.
+  errors; `fixed=False` estimates the tapering's strength, as ergm.tapered.
 - **Large networks with local dependence**, as R's bigergm:
   `ergmx.bigergm(g, formula, n_blocks)` finds blocks by the MM algorithm of a
   stochastic block model, then fits the dyads between blocks independently
@@ -259,7 +261,7 @@ uv run sphinx-build -W --keep-going -d docs/_build/doctrees docs docs/_build/htm
 and tergm 4.2.2 for samples and series of networks) and stores the
 results in `tests/data/r_reference.json`; the test suite compares. The other
 `scripts/r_*_reference.R` do the same for ergm.count, ergm.ego, Bergm,
-btergm, ergm.tapered, bigergm and latentnet.
+btergm, ergm.tapered, bigergm, latentnet and tergm's valued series.
 
 | Check | Result |
 |---|---|
@@ -282,7 +284,8 @@ btergm, ergm.tapered, bigergm and latentnet.
 | ergm's operators (`Sum`, `Prod`, `Log`, `Exp`, `Symmetrize`, `Label`, `Curve`...), 26 sets of statistics and 5 fits | statistics and names identical to R's; fits within 0.3 standard errors of R's (the MPLE to 1e-6; `Symmetrize()` against its exact MLE, which R's misses) |
 | ergm.multi's multilayer terms, 20 sets of statistics and 4 fits | statistics and names identical to R's, but the in-order OSP and ISP shared partners, where ergmx follows ergm.multi's documentation; fits within 0.1 standard errors |
 | Semicycles, interactions in `N()`'s linear models, `L()` of curved terms, the projection operators and valued `N()` (ergm, ergm.multi, ergm.count), 7 sets of statistics and 4 fits | statistics and names identical to R's (14 designs identical to R's `model.matrix()`); fits within 0.11 standard errors of R's |
-| Tapered ERGMs (ergm.tapered), 6 models, R with 3 seeds | estimates within 0.15 standard errors of R's; tapering coefficients identical |
+| Tapered ERGMs (ergm.tapered), 6 models, and estimated tapering, 4 models, R with 3 seeds | estimates within 0.15 standard errors of R's; tapering coefficients identical; the estimated strength's objective and proposals identical (1e-13), strengths in R's range, estimates within 0.34 standard errors |
+| Valued series of networks (tergm, ergm.count), 3 sets of statistics and 3 fits | statistics and names identical to R's; estimates within 0.08 standard errors of R's |
 | bigergm's MM algorithm (4 runs) and its fits from given blocks (4 models) | the same iterations and blocks, lower bounds within 1e-13; estimates identical (1e-10), the Monte Carlo MLE within 0.05 standard errors |
 | Latent space models (latentnet), 13 models, R with 3 seeds | log-likelihoods and priors identical (5e-13); posterior means within 0.06 posterior standard deviations of R's, variances within 3% |
 | tergm's tie-age terms, btergm and Bergm's model evidence | tie-age statistics and simulations match tergm's and the exact stationary distributions; btergm's estimates identical to R's (2e-8) and its bootstrap to exact enumeration; the evidence within 0.01 of the exact value, where Bergm's is about 2 nats off |
@@ -358,11 +361,6 @@ src/                  Rust core (PyO3), exposed as ergmx._core.Model
 Adding a term means implementing its change statistic in `src/terms.rs` and
 describing it in `python/ergmx/terms.py`, or, in Python, subclassing
 `ergmx.UserTerm`.
-
-## Not yet
-
-- ergm.tapered's estimated tapering (`fixed=FALSE`), and valued models of
-  series of networks.
 
 ## Installation
 

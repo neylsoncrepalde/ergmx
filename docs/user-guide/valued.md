@@ -194,7 +194,31 @@ print(fit.summary())
 
 Networks simulated from such a model are lists of graphs, one per network.
 
+## A series of valued networks
+
+A {func}`ergmx.NetSeries` of valued networks models each transition's
+values conditionally on the network before it, as R's tergm with
+`response=`. tergm's operators (`Form()`, `Persist()`...) are for binary
+networks; a valued transition takes valued terms, and the previous
+network's values through `edgecov(".PrevNet", response)`, a lagged effect.
+Sampson's monks ranked the three monks they liked most at each of three
+times (`score`: 3 for the first, 1 for the third):
+
+```{code-cell} ipython3
+monks = [datasets.load(f"samplk{t}") for t in (1, 2, 3)]
+fit = ergmx.tergm(monks, "sum + nonzero + mutual(form='min') + edgecov('.PrevNet', 'score')",
+                  response="score", reference="Binomial(3)", seed=1)
+print(fit.summary())
+```
+
+A monk ranks higher those he ranked high before (`edgecov.sum..PrevNet.score`),
+and those who rank him (`mutual.min`). R's tergm gives the same estimates.
+`edgecov(".PrevNet")` is the previous network's ties, and
+[`N()`](multiple-networks.md) of valued terms gives each transition its
+coefficients (`N(~sum, ~.TimeID)`; R's valued `N()` refuses a series).
+Simulations are each transition's network, given the one before.
+
 ## What is not supported
 
-Not available for valued networks: dyad-dependent constraints, series of
-networks (`NetSeries()`), and `N()` with offsets.
+Not available for valued networks: dyad-dependent constraints, tergm's
+operators, and `N()` with offsets.

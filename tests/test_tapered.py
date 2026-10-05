@@ -80,3 +80,119 @@ def test_tapered_options():
         ergmx.ergm_tapered(g, formula, taper_terms="triangle")
     with pytest.raises(ValueError, match="'MLE' or 'MPLE'"):
         ergmx.ergm_tapered(g, formula, estimate="CD")
+
+
+# -- Estimated tapering (fixed=False) -----------------------------------------------------------
+
+
+@pytest.mark.skipif(R is None, reason="no R reference")
+@pytest.mark.parametrize("name", list(R["objective_checks"]) if R else [])
+def test_the_strengths_objective_is_ergm_tapereds(name):
+    """The kurtosis-penalized objective, on the sample of ergm.tapered's
+    first fit (at strength 1), at several strengths, and the strength it
+    proposes, with its importance weights' effective size: R's exactly."""
+    from ergmx._tapered import TaperingControl, propose_strength, strength_objective
+
+    check = R["objective_checks"][name]
+    x, s0 = np.array(check["sample"], dtype=float), check["strength0"]
+    control = TaperingControl()
+    np.testing.assert_allclose([strength_objective(x, s, s0, control) for s in check["strengths"]],
+                               check["objective"], rtol=0, atol=1e-10)
+    proposed, objective, size = propose_strength(x, s0, control)
+    assert proposed == pytest.approx(check["proposed"], abs=1e-12)
+    assert objective == pytest.approx(np.ravel(check["proposed_objective"])[0], abs=1e-10)
+    assert size == pytest.approx(check["effective_size"], rel=1e-10)
+
+
+def test_brents_method_is_rs_optimize():
+    """The minima R's optimize() finds (R 4.5), to the last digit (but the
+    power function's)."""
+    from ergmx._tapered import _brent_min
+
+    cases = [(lambda x: np.sin(3 * x) + 0.1 * x * x, (-2, 2), -0.51220133121067679),
+             (lambda x: (x - 1 / 3) ** 2, (0, 1), 0.33333333333333331),
+             (lambda x: abs(x - 2.5) + 0.01 * x, (0, 3), 2.500007253369108),
+             (lambda x: -x, (1 / 3 + 1e-4, 3 - 1e-4), 2.9998326700838729),
+             (lambda x: x**4 - 3 * x, (-1, 2), 0.90857123365776771)]
+    for f, interval, minimum in cases:
+        assert _brent_min(f, *interval) == pytest.approx(minimum, rel=0, abs=4e-16)
+
+
+ESTIMATED = list(R["estimated"]) if R and "estimated" in R else []
+
+
+@pytest.mark.skipif(R is None, reason="no R reference")
+@pytest.mark.parametrize("name", ESTIMATED)
+def test_estimated_tapering_matches_r(name):
+    """The estimated strength within the range of R's three seeds' (mostly
+    the interval's top, 3), the coefficients within 0.3 of R's standard
+    errors (and twice the spread of R's seeds' estimates) of their mean, and
+    the tapering coefficients those given times the strength, as R's.
+    faux.mesa.high's edges + triangle, degenerate at the first strength, 1,
+    starts at 2, where R's iterations pass; it is near-degenerate even
+    tapered (R's standard errors vary by a factor of 3 between seeds)."""
+    from ergmx._tapered import TaperingControl
+
+    r = R["estimated"][name]
+    control = TaperingControl(init=2.0) if name == "mesa_triangle" else None
+    fit = ergmx.ergm_tapered(load(r["network"]), r["formula"], fixed=False, tapering_control=control, seed=1,
+                             eval_loglik=False)
+    strengths = [s["strength"] for s in r["seeds"]]
+    assert min(strengths) - 0.01 <= fit.tapering_strength <= max(strengths) + 0.01
+    assert fit.r == pytest.approx(2 / np.sqrt(fit.tapering_strength))
+    assert fit.names == r["names"]
+    coefs = np.array([s["coef"] for s in r["seeds"]])
+    coef, spread = coefs.mean(axis=0), coefs.std(axis=0, ddof=1)
+    se = np.mean([s["se"] for s in r["seeds"]], axis=0)
+    assert np.all(np.abs(fit.params - coef) < 0.3 * se + 2 * spread), (fit.params, coef, se)
+    base = {n: t / r["seeds"][-1]["strength"] for n, t in r["tapering_coef"].items()}
+    np.testing.assert_allclose([fit.tapering_coef[n] / fit.tapering_strength for n in r["names"]],
+                               [base[n] for n in r["names"]], rtol=1e-8)
+    assert fit.tapering_converged and fit.tapering_history[-1]["strength"] == fit.tapering_strength
+
+
+def test_estimated_tapering_after_a_degenerate_fit(monkeypatch):
+    """A fit that stops for degeneracy moves the strength halfway to the
+    interval's top; the strength counts as a parameter (AIC, BIC), and the
+    summary says it was estimated."""
+    import ergmx._simulate
+
+    real, calls = ergmx._simulate.ergm, []
+
+    def first_degenerate(*args, **kwargs):
+        calls.append(kwargs.get("init"))
+        if len(calls) == 1:
+            raise ergmx.DegeneracyError("a simulated network had more than 10000 edges")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(ergmx, "ergm", first_degenerate)
+    g = load("flomarriage")
+    fit = ergmx.ergm_tapered(g, "edges + kstar(2) + triangle", fixed=False, seed=1)
+    first, second = fit.tapering_history[:2]
+    assert np.isnan(first["proposed"]) and first["strength"] == 1.0
+    assert second["strength"] == pytest.approx((1 + 3 - 1e-4) / 2)
+    assert fit.tapering_converged and fit.loglik is not None
+    fixed = ergmx.ergm_tapered(g, "edges + kstar(2) + triangle", seed=1, eval_loglik=False)
+    assert fit.df == fixed.df + 1 == 4
+    assert fit.aic == pytest.approx(-2 * fit.loglik + 2 * 4)
+    text = str(fit.summary())
+    assert "the strength estimated (2.9998; r = 1.155)" in text and "Taper_Penalty" not in text
+    assert pickle.loads(pickle.dumps(fit)).tapering_strength == fit.tapering_strength
+
+
+def test_estimated_tapering_options():
+    from ergmx._tapered import TaperingControl
+
+    g = load("flomarriage")
+    with pytest.raises(ValueError, match="estimate='MLE'"):
+        ergmx.ergm_tapered(g, "edges + triangle", fixed=False, estimate="MPLE")
+    with pytest.raises(ValueError, match="fixed=False"):
+        ergmx.ergm_tapered(g, "edges + triangle", tapering_control=TaperingControl())
+    with pytest.raises(ValueError, match="in the interval"):
+        TaperingControl(init=5)
+    # One iteration: not converged, with a warning; the strength is the fit's.
+    with pytest.warns(UserWarning, match="did not converge after 1 iterations"):
+        fit = ergmx.ergm_tapered(g, "edges + kstar(2) + triangle", fixed=False, seed=1, eval_loglik=False,
+                                 tapering_control=TaperingControl(maxit=1))
+    assert fit.tapering_strength == 1.0 and not fit.tapering_converged
+    assert "not converged" in str(fit.summary())

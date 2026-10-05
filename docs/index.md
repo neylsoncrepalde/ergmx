@@ -19,14 +19,14 @@ and runs chains in parallel threads, so fits take seconds.
 networks, and interactions, and terms written in Python; curved ERGMs, sample
 space constraints, missing ties, multilevel networks (as MPNet), samples of
 networks and multilayer networks (as ergm.multi), temporal ERGMs, EGMME and
-dynamic simulation with tie ages (as tergm), and btergm; valued, egocentric
-and Bayesian ERGMs, with model evidence; tapered ERGMs (as ergm.tapered) and
-ERGMs with local dependence for large networks (as bigergm), latent space
-models (as latentnet); MPLE,
-contrastive divergence and Monte Carlo MLE, MCMC diagnostics,
-log-likelihoods, model comparison,
-goodness of fit, tie probabilities, marginal effects and tables of results,
-for networks of up to tens of thousands of vertices, all
+dynamic simulation with tie ages (as tergm), and btergm; valued ERGMs (of
+single networks, several networks and series of them), egocentric and
+Bayesian ERGMs, with model evidence; tapered ERGMs, with an estimated
+tapering (as ergm.tapered), ERGMs with local dependence for large networks
+(as bigergm) and latent space models (as latentnet); MPLE, contrastive
+divergence and Monte Carlo MLE, MCMC diagnostics, log-likelihoods, model
+comparison, goodness of fit, tie probabilities, marginal effects and tables
+of results, for networks of up to tens of thousands of vertices, all
 [validated against R](validation.md).
 :::
 

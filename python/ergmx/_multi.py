@@ -230,6 +230,39 @@ def NetSeries(*networks, times=None, bipartite=None, na_impute=None) -> Network:
     return _combine(parts[1:], attributes, before)
 
 
+class PreviousNetworks:
+    """A series' ``".PrevNet"`` (tergm's network attribute): the network
+    before each transition, combined as the transitions are, for
+    ``edgecov(".PrevNet")`` (its ties) and ``edgecov(".PrevNet", attrname)``
+    (their values)."""
+
+    def __init__(self, network: Network):
+        self.network = network
+
+    def matrix(self, attrname: str | None = None) -> np.ndarray:
+        from ._network import _read
+        from .terms import _graph_matrix
+
+        m = np.zeros((self.network.n, self.network.n))
+        for b in self.network.blocks:
+            prev = b.prev
+            if attrname is not None:
+                if prev.source is None:
+                    raise ValueError(f"edgecov('.PrevNet', {attrname!r}): the series' networks have no edge "
+                                     "attributes")
+                observed = _read(prev.source)
+                key = (lambda e: tuple(e)) if prev.directed else (lambda e: tuple(sorted(e)))
+                imputed = {key(e) for e in prev.edges.tolist()} - {key(e) for e in observed.edges.tolist()}
+                if imputed:
+                    raise ValueError(f"edgecov('.PrevNet', {attrname!r}): the ties imputed in the networks "
+                                     "before the transitions (na_impute=) have no values")
+                block = _graph_matrix(observed, attrname)
+            else:
+                block = _graph_matrix(prev, None)
+            m[b.start:b.stop, b.start:b.stop] = block
+        return m
+
+
 def series_from(networks, times=None, bipartite=None, na_impute=None) -> Network:
     """A NetSeries from a NetSeries, or from a list of networks."""
     if isinstance(networks, Network) and networks.series:

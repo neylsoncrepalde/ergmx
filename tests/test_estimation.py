@@ -161,14 +161,40 @@ def test_chains_that_never_mix_stop_the_estimation(monkeypatch):
         return observed + 3 * noise, starts
 
     monkeypatch.setattr(_estimation, "_simulate", sticky)
+    # (Without the limit on the cost of an effective draw, which stops first.)
     with pytest.raises(ergmx.DegeneracyError, match="longer intervals don't help") as error:
-        ergmx.ergm(g, "edges + mutual", init=[-2.0, 1.0], seed=1, n_chains=4)
+        ergmx.ergm(g, "edges + mutual", init=[-2.0, 1.0], seed=1, n_chains=4, max_sweeps=None)
     assert "simulated" in str(error.value) and "16,384" in str(error.value)
     assert max(intervals) == 16384
     # stall_iterations=None keeps iterating.
     with pytest.warns(UserWarning, match="did not converge"):
         ergmx.ergm(g, "edges + mutual", init=[-2.0, 1.0], seed=1, n_chains=4, stall_iterations=None,
-                   eval_loglik=False, max_iter=8)
+                   max_sweeps=None, eval_loglik=False, max_iter=8)
+
+    # With it, and chains that would be costly (here, past 2^20 proposals per
+    # iteration), the interval stops short of 16 times its start: each
+    # effective draw already costs about 900 sweeps (4096 proposals between
+    # samples, with an autocorrelation time of 65 samples, on 306 dyads).
+    intervals.clear()
+    monkeypatch.setattr(_estimation, "COSTLY_CHAINS", 2**20)
+    with pytest.raises(ergmx.DegeneracyError, match="each effective draw costs") as error:
+        ergmx.ergm(g, "edges + mutual", init=[-2.0, 1.0], seed=1, n_chains=4)
+    assert "max_sweeps=None" in str(error.value) and "4,096 proposals" in str(error.value)
+    assert max(intervals) == 4096
+    # Cheap chains (the default threshold, 2^26 proposals: this network's are
+    # 2^22 at 16 times the interval) are lengthened as before.
+    monkeypatch.setattr(_estimation, "COSTLY_CHAINS", 2**26)
+    with pytest.raises(ergmx.DegeneracyError, match="longer intervals don't help"):
+        ergmx.ergm(g, "edges + mutual", init=[-2.0, 1.0], seed=1, n_chains=4)
+
+
+def test_the_cost_of_an_effective_draw():
+    from ergmx._estimation import _sweeps
+
+    model = ergmx._model.bind(load("samplk3"), "edges")
+    sample = np.zeros((4, 256, 1))
+    # 1024 draws, 64 effective: 16 samples, of 2048 proposals, per effective draw, on 306 dyads.
+    assert _sweeps(model, sample, 2048, 64) == pytest.approx(16 * 2048 / 306)
 
 
 def test_bad_init():
