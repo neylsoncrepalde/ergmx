@@ -1,5 +1,61 @@
 # Changelog
 
+## 0.5.0 (2026-10-05)
+
+- {func}`ergmx.ergmm`, R's latentnet: latent space models. `euclidean`,
+  `euclidean2` or `bilinear` positions, with clusters; random sender,
+  receiver and sociality effects; covariates (latentnet's, and ergm terms
+  through their change statistics); the Bernoulli, binomial, Poisson and
+  normal families; and missing dyads and bipartite networks.
+  - It is fitted by latentnet's MCMC (its proposals and tuning, in Rust,
+    chains in parallel), from latentnet's starting values. The minimum
+    Kullback-Leibler positions are computed with their Bayesian clusters,
+    the draws are rotated onto them and relabelled by Stephens' algorithm,
+    and the posterior mode and MLE are optional.
+  - Fits have `summary()` (with latentnet's BIC), `predict()`,
+    `simulate()`, `gof()`, `mcmc_diagnostics()` and `plot()`.
+  - Checked against latentnet on 13 models: the log-likelihoods and priors
+    exactly (5e-13), the starting values, and the posteriors (coefficients
+    within 0.06 posterior standard deviations of R's, variances within 3%,
+    tie probabilities within R's Monte Carlo error). Where latentnet's code
+    differs from its models (its posterior predictions, simulations and gof
+    on some networks), ergmx follows the models.
+  - New datasets: ergm's `samplike` and latentnet's `tribes`.
+- {func}`ergmx.bigergm`, R's bigergm: ERGMs with local dependence for large
+  networks. Its MM algorithm finds the blocks (with the covariates of the
+  model's `nodematch` terms, or without), started from infomap's
+  communities, walktrap's, random or given blocks. The dyad-independent
+  terms are fitted to the dyads between blocks, the whole model to those
+  within (MPLE or Monte Carlo MLE), with intercepts by block if asked.
+  `simulate()` and `gof()` work on its fits. From the same starting blocks,
+  the MM algorithm gives bigergm's iterations, lower bounds (to 1e-13),
+  membership probabilities and blocks, undirected and directed, and the
+  estimates are bigergm's. bigergm's `simulate()` follows neither of its
+  models; ergmx's simulations agree with ergm's and with the expected ties. A
+  network of 5,000 vertices in 50 blocks takes under a second. New dataset:
+  bigergm's `toyNet`.
+- {func}`ergmx.ergm_tapered`, R's ergm.tapered: tapered ERGMs, whose penalty
+  keeps the statistics near the network's and removes the degeneracy of
+  many models. It supports `r`, `tau`, `beta`, `taper_terms`,
+  `tapering_centers`, target statistics and the MPLE, and gives ergm.tapered's
+  standard errors of the tapered likelihood. New operator: `Taper()`.
+  Checked against ergm.tapered's fits of six models (within 0.15 standard
+  errors of the means of three seeds) and their tapering coefficients.
+- Valued models of several networks: {func}`ergmx.Networks` of valued
+  networks, with `N()` of valued terms on each network's own values;
+  checked against ergm.multi's statistics and fit.
+- ergm's projection operators `Proj1()`, `Proj2()` and `Project()`: valued
+  terms of a bipartite network's projection onto a mode, checked against
+  ergm's statistics and fit.
+- `L()` of curved terms, and the gw layer terms with an estimated decay
+  (`gwespL()`...), checked against ergm.multi's statistics, names and a fit.
+- Bipartite layers, `Layer(..., bipartite=True)`, and ergm.multi's
+  `b1dspL`, `b2dspL`, `gwb1dspL` and `gwb2dspL`. ergm.multi 0.3.0's
+  `Layer()` misplaces bipartite networks' ties, so they are checked by
+  counting their definitions.
+- Interactions in `N()`'s linear models (`a:b`, `a*b`, `(a + b):c`), with
+  the columns and names of R's `model.matrix()` (14 designs identical).
+- `cycle(k, semi=TRUE)`: ergm's semicycles of directed networks.
 ## 0.4.0 (2026-10-04)
 
 - Multilayer networks, as R's ergm.multi: {func}`ergmx.Layer` combines

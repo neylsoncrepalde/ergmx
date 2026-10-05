@@ -18,7 +18,7 @@ class FormulaError(ValueError):
 
 #: Multilayer terms' arguments of Layer Logic, kept as R text (as N()'s lm).
 _LAYER_SP = ("despL", "espL", "ddspL", "dspL", "dnspL", "nspL", "dgwespL", "gwespL", "dgwdspL", "gwdspL",
-             "dgwnspL", "gwnspL")
+             "dgwnspL", "gwnspL", "b1dspL", "b2dspL", "gwb1dspL", "gwb2dspL")
 _LAYER_ARGUMENTS = {"L": ("Ls",), "CMBL": ("Ls",), "twostarL": ("Ls",), "mutualL": ("Ls",),
                     **dict.fromkeys(_LAYER_SP, ("Ls.path", "L.base"))}
 #: The position of Ls, given without its name (the shared partner terms' are named).
@@ -260,7 +260,7 @@ def _subgraph_term(node: ast.Call, formula: str, models: list[str]):
 
 
 _OPERATOR_NAMES = ("Sum", "Prod", "Log", "Exp", "Symmetrize", "Label", "Passthrough", "Offset", "Curve",
-                   "Parametrise", "Parametrize", "L")
+                   "Parametrise", "Parametrize", "L", "Project", "Proj1", "Proj2", "Taper")
 
 
 def _formula_terms(node: ast.expr, formula: str, models) -> list:
@@ -341,6 +341,11 @@ def _operator_terms(name: str, node: ast.Call, formula: str, models) -> list:
                   else layers)]
     if name in ("Sum", "Prod"):
         first = _weighted_formulas(args[0], formula, models)
+    elif name in ("Project", "Proj1", "Proj2"):  # valued terms, of the projection
+        from ._valued import VALUED_TERMS
+
+        with use_terms(VALUED_TERMS):
+            first = Formula(_formula_terms(args[0], formula, models))
     else:
         first = Formula(_formula_terms(args[0], formula, models))
     try:

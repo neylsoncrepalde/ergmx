@@ -1,5 +1,6 @@
 # Exports the networks bundled with ergmx (ergmx.datasets) from R's ergm
-# package, as gzipped GraphML in python/ergmx/data/.
+# package (and bigergm's toyNet and latentnet's tribes), as gzipped GraphML in
+# python/ergmx/data/, with their edge attributes.
 #
 # Run from the root of the ergmx repository:
 #   Rscript scripts/export_datasets.R
@@ -16,17 +17,30 @@ to_igraph <- function(net) {
   for (a in setdiff(network::list.vertex.attributes(net), c("na", "vertex.names"))) {
     g <- set_vertex_attr(g, a, value = network::get.vertex.attribute(net, a))
   }
+  # Each edge's value, looked up by its ends (get.edge.attribute's order isn't as.edgelist's).
+  el <- network::as.edgelist(net)
+  for (a in setdiff(network::list.edge.attributes(net), "na")) {
+    values <- network::as.matrix.network(net, matrix.type = "adjacency", attrname = a)
+    g <- set_edge_attr(g, a, value = as.numeric(values[el]))
+  }
   set_vertex_attr(g, "name", value = as.character(network::network.vertex.names(net)))
 }
 
 data(florentine)
 data(samplk)
+data(sampson)
 data(faux.mesa.high)
 data(faux.dixon.high)
 data(faux.magnolia.high)
+data(toyNet, package = "bigergm")
+data(tribes, package = "latentnet")
 networks <- list(flomarriage = flomarriage, flobusiness = flobusiness, samplk1 = samplk1,
                  samplk2 = samplk2, samplk3 = samplk3, faux.mesa.high = faux.mesa.high,
-                 faux.dixon.high = faux.dixon.high, faux.magnolia.high = faux.magnolia.high)
+                 faux.dixon.high = faux.dixon.high, faux.magnolia.high = faux.magnolia.high, toyNet = toyNet,
+                 samplike = samplike, tribes = tribes)
+# Only some: Rscript scripts/export_datasets.R toyNet
+only <- commandArgs(trailingOnly = TRUE)
+if (length(only)) networks <- networks[only]
 out_dir <- file.path("python", "ergmx", "data")
 for (name in names(networks)) {
   path <- file.path(out_dir, paste0(name, ".graphml"))

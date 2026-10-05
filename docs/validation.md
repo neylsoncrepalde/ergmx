@@ -1,12 +1,14 @@
 # Validation
 
 `ergmx` is tested against R's ergm 4.12, ergm.multi 0.3.0, tergm 4.2.2, ergm.count
-4.1.3, ergm.ego 1.1.4 and Bergm 5.0.7 on
+4.1.3, ergm.ego 1.1.4, Bergm 5.0.7, btergm 1.11.1, ergm.tapered 1.2-0, bigergm
+1.2.6 and latentnet 2.12.0 on
 ergm's own networks (flomarriage, samplk1 to samplk3, faux.mesa.high and
 faux.dixon.high, the latter two also with missing dyads), multinets'
 `linked_sim`, Davis's Southern Women, a simulated bipartite network,
 Sampson's monks as a sample and as a series of networks, and ergm.multi's
-225 weekday household networks (Goeyvaerts), and against exact results on
+225 weekday household networks (Goeyvaerts), bigergm's toyNet, ergm's
+samplike and latentnet's tribes, and against exact results on
 networks small enough to enumerate every possible network. The R scripts in
 `scripts/` store R's results in `tests/data/`, and the test suite compares.
 
@@ -26,6 +28,10 @@ networks small enough to enumerate every possible network. The R scripts in
 | `san()` and `ergm(target_stats=)`, dyad-independent and with gwesp | the fit to target statistics is R's exactly (dyad-independent) or within its Monte Carlo error |
 | Goodness of fit, directed and undirected | observed distributions and p-values identical to R's; simulated distributions agree within Monte Carlo error |
 | ergm.multi's multilayer networks: `L()` with Layer Logic, `CMBL`, `twostarL`, `mutualL` and the layer-aware shared partner terms, 20 sets of statistics on the Florentine marriages and business ties and the monks' three waves as layers; 4 fits | statistics and names identical to R's (but the OSP and ISP shared partners in order, which match their documented definition, counted by brute force: see [](coming-from-r.md)); estimates within 0.1 standard errors of R's, standard errors within 10% |
+| ergm 4.12, ergm.multi and ergm.count, the features of 0.5.0: semicycles, interactions in `N()`'s linear models (14 designs of R's `model.matrix()` and 80 households), `L()` of curved terms, the gw layer terms with an estimated decay, the projection operators, and valued `N()` of two networks; 7 sets of statistics and 4 fits | statistics and names identical to R's; estimates within 0.11 standard errors of R's, standard errors within 5%. Bipartite layers: their statistics equal their definitions, counted by brute force (ergm.multi's are wrong) |
+| ergm.tapered, 6 tapered fits (degenerate models among them), each in R with 3 seeds | estimates within 0.15 standard errors of the means of R's; tapering coefficients identical; standard errors within 12% of R's, but where R's own vary by a factor of 2 between seeds |
+| bigergm's MM algorithm, 4 runs (undirected and directed, with and without covariates), and its estimates from given blocks, 4 models | the same iterations and blocks as bigergm, lower bounds within 1e-13 and membership probabilities within 1e-15 of its; the between-block MLE and within-block MPLE identical to bigergm's (1e-10), the within-block MLE within 0.05 standard errors; simulated networks agree with ergm's simulation of the within-block model and with the between-block model's expected ties |
+| latentnet's `ergmm()`, 13 models (Sampson's monks, the Gahuku-Gama tribes, Davis's Southern Women; euclidean, euclidean2 and bilinear spaces, clusters, random sender, receiver and sociality effects, a covariate; the Bernoulli, binomial, Poisson and normal families), R with 3 seeds | the log-likelihood and log-priors of R's draws identical (5e-13); starting values' log posteriors within 0.005; posterior means of the coefficients within 0.06 posterior standard deviations of R's, standard deviations within 8%, the variances within 3%, mean distances, tie probabilities and co-clustering within about twice R's spread between seeds |
 | ergm.multi's `gofN()`, 225 households, the model's statistics and five others, 2,000 simulations | observed statistics identical to R's (but `degree0` and `isolates`, below); fitted values, variances and Pearson residuals agree within R's Monte Carlo error |
 | tergm's EGMME, formation and persistence of edges with a mean duration, and with `degree(1)` too | within 0.4 standard errors of the mean of R's estimates over 3 seeds; standard errors within R's range, which spans a factor of 1.7 between its seeds; the edges model's estimate is also the exact one (below) |
 | Conditional tie probabilities (`predict()`), 5 models: undirected, directed, missing dyads, curved, 20 household networks | identical to R's `predict()` (to 1e-12), on the same dyads (R's formula method leaves out missing dyads) |

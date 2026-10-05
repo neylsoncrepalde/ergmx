@@ -177,7 +177,24 @@ larger standard errors. The log-likelihood is that of the observed dyads, as
 is the BIC's sample size; the goodness of fit's observed values average
 networks with the missing values imputed.
 
+## Several valued networks
+
+Valued networks combined with {func}`ergmx.Networks` take `N()` of valued
+terms, as in ergm.multi: each network's statistics on its own values,
+combined through `N()`'s linear model. Here, the karate club's counts and
+the same counts less one (at least 1):
+
+```{code-cell} ipython3
+fewer = zach.copy()
+fewer.es["contexts"] = [max(1, v - 1) for v in zach.es["contexts"]]
+clubs = ergmx.Networks(zach, fewer)
+fit = ergmx.ergm(clubs, "N(~sum + nonzero, ~.NetworkID)", response="contexts", reference="Poisson", seed=1)
+print(fit.summary())
+```
+
+Networks simulated from such a model are lists of graphs, one per network.
+
 ## What is not supported
 
-Not available for valued networks: dyad-dependent constraints and several
-networks.
+Not available for valued networks: dyad-dependent constraints, series of
+networks (`NetSeries()`), and `N()` with offsets.

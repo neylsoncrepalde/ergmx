@@ -36,8 +36,8 @@ def test_bad_formulas(formula, message):
 
 
 def test_unsupported_options_are_errors_not_silent():
-    for unsupported in ("cycle(4, semi=TRUE)", "altkstar(2)"):
-        with pytest.raises((NotImplementedError, FormulaError), match="not supported|only fixed=TRUE"):
+    for unsupported in ("gwdegree(0.5, attr='Sex')", "altkstar(2)"):
+        with pytest.raises((NotImplementedError, FormulaError), match="must be fixed|only fixed=TRUE"):
             parse_formula(unsupported)
 
 

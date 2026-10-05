@@ -15,6 +15,27 @@ Fitting and simulating
    Control
    san
    SanControl
+   ergm_tapered
+   TaperedFit
+
+Large networks
+--------------
+
+.. autosummary::
+   :toctree: generated/
+
+   bigergm
+   BigErgmFit
+
+Latent space models
+-------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ergmm
+   ErgmmFit
+   LatentControl
 
 Bayesian ERGMs
 --------------

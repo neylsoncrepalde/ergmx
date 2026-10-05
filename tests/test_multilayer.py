@@ -142,7 +142,7 @@ def test_layer_errors():
     with pytest.raises(ValueError, match="at least 2"):
         Layer(load("flomarriage"))
     with pytest.raises(ValueError, match="same vertices"):
-        Layer(load("flomarriage"), load("samplk1"))
+        Layer(load("flomarriage"), load("flobusiness").subgraph(range(10)))
     with pytest.raises(ValueError, match="all directed or all undirected"):
         Layer(load("samplk1"), load("samplk2").as_undirected())
     with pytest.raises(ValueError, match="Layer"):
@@ -155,5 +155,5 @@ def test_layer_errors():
         ergmx.summary_stats(monks(), "mutualL")
     with pytest.raises((ValueError, NotImplementedError, ergmx.FormulaError), match="reciprocated two-paths"):
         ergmx.summary_stats(monks(), "despL(1, 'RTP', L.base = ~`1`)")
-    with pytest.raises((ValueError, NotImplementedError, ergmx.FormulaError), match="fixed=TRUE"):
-        ergmx.summary_stats(flo(), "gwespL(0.5, L.base = ~m)")
+    with pytest.raises((ValueError, NotImplementedError, ergmx.FormulaError), match="needs L.base or Ls.path"):
+        ergmx.summary_stats(flo(), "gwespL(0.5, fixed = TRUE)")

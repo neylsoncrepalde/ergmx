@@ -14,16 +14,18 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ._network import Network, as_network
-from .terms import TERMS, ErgmDifferenceWarning, Term, as_formula
+from ._network import Network
+from .terms import TERMS, Curved, ErgmDifferenceWarning, Term, as_formula
 
 # -- Layer() ------------------------------------------------------------------------------------
 
 
-def Layer(*networks, **named) -> Network:  # noqa: N802 (R's name)
+def Layer(*networks, bipartite=None, **named) -> Network:  # noqa: N802 (R's name)
     """Layers of one network, as R's ``ergm.multi::Layer()``: networks on the
     same vertices, as arguments (``Layer(g1, g2)``), named
-    (``Layer(marriage=g1, business=g2)``) or in a list or dict.
+    (``Layer(marriage=g1, business=g2)``) or in a list or dict. Bipartite
+    layers need ``bipartite=`` (the vertex attribute with the modes, or True
+    for the default one), as :func:`ergmx.Networks`, and the same modes.
 
     Terms outside ``L()`` sum over the layers (each layer's ties count in
     its own block, so no term sees ties of different layers together);
@@ -32,7 +34,7 @@ def Layer(*networks, **named) -> Network:  # noqa: N802 (R's name)
     within layers. Networks simulated from it are dicts of their layers by
     name, which ``Layer()`` takes back.
     """
-    from ._multi import _combine
+    from ._multi import _combine, _parts
 
     if len(networks) == 1 and isinstance(networks[0], (list, tuple, dict)):
         if named:
@@ -46,14 +48,16 @@ def Layer(*networks, **named) -> Network:  # noqa: N802 (R's name)
         raise ValueError("Layer() needs at least 2 layers")
     if len(set(names)) != len(names):
         raise ValueError("Layer(): duplicate layer names")
-    parts = [as_network(g) for g in graphs]
+    if any(isinstance(g, Network) and g.combined for g in graphs):
+        raise ValueError("Layer(): the layers are single networks")
+    parts = _parts(graphs, bipartite, "Layer")
     if len({p.n for p in parts}) > 1:
         raise ValueError("Layer(): the layers must have the same vertices")
-    if len({p.directed for p in parts}) > 1 or any(p.bipartite or p.combined for p in parts):
-        raise ValueError("Layer(): the layers must be all directed or all undirected, and one-mode")
     first = parts[0]
+    if first.bipartite and any(not np.array_equal(p.mode, first.mode) for p in parts):
+        raise ValueError("Layer(): bipartite layers must have the same modes")
     # Every layer has the first one's vertex attributes, as ergm.multi's.
-    parts = [Network(p.n, p.directed, p.edges, first.attributes, p.source, p.graph_attributes, p.missing)
+    parts = [Network(p.n, p.directed, p.edges, first.attributes, p.source, p.graph_attributes, p.missing, p.mode)
              for p in parts]
     attributes = [{".LayerID": k + 1, ".LayerName": name, ".NetworkID": k + 1, ".NetworkName": name}
                   for k, name in enumerate(names)]
@@ -386,12 +390,37 @@ class L(Term):  # noqa: N801 (R's name)
         """A layer's network (the first's: its vertices and attributes)."""
         return network.blocks[0].network
 
+    curved = property(lambda self: any(t.curved for t in self.formula))
+
     def check(self, network):
         _layer_names(network)
         for term in self.formula:
             term.check(self._layer(network))
-            if term.curved:
-                raise NotImplementedError("L() of curved terms is not supported yet: fix their decays")
+
+    def _blocks(self, network):
+        layer, p, q = self._layer(network), 0, 0
+        for term in self.formula:
+            dp, dq = len(term.names(layer)), len(term.param_names(layer))
+            yield term, slice(p, p + dp), slice(q, q + dq)
+            p, q = p + dp, q + dq
+
+    def param_names(self, network):
+        label = self._label(network)
+        return [f"L({label})~{n}" for t in self.formula for n in t.param_names(self._layer(network))]
+
+    def eta(self, params, network):
+        params = np.asarray(params, dtype=float)
+        return np.concatenate([t.eta(params[q], self._layer(network)) for t, _, q in self._blocks(network)])
+
+    def jacobian(self, params, network):
+        params, blocks = np.asarray(params, dtype=float), list(self._blocks(network))
+        out = np.zeros((blocks[-1][1].stop, blocks[-1][2].stop))
+        for t, ps, qs in blocks:
+            out[ps, qs] = t.jacobian(params[qs], self._layer(network))
+        return out
+
+    def starts(self, network):
+        return [(qs.start + i, v) for t, _, qs in self._blocks(network) for i, v in t.starts(self._layer(network))]
 
     def _label(self, network) -> str:
         if len(self.layers) == 1 and self.layers[0][1] is None:
@@ -573,10 +602,8 @@ class SharedPartnersL(_LayerTerm):
     TYPE_CODES = {"UTP": 0, "OTP": 1, "ITP": 2, "OSP": 4, "ISP": 5}
     KINDS = {"esp": 0, "dsp": 1, "nsp": 2}
 
-    def __init__(self, kind: str, d=None, decay=None, fixed: bool = False, cutoff: int = 30, type: str = "OTP",
+    def __init__(self, kind: str, d=None, decay=None, cutoff: int = 30, type: str = "OTP",
                  L_base=None, Ls_path=None, L_in_order: bool = False):  # noqa: N803
-        if decay is not None and not fixed:
-            raise NotImplementedError(f"gw{kind}L with an estimated decay is not supported yet: fixed=TRUE")
         if type == "RTP":
             raise ValueError("layer-aware shared partner terms do not support reciprocated two-paths, as in ergm.multi")
         self.kind, self.d, self.decay, self.cutoff, self.type = kind, d, decay, int(cutoff), type
@@ -609,39 +636,124 @@ class SharedPartnersL(_LayerTerm):
     def _ds(self) -> list[int]:
         return [int(x) for x in np.atleast_1d(self.d)]
 
-    def names(self, network):
+    def _wrap(self, network) -> str:
         pth = self.path[0].label() if self.path[0].label() == self.path[1].label() \
             else f"{self.path[0].label()},{self.path[1].label()}"
         bse = self.base.label() if self.base is not None and self.kind != "dsp" else ""
-        wrap = f"L(pth=({pth}),bse={bse},inord={'TRUE' if self.in_order else 'FALSE'})~"
         t = "" if not network.directed else f".{self.type}"
+        return f"L(pth=({pth}),bse={bse},inord={'TRUE' if self.in_order else 'FALSE'})~", t
+
+    def names(self, network):
+        wrap, t = self._wrap(network)
         if self.decay is not None:
             return [f"{wrap}gw{self.kind}{t}.fixed.{self.decay:g}"]
         return [f"{wrap}{self.kind}{t}{d}" for d in self._ds()]
 
     def full_spec(self, network):
+        return self._spec(network, [] if self.decay is not None else self._ds(),
+                          [] if self.decay is None else [float(self.decay)])
+
+    def _modes(self, network) -> list[int]:
+        """Bipartite terms: the mode of the focal pairs, then each vertex's (none: 0)."""
+        return [0]
+
+    def _spec(self, network, ds: list[int], reals: list[float]):
         t = self._type(network)
         any_order = t == "UTP" or not self.in_order
         logics = [*self.path, *([self.base] if self.kind != "dsp" else [])]
-        reals = [] if self.decay is None else [float(self.decay)]
-        ds = [] if self.decay is not None else self._ds()
         return ("layerSP", reals, [self.KINDS[self.kind], self.TYPE_CODES[t], int(any_order), self.cutoff, len(ds),
-                                   *ds, len(logics), *self._programs(network, logics)], [])
+                                   *ds, *self._modes(network), len(logics), *self._programs(network, logics)], [])
+
+    # With an estimated decay (Curved): the histogram of the shared partners.
+    def largest_count(self, network) -> int:
+        return network.blocks[0].network.n - 2
+
+    def histogram_name(self, network) -> str:
+        wrap, t = self._wrap(network)
+        return f"{wrap}{self.kind}{t}"
+
+    def curved_name(self, network) -> str:
+        # ergm.multi leaves the parameters' names unwrapped (gwesp, gwesp.decay), so that two terms collide.
+        wrap, t = self._wrap(network)
+        return f"{wrap}gw{self.kind}{t}"
+
+    def histogram_spec(self, network, ks, overflow):
+        return self._spec(network, [*ks, *([-(ks[-1] + 1)] if overflow else [])], [])[:3]
 
     def __repr__(self) -> str:
         return f"{self.kind}L()"
 
 
+class BipartiteSharedPartnersL(SharedPartnersL):
+    """ergm.multi's b1dspL and b2dspL (and gw versions): the pairs of vertices
+    of a mode with each number of shared partners (of the other mode), whose
+    two ties are in the logical layers ``Ls.path``, in either order."""
+
+    def __init__(self, mode: int, d=None, decay=None, cutoff: int = 30, Ls_path=None):  # noqa: N803
+        if Ls_path is None:
+            raise ValueError(f"b{mode}dspL() needs Ls.path (without it, use b{mode}dsp())")
+        super().__init__("dsp", d=d, decay=decay, cutoff=cutoff, Ls_path=Ls_path)
+        self.mode_number = mode
+
+    def check(self, network):
+        super().check(network)
+        if not network.bipartite:
+            raise ValueError(f"b{self.mode_number}dspL is for bipartite networks")
+
+    def _type(self, network) -> str:
+        return "UTP"
+
+    def _wrap(self, network) -> str:
+        pth = self.path[0].label() if self.path[0].label() == self.path[1].label() \
+            else f"{self.path[0].label()},{self.path[1].label()}"
+        return f"L(pth=({pth}),bse=,inord=)~", ""  # ergm.multi's label, which has no L.in_order
+
+    def names(self, network):
+        wrap, _ = self._wrap(network)
+        if self.decay is not None:
+            return [f"{wrap}gwb{self.mode_number}dsp.fixed.{self.decay:g}"]
+        return [f"{wrap}b{self.mode_number}dsp{d}" for d in self._ds()]
+
+    def _modes(self, network) -> list[int]:
+        return [self.mode_number, *network.blocks[0].network.mode.astype(int).tolist()]
+
+    def largest_count(self, network) -> int:
+        return int(np.sum(network.blocks[0].network.mode != self.mode_number))
+
+    def histogram_name(self, network) -> str:
+        return f"{self._wrap(network)[0]}b{self.mode_number}dsp"
+
+    def curved_name(self, network) -> str:
+        return f"{self._wrap(network)[0]}gwb{self.mode_number}dsp"
+
+    def __repr__(self) -> str:
+        return f"b{self.mode_number}dspL()"
+
+
+def _bsp(mode: int, gw: bool):
+    def make(*args, Ls_path=None, **kwargs):  # noqa: N803
+        if gw:
+            decay = args[0] if args else kwargs.pop("decay", 0.0)
+            fixed = args[1] if len(args) > 1 else kwargs.pop("fixed", False)
+            cutoff = args[2] if len(args) > 2 else kwargs.pop("cutoff", 30)
+            term = BipartiteSharedPartnersL(mode, decay=decay, cutoff=cutoff, Ls_path=Ls_path)
+            return term if fixed else Curved(term, cutoff)
+        return BipartiteSharedPartnersL(mode, d=args[0] if args else kwargs.pop("d"), Ls_path=Ls_path)
+
+    return make
+
+
 def _sp(kind: str, gw: bool):
     def make(*args, type="OTP", L_base=None, Ls_path=None, L_in_order=False, **kwargs):  # noqa: N803
         if gw:
-            decay = args[0] if args else kwargs.pop("decay")
+            decay = args[0] if args else kwargs.pop("decay", 0.5)
             fixed = args[1] if len(args) > 1 else kwargs.pop("fixed", False)
             cutoff = args[2] if len(args) > 2 else kwargs.pop("cutoff", 30)
             if len(args) > 3:
                 type = args[3]
-            return SharedPartnersL(kind, decay=decay, fixed=fixed, cutoff=cutoff, type=type, L_base=L_base,
-                                   Ls_path=Ls_path, L_in_order=L_in_order)
+            term = SharedPartnersL(kind, decay=decay, cutoff=cutoff, type=type, L_base=L_base, Ls_path=Ls_path,
+                                   L_in_order=L_in_order)
+            return term if fixed else Curved(term, cutoff)
         d = args[0] if args else kwargs.pop("d")
         if len(args) > 1:
             type = args[1]
@@ -657,6 +769,7 @@ LAYER_TERMS = {
     "dnspL": _sp("nsp", False), "nspL": _sp("nsp", False),
     "dgwespL": _sp("esp", True), "gwespL": _sp("esp", True), "dgwdspL": _sp("dsp", True),
     "gwdspL": _sp("dsp", True), "dgwnspL": _sp("nsp", True), "gwnspL": _sp("nsp", True),
+    "b1dspL": _bsp(1, False), "b2dspL": _bsp(2, False), "gwb1dspL": _bsp(1, True), "gwb2dspL": _bsp(2, True),
 }
 
 

@@ -1,11 +1,13 @@
 # Coming from R
 
 :::{important}
-**Last updated on 1 October 2026**, against ergm 4.12.0, the version on CRAN
+**Last updated on 5 October 2026**, against ergm 4.12.0, the version on CRAN
 then, and its development version on GitHub (4.13.0-8214, commit
-[a85e6a9](https://github.com/statnet/ergm/tree/a85e6a9839e711286f59d95b16c14733929ba0ec)),
-ergm.multi 0.3.0 and tergm 4.2.2. The differences below describe these
-packages at that point; later versions may have changed them.
+[a85e6a9](https://github.com/statnet/ergm/tree/a85e6a9839e711286f59d95b16c14733929ba0ec),
+as of 1 October), ergm.multi 0.3.0, tergm 4.2.2, ergm.count 4.1.3, ergm.ego
+1.1.4, Bergm 5.0.7, btergm 1.11.1, ergm.tapered 1.2-0 (from GitHub), bigergm
+1.2.6 and latentnet 2.12.0. The differences below describe these packages at
+that point; later versions may have changed them.
 :::
 
 `ergmx` follows R's ergm closely: the same formulas, term names, statistics,
@@ -61,6 +63,9 @@ tables compared line by line.
 | `ergm.ego(egor ~ edges + nodematch("sex"), popsize = 1000)` | {func}`ergmx.ergm_ego("edges + nodematch('sex')", data, popsize=1000) <ergmx.ergm_ego>` |
 | `saveRDS(fit, "fit.rds")`, `readRDS("fit.rds")` | {meth}`fit.save("fit.pkl") <ergmx.ErgmFit.save>`, {func}`ergmx.load_fit("fit.pkl") <ergmx.load_fit>` |
 | `ergm(Layer(m = g1, b = g2) ~ L(~edges, ~m) + L(~edges, ~m & b) + CMBL)` (ergm.multi) | `ergmx.ergm(ergmx.Layer(m=g1, b=g2), "L(~edges, ~m) + L(~edges, ~m & b) + CMBL")` |
+| `ergm.tapered(net ~ edges + triangle, r = 2)` (ergm.tapered) | {func}`ergmx.ergm_tapered(g, "edges + triangle", r=2) <ergmx.ergm_tapered>` |
+| `ergmm(net ~ euclidean(d = 2, G = 3) + rreceiver)` (latentnet) | {func}`ergmx.ergmm(g, "euclidean(d=2, G=3) + rreceiver") <ergmx.ergmm>` |
+| `bigergm(net ~ edges + nodematch("x") + triangle, n_blocks = 4)` (bigergm) | {func}`ergmx.bigergm(g, "edges + nodematch('x') + triangle", 4) <ergmx.bigergm>` |
 | `data(Goeyvaerts)` (ergm.multi) | `ergmx.datasets.load("Goeyvaerts")`, a list of graphs |
 | `predict(fit)`, `predict(fit, conditional = FALSE)` | {meth}`fit.predict() <ergmx.ErgmFit.predict>`, `fit.predict(conditional=False)` |
 | `predict(net ~ edges + mutual, eta = c(-2, 1.8))` | {func}`ergmx.predict(g, "edges + mutual", [-2, 1.8]) <ergmx.predict>` |
@@ -294,8 +299,41 @@ accepted: R expressions such as `log(n)` must be computed first.
   and `bergmC()`'s Robbins-Monro steps toward the posterior mode are
   Newton's (`rm.a` and `rm.alpha` are gone).
 
+**ergm.multi's bipartite layers misplace their ties; ergmx's don't.**
+: ergm.multi 0.3.0's `Layer()` of bipartite networks scrambles their ties
+  (its combined network has pairs such as (19, 19)), so its statistics of
+  bipartite layers are wrong. ergmx's `b1dspL` and `b2dspL` are checked
+  against their definitions. The gw layer terms with an estimated decay name
+  their parameters after the term, where ergm.multi leaves them unwrapped
+  (`gwesp`, `gwesp.decay`), so that two such terms collide.
+
+**Tapered ERGMs' standard errors come from a sample at the estimate.**
+: With `taper.terms = "dependent"`, ergm.tapered's standard errors come
+  from its last Monte Carlo sample, whose mean statistics can be far from
+  the network's, and vary by a factor of 2 between seeds; ergmx's are stable.
+  For curved terms, ergmx maps the whole tapered covariance to the
+  parameters (ergm.tapered corrects the linear ones only). ergm.tapered's
+  `Taper()` reads a single coefficient as a multiplier, which rescales the
+  documented $\tau$ of a single tapered statistic; ergmx uses the documented
+  one. Estimated tapering (`fixed=FALSE`) is not available.
+
+**bigergm's simulations follow its models.**
+: bigergm 1.2.6's `simulate()` draws more ties between blocks than its
+  between-block model expects (262 for 254, on toyNet) and fewer within
+  them than ergm's simulation of its within-block model; ergmx's agree with
+  both. With `add_intercepts`, ergmx leaves out the `edges` terms that
+  bigergm keeps with NA estimates.
+
+**latentnet's predictions, simulations and gof follow its models.**
+: latentnet 2.12.0's `predict()` transposes the covariates of directed
+  networks and leaves the upper triangle of undirected ones at 0, its
+  `simulate()` draws each undirected pair twice (a tie's probability becomes
+  1 − (1 − p)²) and loses bipartite networks, and its `gof()` takes the
+  observed statistics from the network object rather than the response.
+  ergmx's follow the model. To centre undirected sociality effects, ergmx's
+  intercept takes twice their mean (latentnet's, once). Its chains are four
+  by default, in parallel, each tuned as latentnet's.
+
 **Not yet available.**
-: Valued models of several networks; among ergm's binary terms, the
-  projection operators; `L()` of curved terms, the gw layer terms with an
-  estimated decay, and ergm.multi's bipartite layer terms (`b1dspL`,
-  `b2dspL`...); and interactions in `N()`'s linear models.
+: ergm.tapered's estimated tapering (`fixed=FALSE`), and valued models of
+  series of networks.

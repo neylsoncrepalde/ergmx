@@ -388,6 +388,48 @@ def _contrast(kind, labels: list[str], name: str) -> tuple[np.ndarray, list[str]
     raise LmError(f"unknown contrasts {kind!r} for {name}; use one of {', '.join(_CONTRASTS)} or a matrix")
 
 
+def _expand(node) -> list[tuple]:
+    """A term's products of variables: a*b is a + b + a:b, (a + b):c is
+    a:c + b:c."""
+    if node[0] == "paren":
+        return _expand(node[1])
+    if node[0] == "binary" and node[1] == "+":
+        return _expand(node[2]) + _expand(node[3])
+    if node[0] == "binary" and node[1] in ("*", ":"):
+        left, right = _expand(node[2]), _expand(node[3])
+        crossed = [a + b for a in left for b in right]
+        return left + right + crossed if node[1] == "*" else crossed
+    return [(node,)]
+
+
+def _atoms(node) -> list:
+    """A term's variables, left to right."""
+    if node[0] == "paren":
+        return _atoms(node[1])
+    if node[0] == "binary" and node[1] in ("+", "*", ":"):
+        return _atoms(node[2]) + _atoms(node[3])
+    return [node]
+
+
+def _raw(node, data, n: int) -> np.ndarray:
+    value = _evaluate(node, data)
+    return np.broadcast_to(np.asarray(value), (n,)) if np.ndim(value) == 0 else np.asarray(value)
+
+
+def _variable(node, data, n: int):
+    """A variable's numeric column, or a factor's levels (a list)."""
+    value = _raw(node, data, n)
+    factor = node[0] == "call" and node[1] == "factor"
+    if factor or value.dtype == bool or value.dtype == object:
+        if value.dtype == object and any(v is None for v in value):
+            raise LmError(f"{deparse(node)} is missing for some networks")
+        return _levels(value)
+    value = value.astype(float)
+    if not np.all(np.isfinite(value)):
+        raise LmError(f"{deparse(node)} is not finite for some networks")
+    return value
+
+
 def model_frame(lm, attributes: list[dict], contrasts: dict | None = None) -> tuple[np.ndarray, list[str], np.ndarray | None]:
     """The design matrix and column names of a linear model, and the sum of
     its offset() terms (None without any). Factors (and logical and character
@@ -410,40 +452,55 @@ def model_frame(lm, attributes: list[dict], contrasts: dict | None = None) -> tu
             offset = value if offset is None else offset + value
         elif node[0] == "num" and node[1] in (0, 1):
             intercept = (node[1] == 1) == (sign > 0)
-        elif node[0] == "binary" and node[1] in ("*", ":"):
-            raise LmError(f"interactions are not supported in linear models: {deparse(node)}")
         elif sign < 0:
             raise LmError(f"only the intercept can be removed from a linear model: -{deparse(node)}")
         else:
             terms.append(node)
     n = len(attributes)
-    columns, labels = ([np.ones(n)], ["1"]) if intercept else ([], [])
-    full_levels = not intercept
+    # The variables, in the order they appear, and the terms as sets of them,
+    # ordered by degree (main effects, then two-way interactions...), as R's.
+    variables: dict[str, object] = {}
     for node in terms:
-        value = _evaluate(node, data)
-        value = np.broadcast_to(np.asarray(value), (n,)) if np.ndim(value) == 0 else np.asarray(value)
-        factor = node[0] == "call" and node[1] == "factor"
-        if factor or value.dtype == bool or value.dtype == object:
-            if value.dtype == object and any(v is None for v in value):
-                raise LmError(f"{deparse(node)} is missing for some networks")
-            levels = _levels(value)
-            indicators = np.column_stack([(value == level).astype(float) for level in levels])
-            name = deparse(node)
-            if full_levels:
-                matrix, suffixes = np.eye(len(levels)), [_level_label(v) for v in levels]
+        for v in _atoms(node):
+            variables.setdefault(deparse(v), v)
+    products: list[tuple[str, ...]] = []
+    for node in terms:
+        for product in _expand(node):
+            keys = tuple(dict.fromkeys(deparse(v) for v in product))
+            if not any(set(keys) == set(p) for p in products):
+                products.append(keys)
+    order = list(variables)
+    products = sorted((tuple(sorted(p, key=order.index)) for p in products), key=len)
+    values = {key: _variable(node, data, n) for key, node in variables.items()}
+    full_first = not intercept  # without an intercept, R codes the first factor by indicators
+    columns, labels = ([np.ones(n)], ["1"]) if intercept else ([], [])
+    for k, product in enumerate(products):
+        parts = []  # each variable's columns and their labels
+        for key in product:
+            value = values[key]
+            if not isinstance(value, list):
+                parts.append(([value], [key]))
+                continue
+            levels = value
+            raw = _raw(variables[key], data, n)
+            indicators = np.column_stack([(raw == level).astype(float) for level in levels])
+            margin = set(product) - {key}
+            contrasted = not margin or any(margin <= set(p) for p in products[:k])
+            if full_first:
+                contrasted, full_first = False, False
+            if contrasted:
+                kind = (contrasts or {}).get(key, "contr.treatment")
+                matrix, suffixes = _contrast(kind, [_level_label(v) for v in levels], key)
             else:
-                kind = (contrasts or {}).get(name, "contr.treatment")
-                matrix, suffixes = _contrast(kind, [_level_label(v) for v in levels], name)
-            for column, suffix in zip((indicators @ matrix).T, suffixes):
-                columns.append(column)
-                labels.append(name + suffix)
-            full_levels = False
-        else:
-            value = value.astype(float)
-            if not np.all(np.isfinite(value)):
-                raise LmError(f"{deparse(node)} is not finite for some networks")
-            columns.append(value)
-            labels.append(deparse(node))
+                matrix, suffixes = np.eye(len(levels)), [_level_label(v) for v in levels]
+            parts.append((list((indicators @ matrix).T), [key + suffix for suffix in suffixes]))
+        # The first variable varies fastest, as in R.
+        term_columns, term_labels = [np.ones(n)], [""]
+        for part_columns, part_labels in parts:
+            term_columns = [c * pc for pc in part_columns for c in term_columns]
+            term_labels = [f"{lab}:{pl}" if lab else pl for pl in part_labels for lab in term_labels]
+        columns.extend(term_columns)
+        labels.extend(term_labels)
     if not columns:
         raise LmError("the linear model has no columns")
     return np.column_stack(columns), labels, offset

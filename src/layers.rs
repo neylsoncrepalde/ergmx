@@ -473,9 +473,12 @@ struct SharedPartners {
     sp_type: u8,
     any_order: bool,
     cutoff: u32,
-    ds: Vec<u32>,
+    /// The counts of shared partners, each exactly d (d >= 0) or at least -d (an overflow, d < 0).
+    ds: Vec<i64>,
     /// gw: exp(decay) (1 - (1 - exp(-decay))^sp), for sp up to the cutoff.
     decay: Option<f64>,
+    /// Bipartite (b1dsp, b2dsp): the focal pairs are those of vertices of this mode.
+    mode: Option<(Vec<i64>, i64)>,
 }
 
 impl SharedPartners {
@@ -514,7 +517,7 @@ impl SharedPartners {
             }
             None => {
                 for (o, &d) in out.iter_mut().zip(&self.ds) {
-                    if sp == d {
+                    if (d >= 0 && sp as i64 == d) || (d < 0 && sp as i64 >= -d) {
                         *o += sign;
                     }
                 }
@@ -523,6 +526,11 @@ impl SharedPartners {
     }
 
     fn focal(&self, o: &Overlay, i: u32, j: u32) -> bool {
+        if let Some((modes, target)) = &self.mode
+            && (modes[i as usize] != *target || modes[j as usize] != *target)
+        {
+            return false;
+        }
         match self.kind {
             0 => o.has(2, i, j),
             1 => true,
@@ -581,7 +589,11 @@ impl LayerStat for SharedPartners {
         if self.kind == 0 || self.decay.is_some() {
             return;
         }
-        let dyads = n as f64 * (n as f64 - 1.0) / if !directed || self.unordered() { 2.0 } else { 1.0 };
+        let m = match &self.mode {
+            Some((modes, target)) => modes.iter().filter(|&&c| c == *target).count() as f64,
+            None => n as f64,
+        };
+        let dyads = m * (m - 1.0) / if !directed || self.unordered() { 2.0 } else { 1.0 };
         for (o, &d) in out.iter_mut().zip(&self.ds) {
             if d == 0 {
                 *o += dyads;
@@ -623,11 +635,19 @@ pub fn build_stat(name: &str, reals: &[f64], ints: &[i64], layers: usize, size: 
         }
         "layerSP" => {
             let (kind, sp_type, any_order, cutoff, nd) = (int(0)? as u8, int(1)? as u8, int(2)? != 0, int(3)? as u32, int(4)? as usize);
-            let ds = ints.get(5..5 + nd).ok_or("layerSP: missing the degrees")?.iter().map(|&d| d as u32).collect();
-            let count = *ints.get(5 + nd).ok_or("layerSP: missing the views")? as usize;
-            let (views, _) = programs(&ints[6 + nd..], count, layers)?;
+            let ds = ints.get(5..5 + nd).ok_or("layerSP: missing the degrees")?.to_vec();
+            // Bipartite: the mode of the focal pairs, then each vertex's (none: 0).
+            let target = *ints.get(5 + nd).ok_or("layerSP: missing the mode")?;
+            let at = 6 + nd + if target > 0 { size as usize } else { 0 };
+            let mode = if target > 0 {
+                Some((ints.get(6 + nd..at).ok_or("layerSP: one mode per vertex")?.to_vec(), target))
+            } else {
+                None
+            };
+            let count = *ints.get(at).ok_or("layerSP: missing the views")? as usize;
+            let (views, _) = programs(&ints[at + 1..], count, layers)?;
             let decay = reals.first().copied();
-            (Box::new(SharedPartners { kind, sp_type, any_order, cutoff, ds, decay }), views)
+            (Box::new(SharedPartners { kind, sp_type, any_order, cutoff, ds, decay, mode }), views)
         }
         _ => return Err(format!("unknown layer term {name:?}")),
     })

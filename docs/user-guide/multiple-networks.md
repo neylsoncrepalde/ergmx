@@ -90,8 +90,9 @@ numeric one. Factors and character attributes get one column per level but
 the first; `~0 + factor(.NetworkID)` gives each network its own coefficient.
 
 The `lm` formula accepts attributes, arithmetic, comparisons, `&`, `|`, `!`,
-`I()`, `log()`, `exp()`, `sqrt()`, `abs()`, `factor()` and `offset()`;
-interactions (`a:b`) are not supported yet. `contrasts` sets the contrasts of
+`I()`, `log()`, `exp()`, `sqrt()`, `abs()`, `factor()` and `offset()`, and
+interactions (`a:b`, `a*b`, `(a + b):c`), with the columns and names of R's
+`model.matrix()`. `contrasts` sets the contrasts of
 factors, by term, as R's `contrasts.arg`: `contrasts=list(weekday='contr.sum')`
 gives the effect of weekday as a deviation from the mean of the two kinds of
 day, named `N(weekday1)~edges`; `contr.SAS`, `contr.helmert`, `contr.poly`

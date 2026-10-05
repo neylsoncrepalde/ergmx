@@ -125,8 +125,12 @@ draws = fit.simulate(3, seed=2)
 
 ## Differences from ergm.multi
 
+Layers can be bipartite: `Layer(a=g1, b=g2, bipartite=True)` takes networks
+with the same modes, and `b1dspL()` and `b2dspL()` count the shared partners
+of the pairs of a mode across layers.
+
 The statistics and names are ergm.multi's, and fits agree with its fits
-within their Monte Carlo error (see [](../validation.md)). There are three
+within their Monte Carlo error (see [](../validation.md)). There are four
 differences:
 
 - ergm.multi 0.3.0's OSP and ISP shared partners with `L.in_order=TRUE`
@@ -134,6 +138,10 @@ differences:
   forgets which tie is at which end of the pair. ergmx follows ergm.multi's
   documentation, where the first tie is the one at the pair's first vertex
   (the base tie's tail), and warns with `ErgmDifferenceWarning`.
-- `L()` of curved terms, and the gw layer terms with an estimated decay, are
-  not supported yet: fix the decay.
+- ergm.multi 0.3.0's `Layer()` of bipartite networks misplaces their ties,
+  so its statistics of bipartite layers are wrong; ergmx's are checked
+  against their definitions.
+- The gw layer terms with an estimated decay name their parameters after
+  the term (`L(pth=(b),bse=m,inord=FALSE)~gwesp`), where ergm.multi leaves
+  them unwrapped (`gwesp`), so that two such terms collide.
 - As in ergm.multi, `mutualL()` needs `Ls`; without it, use `mutual`.

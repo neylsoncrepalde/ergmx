@@ -60,6 +60,22 @@ The terms of bipartite networks are in the
 covariates and homophily (`b1nodematch`) for each mode, and their shared
 partners. `edgecov` takes a first-mode by second-mode matrix, as in ergm.
 
+## Projections
+
+ergm's `Proj1()` and `Proj2()` (or `Project(formula, mode)`) evaluate
+[valued terms](../terms.md#valued-terms) on the projection of the network onto
+a mode: the network of the women whose value for a pair is the number of
+events they both attended. `Proj1(~sum + nonzero)` is the women's
+co-attendances, and the pairs that attended any event together:
+
+```{code-cell} ipython3
+ergmx.summary_stats(davis, "Proj1(~sum + nonzero) + Proj2(~sum + nonzero + atleast(2))", bipartite=True)
+```
+
+They are dyad-dependent terms of the bipartite model: with them,
+`edges + Proj1(~nonzero)` asks whether attendances spread over more pairs of
+women than chance would.
+
 ## Goodness of fit
 
 For bipartite networks, `gof()` compares, as ergm does, the degrees of each

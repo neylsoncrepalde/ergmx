@@ -588,9 +588,9 @@ def _simulate(model: BoundModel, starts, theta, burnin, interval, samples, rng, 
         raise _density_guard_error(model, max_edges) from None
     variances = project(model, theta, sample).reshape(-1, int(model.free.sum())).var(axis=0)
     if check_variance and np.any(variances <= 0):
-        constant = [n for n, v in zip(np.array(model.names)[model.free], variances) if v <= 0]
+        constant = [str(n) for n, v in zip(np.array(model.names)[model.free], variances) if v <= 0]
         raise DegeneracyError(
-            f"the simulated statistics {constant} did not vary: the model may be degenerate "
+            f"the simulated statistics {', '.join(constant)} did not vary: the model may be degenerate "
             "at these coefficients, the MCMC too short, or the statistics constant under "
             "the constraints"
         )

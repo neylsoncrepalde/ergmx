@@ -20,10 +20,13 @@ bipartite
 valued
 multiple-networks
 multilayer
+large-networks
+latent-space
 egocentric
 temporal
 diagnostics
 goodness-of-fit
+tapered
 model-comparison
 bayesian
 interpretation

@@ -63,8 +63,8 @@ def test_bad_linear_models():
         design("~size", attributes)
     with pytest.raises(LmError, match="missing for some"):
         design("~g", attributes)
-    with pytest.raises(LmError, match="interactions"):
-        design("~n:g", attributes)
+    with pytest.raises(LmError, match="missing for some"):
+        design("~n:g", attributes)  # interactions are supported; g is still missing
     with pytest.raises(LmError, match="unsupported function"):
         design("~poly(n, 2)", attributes)
 

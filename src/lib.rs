@@ -2,6 +2,8 @@
 
 mod durational;
 mod gof;
+mod blocks;
+mod latent;
 mod layers;
 mod multilevel;
 mod network;
@@ -473,6 +475,257 @@ impl PyModel {
 }
 
 /// A goodness-of-fit distribution ("espartners", "dspartners" or
+/// The membership step of bigergm's MM algorithm: the new posterior block
+/// probabilities from the surrogate's quadratic and linear coefficients (n x k).
+#[pyfunction]
+fn mm_solve_qp<'py>(
+    py: Python<'py>,
+    m: PyReadonlyArray2<'py, f64>,
+    s: PyReadonlyArray2<'py, f64>,
+    tau: PyReadonlyArray2<'py, f64>,
+    precision: f64,
+) -> PyResult<Bound<'py, PyArray2<f64>>> {
+    let (m, s, tau) = (m.as_array(), s.as_array(), tau.as_array());
+    let shape = m.shape().to_vec();
+    if s.shape() != shape.as_slice() || tau.shape() != shape.as_slice() {
+        return Err(PyValueError::new_err("mm_solve_qp: m, s and tau must have the same shape"));
+    }
+    let (m, s) = (m.iter().copied().collect::<Vec<f64>>(), s.iter().copied().collect::<Vec<f64>>());
+    let mut tau: Vec<f64> = tau.iter().copied().collect();
+    py.detach(|| blocks::solve_qp(&m, &s, &mut tau, shape[1], precision));
+    Ok(Array2::from_shape_vec((shape[0], shape[1]), tau).unwrap().into_pyarray(py))
+}
+
+/// A latent space model (R's latentnet): its MCMC from given states and
+/// step sizes, chains in parallel, and the log-densities of a configuration.
+#[pyclass(name = "LatentModel", module = "ergmx._core", frozen)]
+struct PyLatentModel {
+    model: latent::Model,
+}
+
+fn par_from(dict: &Bound<'_, pyo3::types::PyDict>, model: &latent::Model) -> PyResult<latent::Par> {
+    let vec = |key: &str| -> PyResult<Vec<f64>> {
+        match dict.get_item(key)? {
+            Some(v) => v.extract::<Vec<f64>>().or_else(|_| {
+                let a: PyReadonlyArray2<f64> = v.extract()?;
+                Ok(a.as_array().iter().copied().collect())
+            }),
+            None => Ok(Vec::new()),
+        }
+    };
+    let scalar = |key: &str, default: f64| -> PyResult<f64> {
+        Ok(match dict.get_item(key)? { Some(v) => v.extract()?, None => default })
+    };
+    let z_k: Vec<usize> = match dict.get_item("z_k")? { Some(v) => v.extract()?, None => vec![0; model.n] };
+    let par = latent::Par {
+        beta: vec("beta")?,
+        z: vec("z")?,
+        z_mean: vec("z_mean")?,
+        z_var: vec("z_var")?,
+        z_k,
+        z_pk: vec("z_pk")?,
+        sender: { let v = vec("sender")?; if v.is_empty() { vec![0.0; model.n] } else { v } },
+        receiver: { let v = vec("receiver")?; if v.is_empty() { vec![0.0; model.n] } else { v } },
+        sender_var: scalar("sender_var", 1.0)?,
+        receiver_var: scalar("receiver_var", 1.0)?,
+        dispersion: scalar("dispersion", 1.0)?,
+    };
+    let (n, d, g, p) = (model.n, model.d, model.g, model.p);
+    if par.beta.len() != p || par.z.len() != n * d || par.z_mean.len() != g * d || par.z_var.len() != if d > 0 { g.max(1) } else { par.z_var.len() }
+        || par.z_k.len() != n || par.z_pk.len() != g || par.z_k.iter().any(|&k| g > 0 && k >= g)
+    {
+        return Err(PyValueError::new_err("LatentModel: a configuration of the wrong shape"));
+    }
+    Ok(par)
+}
+
+fn lp_dict<'py>(py: Python<'py>, lp: &latent::Lp, constant: f64) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+    let out = pyo3::types::PyDict::new(py);
+    out.set_item("lpY", lp.y + constant)?;
+    out.set_item("lpZ", lp.z)?;
+    out.set_item("lpbeta", lp.beta)?;
+    out.set_item("lpRE", lp.re)?;
+    out.set_item("lpLV", lp.lv)?;
+    out.set_item("lpREV", lp.rev)?;
+    out.set_item("lpdispersion", lp.dispersion)?;
+    Ok(out)
+}
+
+fn par_dict<'py>(py: Python<'py>, par: &latent::Par, model: &latent::Model) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+    let out = pyo3::types::PyDict::new(py);
+    let (n, d, g) = (model.n, model.d, model.g);
+    out.set_item("beta", Array1::from_vec(par.beta.clone()).into_pyarray(py))?;
+    out.set_item("z", Array2::from_shape_vec((n, d), par.z.clone()).unwrap().into_pyarray(py))?;
+    out.set_item("z_mean", Array2::from_shape_vec((g, d), par.z_mean.clone()).unwrap().into_pyarray(py))?;
+    out.set_item("z_var", Array1::from_vec(par.z_var.clone()).into_pyarray(py))?;
+    out.set_item("z_k", Array1::from_vec(par.z_k.iter().map(|&k| k as i64).collect()).into_pyarray(py))?;
+    out.set_item("z_pk", Array1::from_vec(par.z_pk.clone()).into_pyarray(py))?;
+    out.set_item("sender", Array1::from_vec(par.sender.clone()).into_pyarray(py))?;
+    out.set_item("receiver", Array1::from_vec(par.receiver.clone()).into_pyarray(py))?;
+    out.set_item("sender_var", par.sender_var)?;
+    out.set_item("receiver_var", par.receiver_var)?;
+    out.set_item("dispersion", par.dispersion)?;
+    Ok(out)
+}
+
+#[pymethods]
+impl PyLatentModel {
+    /// The model, from: the latent effect ("none", "euclidean", "bilinear",
+    /// "euclidean2"), the family ("Bernoulli", "binomial", "Poisson",
+    /// "normal"), d, G, the values y, trials and observed dyads (n x n),
+    /// the covariates (p x n x n), the random effects, their shift
+    /// directions, and the priors (a dict of latentnet's names).
+    #[new]
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature = (latent, family, d, g, directed, y, trials, observed, x, sender, receiver, sociality, eff_sender, eff_receiver, prior))]
+    fn new(
+        latent: &str, family: &str, d: usize, g: usize, directed: bool,
+        y: PyReadonlyArray2<f64>, trials: PyReadonlyArray2<f64>, observed: PyReadonlyArray2<bool>,
+        x: numpy::PyReadonlyArray3<f64>, sender: bool, receiver: bool, sociality: bool,
+        eff_sender: PyReadonlyArray2<f64>, eff_receiver: PyReadonlyArray2<f64>, prior: &Bound<'_, pyo3::types::PyDict>,
+    ) -> PyResult<Self> {
+        let latent = match latent {
+            "none" => latent::Latent::None,
+            "euclidean" => latent::Latent::Euclidean,
+            "bilinear" => latent::Latent::Bilinear,
+            "euclidean2" => latent::Latent::Euclidean2,
+            other => return Err(PyValueError::new_err(format!("unknown latent effect {other:?}"))),
+        };
+        let family = match family {
+            "Bernoulli" => latent::Family::Bernoulli,
+            "binomial" => latent::Family::Binomial,
+            "Poisson" => latent::Family::Poisson,
+            "normal" => latent::Family::Normal,
+            other => return Err(PyValueError::new_err(format!("unknown family {other:?}"))),
+        };
+        let n = y.as_array().shape()[0];
+        let xs = x.as_array();
+        let p = xs.shape()[0];
+        if xs.shape()[1] != n || xs.shape()[2] != n || observed.as_array().shape() != [n, n] {
+            return Err(PyValueError::new_err("LatentModel: y, observed and x must be n x n"));
+        }
+        let get = |key: &str| -> PyResult<f64> {
+            prior.get_item(key)?.map(|v| v.extract()).transpose()?.ok_or_else(|| PyValueError::new_err(format!("prior: missing {key}")))
+        };
+        let vec = |key: &str| -> PyResult<Vec<f64>> {
+            Ok(prior.get_item(key)?.map(|v| v.extract()).transpose()?.unwrap_or_default())
+        };
+        let prior = latent::Prior {
+            beta_mean: vec("beta_mean")?,
+            beta_var: vec("beta_var")?,
+            z_var: if d > 0 { get("Z_var")? } else { 1.0 },
+            z_mean_var: if d > 0 && g > 0 { get("Z_mean_var")? } else { 1.0 },
+            z_var_df: if d > 0 { get("Z_var_df")? } else { 1.0 },
+            z_pk: if d > 0 && g > 0 { get("Z_pK")? } else { 1.0 },
+            sender_var: if sender || sociality { get("sender_var")? } else { 1.0 },
+            sender_var_df: if sender || sociality { get("sender_var_df")? } else { 1.0 },
+            receiver_var: if receiver && !sociality { get("receiver_var")? } else { 1.0 },
+            receiver_var_df: if receiver && !sociality { get("receiver_var_df")? } else { 1.0 },
+            dispersion: if family == latent::Family::Normal { get("dispersion")? } else { 1.0 },
+            dispersion_df: if family == latent::Family::Normal { get("dispersion_df")? } else { 1.0 },
+        };
+        if prior.beta_mean.len() != p || prior.beta_var.len() != p {
+            return Err(PyValueError::new_err("prior: one beta_mean and beta_var per covariate"));
+        }
+        let model = latent::Model {
+            n, d, g, p, latent, family, directed,
+            x: xs.iter().copied().collect(),
+            y: y.as_array().iter().copied().collect(),
+            trials: trials.as_array().iter().copied().collect(),
+            observed: observed.as_array().iter().copied().collect(),
+            sender, receiver, sociality,
+            eff_sender: eff_sender.as_array().iter().copied().collect(),
+            eff_receiver: eff_receiver.as_array().iter().copied().collect(),
+            prior,
+        };
+        Ok(Self { model })
+    }
+
+    /// The dimension of the joint proposal of coefficients, scale and shifts.
+    #[getter]
+    fn group_dim(&self) -> usize {
+        self.model.group_dim()
+    }
+
+    /// The log-densities of a configuration (latentnet's lpY, with its constants, lpZ, lpbeta...).
+    fn lp<'py>(&self, py: Python<'py>, par: &Bound<'py, pyo3::types::PyDict>) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+        let par = par_from(par, &self.model)?;
+        let mut buf = vec![0.0; self.model.n * self.model.n];
+        let lp = self.model.lp(&par, &mut buf);
+        lp_dict(py, &lp, self.model.lp_y_const())
+    }
+
+    /// Chains from `starts` (configurations), with their step sizes
+    /// (z_delta, re_delta, group matrix m x m), `samples` draws each,
+    /// `interval` iterations apart, in parallel threads.
+    fn run<'py>(
+        &self, py: Python<'py>, starts: Vec<Bound<'py, pyo3::types::PyDict>>, deltas: Vec<(f64, f64, PyReadonlyArray2<'py, f64>)>,
+        samples: usize, interval: usize, seeds: Vec<u64>,
+    ) -> PyResult<Vec<Bound<'py, pyo3::types::PyDict>>> {
+        let m = &self.model;
+        if starts.len() != deltas.len() || starts.len() != seeds.len() || interval == 0 {
+            return Err(PyValueError::new_err("LatentModel.run: one start, deltas and seed per chain"));
+        }
+        let dim = m.group_dim();
+        let pars = starts.iter().map(|s| par_from(s, m)).collect::<PyResult<Vec<_>>>()?;
+        let ds = deltas
+            .iter()
+            .map(|(z, re, group)| {
+                let g = group.as_array();
+                if g.shape() != [dim, dim] {
+                    return Err(PyValueError::new_err(format!("group deltas: {dim} x {dim}")));
+                }
+                Ok(latent::Deltas { z: *z, re: *re, group: g.iter().copied().collect() })
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        let draws: Vec<latent::Draws> = py.detach(|| {
+            pars.into_par_iter()
+                .zip(ds.par_iter())
+                .zip(seeds.par_iter())
+                .map(|((par, d), &seed)| latent::run(m, par, d, samples, interval, seed))
+                .collect()
+        });
+        let constant = m.lp_y_const();
+        let (n, d, g, p) = (m.n, m.d, m.g, m.p);
+        let s = samples;
+        draws
+            .iter()
+            .map(|dr| {
+                let out = pyo3::types::PyDict::new(py);
+                out.set_item("beta", Array2::from_shape_vec((s, p), dr.beta.clone()).unwrap().into_pyarray(py))?;
+                out.set_item("z", Array3::from_shape_vec((s, n, d), dr.z.clone()).unwrap().into_pyarray(py))?;
+                out.set_item("z_k", Array2::from_shape_vec((s, n), dr.z_k.iter().map(|&k| k as i64).collect()).unwrap().into_pyarray(py))?;
+                out.set_item("z_mean", Array3::from_shape_vec((s, g, d), dr.z_mean.clone()).unwrap().into_pyarray(py))?;
+                out.set_item("z_var", Array2::from_shape_vec((s, dr.z_var.len() / s.max(1)), dr.z_var.clone()).unwrap().into_pyarray(py))?;
+                out.set_item("z_pk", Array2::from_shape_vec((s, g), dr.z_pk.clone()).unwrap().into_pyarray(py))?;
+                out.set_item("sender", Array2::from_shape_vec((s, n), dr.sender.clone()).unwrap().into_pyarray(py))?;
+                out.set_item("receiver", Array2::from_shape_vec((s, n), dr.receiver.clone()).unwrap().into_pyarray(py))?;
+                out.set_item("sender_var", Array1::from_vec(dr.sender_var.clone()).into_pyarray(py))?;
+                out.set_item("receiver_var", Array1::from_vec(dr.receiver_var.clone()).into_pyarray(py))?;
+                out.set_item("dispersion", Array1::from_vec(dr.dispersion.clone()).into_pyarray(py))?;
+                for (key, f) in [
+                    ("lpY", (|l: &latent::Lp| l.y) as fn(&latent::Lp) -> f64),
+                    ("lpZ", |l| l.z), ("lpbeta", |l| l.beta), ("lpRE", |l| l.re), ("lpLV", |l| l.lv),
+                    ("lpREV", |l| l.rev), ("lpdispersion", |l| l.dispersion),
+                ] {
+                    let shift = if key == "lpY" { constant } else { 0.0 };
+                    out.set_item(key, Array1::from_vec(dr.lp.iter().map(|l| f(l) + shift).collect()).into_pyarray(py))?;
+                }
+                out.set_item("Z_rate", Array1::from_vec(dr.z_rate.clone()).into_pyarray(py))?;
+                out.set_item("group_rate", Array1::from_vec(dr.group_rate.clone()).into_pyarray(py))?;
+                out.set_item("last", par_dict(py, &dr.last, m)?)?;
+                let best_y = par_dict(py, &dr.best_y.0, m)?;
+                best_y.update(lp_dict(py, &dr.best_y.1, constant)?.as_mapping())?;
+                out.set_item("best_y", best_y)?;
+                let best_post = par_dict(py, &dr.best_post.0, m)?;
+                best_post.update(lp_dict(py, &dr.best_post.1, constant)?.as_mapping())?;
+                out.set_item("best_post", best_post)?;
+                Ok(out)
+            })
+            .collect()
+    }
+}
+
 /// "distance") of each network with these edge lists, in parallel threads:
 /// networks x values.
 #[pyfunction]
@@ -692,8 +945,10 @@ impl PyWtModel {
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(gof_distribution, m)?)?;
+    m.add_function(wrap_pyfunction!(mm_solve_qp, m)?)?;
     m.add_class::<PyModel>()?;
     m.add_class::<PyWtModel>()?;
+    m.add_class::<PyLatentModel>()?;
     m.add_class::<userterm::NetView>()?;
     m.add_class::<PySpace>()?;
     m.add("DensityGuardError", m.py().get_type::<DensityGuardError>())

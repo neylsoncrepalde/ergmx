@@ -9,8 +9,8 @@ They are the networks of ergm's documentation and tutorials, distributed
 with ergm under the GPL-3, ergm.multi's household networks ``Goeyvaerts`` (a
 list of networks), multinets' multilevel network ``linked_sim``, Davis's
 Southern Women, from networkx, ergm.count's valued karate club ``zach``,
-and ``labs_sim``, a multilevel network simulated by ergmx from a known
-model.
+bigergm's ``toyNet``, ergm's ``samplike`` and latentnet's ``tribes``, and
+``labs_sim``, a multilevel network simulated by ergmx from a known model.
 """
 
 from __future__ import annotations
@@ -89,6 +89,27 @@ _DESCRIPTIONS = {
         "A simulated friendship network of 1,461 students in a high school in the "
         "US South, from the Add Health study design. Undirected. Vertex attributes: "
         "Grade (7 to 12), Race and Sex."
+    ),
+    "samplike": (
+        "Sampson's (1968) monks, as R's ergm has them: the cumulative liking nominations of 18 novices "
+        "in a monastery over the three waves (directed: a tie if a monk named the other in any wave), "
+        "with the number of waves in the edge attribute nominations (1 to 3). Vertex attributes: group "
+        "(Sampson's Loyal, Outcasts and Turks), group3, group4 and cloisterville (whether the monk "
+        "attended the minor seminary Cloisterville). The network of latentnet's examples."
+    ),
+    "tribes": (
+        "Read's (1954) Gahuku-Gama subtribes of the New Guinea highlands, as R's latentnet has them: 16 "
+        "subtribes and their relations, as a complete undirected graph whose edge attributes are pos "
+        "(1 for an alliance, 29), neg (1 for an enmity, 29), sign (-1, 0 or 1) and sign.012 (0, 1 or 2: "
+        "enmity, neither, alliance). Fit it with response='pos' (a binary network of alliances) or "
+        "response='sign.012' and the binomial family with 2 trials."
+    ),
+    "toyNet": (
+        "bigergm's toyNet: a network of 200 vertices simulated from an ERGM with local dependence, in 4 "
+        "blocks of 50 (vertex attribute block), whose ties between blocks are independent and whose "
+        "ties within blocks depend on each other through triangles. Undirected. Vertex attributes: "
+        "block, and the covariates x and y (whole numbers), for nodematch terms. From R's bigergm "
+        "(Fritz, Schweinberger, Komatsu, Martínez Dahbura, Nishida and Mele)."
     ),
     "Goeyvaerts": (
         "A list of 318 networks: the contacts within households with at least one "

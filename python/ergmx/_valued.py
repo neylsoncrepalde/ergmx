@@ -356,7 +356,7 @@ def valued_network(network, response: str, bipartite=None) -> tuple[Network, np.
     nx = sys.modules.get("networkx")
     net = as_network(network, bipartite)
     if net.combined:
-        raise ValueError("valued models of several networks are not supported")
+        return _combined_values(net, response)
     if ig is not None and isinstance(network, ig.Graph):
         if response not in network.es.attributes() and network.ecount():
             raise ValueError(f"the network has no edge attribute {response!r}")
@@ -391,6 +391,25 @@ def valued_network(network, response: str, bipartite=None) -> tuple[Network, np.
     return binary, triples
 
 
+def _combined_values(net: Network, response: str) -> tuple[Network, np.ndarray]:
+    """valued_network() of networks combined with Networks(): each network's
+    values, in the combined numbering."""
+    if net.series:
+        raise ValueError("valued models of series of networks (NetSeries()) are not supported")
+    pairs, triples, missing = [], [], []
+    for b in net.blocks:
+        if b.network.source is None:
+            raise TypeError("valued networks are igraph or networkx graphs with an edge attribute")
+        part, values = valued_network(b.network.source, response, None if not net.bipartite else True)
+        pairs.append(part.edges.astype(np.int64) + b.start)
+        missing.append(part.missing.astype(np.int64) + b.start)
+        triples.append(values + np.array([b.start, b.start, 0.0]))
+    stack = lambda arrays: np.vstack(arrays).astype(np.uint32).reshape(-1, 2)  # noqa: E731
+    binary = Network(net.n, net.directed, stack(pairs), net.attributes, None, net.graph_attributes,
+                     stack(missing), net.mode, net.blocks)
+    return binary, np.vstack(triples).reshape(-1, 3)
+
+
 class _ValuedView:
     """The model's network as the estimation code sees it: its edges are
     the rows (i, j, value) of its nonzero dyads; the rest is the binary
@@ -399,7 +418,7 @@ class _ValuedView:
     def __init__(self, binary: Network, triples: np.ndarray):
         self._binary, self.edges = binary, triples
         self.missing = binary.missing
-        self.combined, self.series, self.blocks = False, False, None
+        self.combined, self.series, self.blocks = binary.combined, False, binary.blocks
 
     def __getattr__(self, name):
         return getattr(self._binary, name)
@@ -536,6 +555,10 @@ class ValuedModel:
 
         net, c = self.binary, self.constraints
         groups = c.groups(net)
+        if net.combined:  # within the networks
+            ids = net.block_ids()
+            groups = ids if groups is None else np.unique(np.column_stack([ids, groups]), axis=0,
+                                                          return_inverse=True)[1].ravel()
         mask = c.fixed(net)
         fixed = c.fixed_pairs(net)
         only = c.free_pairs(net)
@@ -579,6 +602,8 @@ class ValuedModel:
 
 
 def dyad_count(network: Network) -> float:
+    if network.combined:  # the dyads within the networks
+        return float(sum(dyad_count(b.network) for b in network.blocks))
     if network.bipartite:
         n1 = int(np.sum(network.mode == 1))
         return float(n1 * (network.n - n1))
@@ -601,6 +626,8 @@ def bind_valued(network, formula, response: str, reference="Poisson", *, constra
     for term in formula:
         term.check(binary)
         inner = term.term if term.is_offset else term
+        if inner.curved:
+            raise ValueError(f"{term!r}: valued models take linear terms (N() without offsets)")
         if getattr(inner, "nonnegative", False) and reference is not None and _lowest(reference) < 0:
             raise ValueError(f"{term!r} needs nonnegative values, and the {reference[0]} reference has negative ones")
     constraints = parse_constraints(constraints)
@@ -651,10 +678,21 @@ def _start_missing(binary: Network, triples: np.ndarray, reference) -> np.ndarra
 def to_valued_graphs(model: ValuedModel, triples: np.ndarray, response: str):
     """A graph like the model's, with the nonzero dyads as edges and their
     values in the edge attribute `response`."""
+    t = np.asarray(triples, dtype=float).reshape(-1, 3)
+    if model.binary.combined:  # a graph per network
+        out = []
+        for b in model.binary.blocks:
+            inside = (t[:, 0] >= b.start) & (t[:, 0] < b.start + b.network.n)
+            local = t[inside] - np.array([b.start, b.start, 0.0])
+            out.append(_valued_graph(b.network, local, response))
+        return out
+    return _valued_graph(model.binary, t, response)
+
+
+def _valued_graph(network: Network, t: np.ndarray, response: str):
     from ._network import to_graph
 
-    t = np.asarray(triples, dtype=float).reshape(-1, 3)
-    g = to_graph(model.binary, t[:, :2].astype(np.uint32))
+    g = to_graph(network, t[:, :2].astype(np.uint32))
     values = t[:, 2].tolist()
     if hasattr(g, "es"):
         g.es[response] = values

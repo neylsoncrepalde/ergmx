@@ -548,52 +548,199 @@ impl WtTerm for TiesAbove {
 // -- Model --------------------------------------------------------------------------------------
 
 pub struct WtModel {
-    terms: Vec<Box<dyn WtTerm>>,
+    entries: Vec<WtEntry>,
     offsets: Vec<usize>,
     n_stats: usize,
+    n_slots: usize,
+}
+
+/// A valued model's term, or ergm.multi's N() of valued terms on each
+/// network of a combined network.
+enum WtEntry {
+    Term(Box<dyn WtTerm>),
+    Blocks(WtBlocks),
+}
+
+/// N() of valued terms: each block's statistics (`models[k]`, on the block's
+/// own network, in the state's `locals[slot][k]`) times each of the q
+/// columns of the linear model's row of the block, summed over the blocks.
+struct WtBlocks {
+    slot: usize,
+    starts: Vec<u32>,
+    block_of: Vec<usize>,
+    models: Vec<WtModel>,
+    design: Vec<Vec<f64>>,
+    p: usize,
+    q: usize,
+}
+
+impl WtBlocks {
+    fn locate(&self, i: u32, j: u32) -> (usize, u32, u32) {
+        let k = self.block_of[i as usize];
+        (k, i - self.starts[k], j - self.starts[k])
+    }
+}
+
+/// A chain's state of a valued model: the networks of the blocks of its N()
+/// operators (none without them).
+#[derive(Clone, Default)]
+pub struct WtState {
+    locals: Vec<Vec<WtNetwork>>,
 }
 
 impl WtModel {
     pub fn new(n: u32, directed: bool, specs: &[TermSpec], dyads: f64) -> Result<Self, String> {
-        let mut terms = Vec::new();
+        let mut entries = Vec::new();
+        let mut n_slots = 0;
         for spec in specs {
-            terms.push(build(n, directed, spec, dyads)?);
+            if spec.0 == "wtblocks" {
+                entries.push(WtEntry::Blocks(blocks(n, directed, spec, n_slots)?));
+                n_slots += 1;
+            } else {
+                entries.push(WtEntry::Term(build(n, directed, spec, dyads)?));
+            }
         }
-        let mut offsets = Vec::with_capacity(terms.len());
+        let mut offsets = Vec::with_capacity(entries.len());
         let mut total = 0;
-        for t in &terms {
+        for e in &entries {
             offsets.push(total);
-            total += t.n_stats();
+            total += match e {
+                WtEntry::Term(t) => t.n_stats(),
+                WtEntry::Blocks(b) => b.p * b.q,
+            };
         }
-        Ok(Self { terms, offsets, n_stats: total })
+        Ok(Self { entries, offsets, n_stats: total, n_slots })
     }
 
     pub fn n_stats(&self) -> usize {
         self.n_stats
     }
 
+    /// Whether the model has N() operators, whose blocks need a state.
+    pub fn has_blocks(&self) -> bool {
+        self.n_slots > 0
+    }
+
+    /// The state of a network: its blocks' networks, for the N() operators.
+    pub fn state(&self, net: &WtNetwork) -> WtState {
+        let mut locals = vec![Vec::new(); self.n_slots];
+        for e in &self.entries {
+            if let WtEntry::Blocks(b) = e {
+                let mut nets: Vec<WtNetwork> =
+                    (0..b.models.len()).map(|k| WtNetwork::new(b.size(k, net.n()), net.directed())).collect();
+                for (i, j, v) in net.triples() {
+                    let (k, a, c) = b.locate(i, j);
+                    nets[k].set(a, c, v);
+                }
+                locals[b.slot] = nets;
+            }
+        }
+        WtState { locals }
+    }
+
     /// The change of every statistic when the dyad goes from `old` to `new` (`out` is overwritten).
-    pub fn change(&self, net: &WtNetwork, i: u32, j: u32, old: f64, new: f64, out: &mut [f64]) {
+    #[allow(clippy::too_many_arguments)]
+    pub fn change(&self, state: &WtState, net: &WtNetwork, i: u32, j: u32, old: f64, new: f64, out: &mut [f64]) {
         out.fill(0.0);
-        for (term, &offset) in self.terms.iter().zip(&self.offsets) {
-            term.change(net, i, j, old, new, &mut out[offset..offset + term.n_stats()]);
+        for (e, &offset) in self.entries.iter().zip(&self.offsets) {
+            match e {
+                WtEntry::Term(term) => term.change(net, i, j, old, new, &mut out[offset..offset + term.n_stats()]),
+                WtEntry::Blocks(b) => {
+                    let (k, a, c) = b.locate(i, j);
+                    let mut inner = vec![0.0; b.p];
+                    b.models[k].change(&WtState::default(), &state.locals[b.slot][k], a, c, old, new, &mut inner);
+                    for (s, &g) in inner.iter().enumerate() {
+                        for (r, &x) in b.design[k].iter().enumerate() {
+                            out[offset + s * b.q + r] += g * x;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Records in `state` that the dyad i -> j is now `value`.
+    pub fn apply(&self, state: &mut WtState, i: u32, j: u32, value: f64) {
+        for e in &self.entries {
+            if let WtEntry::Blocks(b) = e {
+                let (k, a, c) = b.locate(i, j);
+                state.locals[b.slot][k].set(a, c, value);
+            }
         }
     }
 
     pub fn summary(&self, net: &WtNetwork) -> Vec<f64> {
         let mut stats = vec![0.0; self.n_stats];
-        for (term, &offset) in self.terms.iter().zip(&self.offsets) {
-            term.empty(&mut stats[offset..offset + term.n_stats()]);
+        for (e, &offset) in self.entries.iter().zip(&self.offsets) {
+            match e {
+                WtEntry::Term(term) => term.empty(&mut stats[offset..offset + term.n_stats()]),
+                WtEntry::Blocks(b) => {
+                    for (k, model) in b.models.iter().enumerate() {
+                        let inner = model.summary(&WtNetwork::new(b.size(k, net.n()), net.directed()));
+                        for (s, &g) in inner.iter().enumerate() {
+                            for (r, &x) in b.design[k].iter().enumerate() {
+                                stats[offset + s * b.q + r] += g * x;
+                            }
+                        }
+                    }
+                }
+            }
         }
         let mut build = WtNetwork::new(net.n(), net.directed());
+        let mut state = self.state(&build);
         let mut delta = vec![0.0; self.n_stats];
         for (i, j, v) in net.triples() {
-            self.change(&build, i, j, 0.0, v, &mut delta);
+            self.change(&state, &build, i, j, 0.0, v, &mut delta);
             stats.iter_mut().zip(&delta).for_each(|(s, d)| *s += d);
             build.set(i, j, v);
+            self.apply(&mut state, i, j, v);
         }
         stats
     }
+}
+
+impl WtBlocks {
+    fn size(&self, k: usize, n: u32) -> u32 {
+        self.starts.get(k + 1).copied().unwrap_or(n) - self.starts[k]
+    }
+}
+
+/// N() of valued terms, from its spec: ints [q, number of blocks, each
+/// block's first vertex], then one child per block, ("block", its row of
+/// the linear model, [], its valued terms' specs).
+fn blocks(n: u32, directed: bool, spec: &TermSpec, slot: usize) -> Result<WtBlocks, String> {
+    let TermSpec(_, _, ints, children) = spec;
+    let (q, count) = match ints.as_slice() {
+        [q, count, ..] => (*q as usize, *count as usize),
+        _ => return Err("N(): bad parameters".into()),
+    };
+    let starts: Vec<u32> = ints.get(2..2 + count).ok_or("N(): one start per network")?.iter().map(|&s| s as u32).collect();
+    if children.len() != count {
+        return Err("N(): one child per network".into());
+    }
+    let mut block_of = vec![0; n as usize];
+    let mut models = Vec::with_capacity(count);
+    let mut design = Vec::with_capacity(count);
+    for (k, child) in children.iter().enumerate() {
+        let end = starts.get(k + 1).copied().unwrap_or(n);
+        block_of[starts[k] as usize..end as usize].iter_mut().for_each(|b| *b = k);
+        let size = end - starts[k];
+        let dyads = size as f64 * (size as f64 - 1.0) / if directed { 1.0 } else { 2.0 };
+        let model = WtModel::new(size, directed, &child.3, dyads)?;
+        if model.n_slots > 0 {
+            return Err("N() inside N() is not supported".into());
+        }
+        if child.1.len() != q {
+            return Err("N(): one row of the linear model per network".into());
+        }
+        models.push(model);
+        design.push(child.1.clone());
+    }
+    let p = models.first().map_or(0, |m| m.n_stats());
+    if models.iter().any(|m| m.n_stats() != p) {
+        return Err("N(): the networks' terms have different numbers of statistics".into());
+    }
+    Ok(WtBlocks { slot, starts, block_of, models, design, p, q })
 }
 
 fn build(n: u32, directed: bool, spec: &TermSpec, dyads: f64) -> Result<Box<dyn WtTerm>, String> {
@@ -904,17 +1051,19 @@ pub fn run_wt_chain(
     let mut stats = model.summary(&net);
     let p = stats.len();
     let mut delta = vec![0.0; p];
+    let mut state = model.state(&net);
     let mut proposer = Proposer::new(proposal, &net);
     let mut sample = Vec::with_capacity(samplesize * p);
     let mut networks = Vec::new();
     for step in 1..=burnin + interval * samplesize as u64 {
         // A proposal that can't be made, or changes nothing, still counts as a step.
         if let Some(mv) = proposer.propose(&net, rng) {
-            model.change(&net, mv.i, mv.j, mv.from, mv.to, &mut delta);
+            model.change(&state, &net, mv.i, mv.j, mv.from, mv.to, &mut delta);
             let log_accept = mv.log_ratio
                 + theta.iter().zip(&delta).filter(|(_, d)| **d != 0.0).map(|(t, d)| t * d).sum::<f64>();
             if log_accept >= 0.0 || rng.unif() < log_accept.exp() {
                 proposer.apply(&mut net, &mv);
+                model.apply(&mut state, mv.i, mv.j, mv.to);
                 stats.iter_mut().zip(&delta).for_each(|(s, d)| *s += d);
             }
             if net.n_nonzero() > proposal.max_nonzero {
@@ -946,6 +1095,7 @@ pub fn run_wt_san(model: &WtModel, proposal: &WtProposal, mut net: WtNetwork, se
     let q = settings.targeted.len();
     let mut delta = vec![0.0; stats.len()];
     let mut deviations: Vec<f64> = settings.targeted.iter().zip(settings.target).map(|(&k, t)| stats[k] - t).collect();
+    let mut state = model.state(&net);
     let mut proposer = Proposer::new(proposal, &net);
     let samples = settings.samplesize.max(1) as u64;
     let interval = (settings.nsteps / samples).max(1);
@@ -960,7 +1110,7 @@ pub fn run_wt_san(model: &WtModel, proposal: &WtProposal, mut net: WtNetwork, se
                 break;
             }
             let Some(mv) = proposer.propose(&net, rng) else { continue };
-            model.change(&net, mv.i, mv.j, mv.from, mv.to, &mut delta);
+            model.change(&state, &net, mv.i, mv.j, mv.from, mv.to, &mut delta);
             let mut energy = 0.0; // the change of (s - target)' W (s - target)
             for (a, &k) in settings.targeted.iter().enumerate() {
                 proposed[a] += delta[k];
@@ -971,6 +1121,7 @@ pub fn run_wt_san(model: &WtModel, proposal: &WtProposal, mut net: WtNetwork, se
             let accept = if settings.tau == 0.0 { energy - offset <= 0.0 } else { energy / settings.tau - offset <= -rng.unif().ln() };
             if accept {
                 proposer.apply(&mut net, &mv);
+                model.apply(&mut state, mv.i, mv.j, mv.to);
                 for (a, &k) in settings.targeted.iter().enumerate() {
                     deviations[a] += delta[k];
                 }

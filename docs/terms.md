@@ -206,9 +206,12 @@ fastest), and `a*b` is `a + b + a:b`.
   `transitive` warns with {class}`ergmx.ErgmDifferenceWarning`. Name:
   `transitive`.
 
-`cycle(k)`
+`cycle(k, semi=FALSE)`
 : Number of cycles of length $k$, for one or more $k$: 3 or more if
-  undirected, 2 or more if directed (`cycle(2)` is `mutual`). Names: `cycle3`...
+  undirected, 2 or more if directed (`cycle(2)` is `mutual`). With
+  `semi=TRUE`, in directed networks, the semicycles: the cycles of the network
+  with the directions ignored ($k$ of 3 or more). Names: `cycle3`...,
+  `semicycle3`...
 
 `triadcensus(levels=)`
 : The number of triads of each type of Davis and Leinhardt's census, in
@@ -680,6 +683,21 @@ MPNet's AC4AXB (alternating four-cycles) is not available.
   matrix, or `"linear"`, by finite differences). `minpar` and `maxpar` bound
   the parameters. Names: the formula's statistics, and the parameters'.
 
+`Project(formula, mode)`, `Proj1(formula)`, `Proj2(formula)` (bipartite)
+: [Valued terms](#valued-terms) of the projection of a bipartite network onto
+  a mode: the undirected valued network of that mode's vertices, whose value
+  for a pair is their number of shared partners in the other mode
+  (`Proj1(~sum + nonzero)`: the co-memberships, and the pairs with any).
+  Names: `Proj1~sum`...
+
+`Taper(formula, coef, m)`
+: ergm.tapered's operator: the formula's statistics $g$, and the penalty
+  $\sum_k \tau_k (g_k - m_k)^2$ around the centers `m` (by default the
+  network's statistics), named `Taper_Penalty`. `coef` is $\tau$, one per
+  statistic, or one number $c$ for $\tau_k = c / (4 m_k)$. With the penalty's
+  coefficient fixed at -1, the tapered ERGM that {func}`ergmx.ergm_tapered`
+  fits.
+
 ### Several networks
 
 These operators evaluate their terms on each network of networks combined
@@ -739,8 +757,8 @@ layer can't have ties where no layer has one. Names, as ergm.multi's:
 `L(formula, Ls=~.)`
 : `formula`'s terms on each logical layer of `Ls` (one, or a list:
   `c(~a, ~b)`), summed, each weighted by its formula's left side
-  (`c(2 ~ a, -1 ~ b)`); `~.`, each layer. Not of curved terms (fix their
-  decays).
+  (`c(2 ~ a, -1 ~ b)`); `~.`, each layer. Curved terms keep their
+  parameters: `L(~gwesp, ~a)` has `L(a)~gwesp` and `L(a)~gwesp.decay`.
 
 `CMBL(Ls=~.)`
 : Conway–Maxwell-binomial dependence among the layers: the sum over the
@@ -766,9 +784,17 @@ layer can't have ties where no layer has one. Names, as ergm.multi's:
   The types are those of `esp`, but RTP. Also `despL`, `ddspL` and
   `dnspL`.
 
-`gwespL(decay, fixed=TRUE, cutoff=30, type, L.base, Ls.path, L.in_order)`, `gwdspL(...)`, `gwnspL(...)`
-: Their geometrically weighted versions, with a fixed decay. Also
-  `dgwespL`, `dgwdspL` and `dgwnspL`.
+`gwespL(decay=0.5, fixed=FALSE, cutoff=30, type, L.base, Ls.path, L.in_order)`, `gwdspL(...)`, `gwnspL(...)`
+: Their geometrically weighted versions: curved, with the decay estimated
+  (statistics `...~esp#1`...; parameters `...~gwesp` and `...~gwesp.decay`,
+  which ergm.multi leaves unwrapped), or with `fixed=TRUE`. Also `dgwespL`,
+  `dgwdspL` and `dgwnspL`.
+
+`b1dspL(d, Ls.path)`, `b2dspL(d, Ls.path)`, `gwb1dspL(decay=0, fixed=FALSE, cutoff=30, Ls.path)`, `gwb2dspL(...)` (bipartite)
+: The pairs of vertices of the first (second) mode with each number of
+  shared partners whose two ties are in the logical layers `Ls.path`, in
+  either order, and their geometrically weighted versions. Names:
+  `L(pth=(a,b),bse=,inord=)~b1dsp1`...
 
 ## Valued terms
 

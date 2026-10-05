@@ -26,7 +26,10 @@ from ._durational import (
     nodemix_mean_age,
 )
 from ._gof import GofResult, GofTable, gof
+from ._bigergm import BigErgmFit, bigergm
+from ._latent import ErgmmFit, LatentControl, ergmm
 from ._layers import Layer
+from ._tapered import TaperedFit, ergm_tapered
 from ._userterms import UserTerm, register_term
 from ._gofn import GofNResult, GofNSummary, GofNTable, LmFit, gofN, lm_gofN
 from ._interpret import NumericTable, TiePredictions
@@ -222,12 +225,13 @@ from .terms import (
     txbxreciprocity,
 )
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __all__ = [
     "AdjustedPL",
     "BergmFit",
     "BergmSummary",
+    "BigErgmFit",
     "BtergmFit",
     "Change",
     "Control",
@@ -240,6 +244,7 @@ __all__ = [
     "EgoFit",
     "ErgmDifferenceWarning",
     "ErgmFit",
+    "ErgmmFit",
     "F",
     "FitSummary",
     "Form",
@@ -250,6 +255,7 @@ __all__ = [
     "GofNTable",
     "GofResult",
     "GofTable",
+    "LatentControl",
     "Layer",
     "LmFit",
     "McmcDiagnostics",
@@ -263,6 +269,7 @@ __all__ = [
     "ResultsTable",
     "S",
     "SanControl",
+    "TaperedFit",
     "Term",
     "TiePredictions",
     "UserTerm",
@@ -327,6 +334,7 @@ __all__ = [
     "balance",
     "bergm",
     "bergmC",
+    "bigergm",
     "btergm",
     "c4axb",
     "c4axbentrainment",
@@ -371,6 +379,8 @@ __all__ = [
     "ergm",
     "ergm_apl",
     "ergm_ego",
+    "ergm_tapered",
+    "ergmm",
     "esp",
     "evidence",
     "exta",

@@ -11,6 +11,7 @@ import dataclasses
 
 import numpy as np
 
+from ._network import Network
 from .terms import Formula, Term, as_formula
 
 
@@ -468,6 +469,117 @@ class Curve(_Submodel):
         return f"Curve({self.formula!r}, {self.param_list!r})"
 
 
+class Taper(_Submodel):
+    """ergm.tapered's Taper(formula, coef, m): the formula's statistics, and
+    the penalty sum_k coef_k (g_k - m_k)^2 (``Taper_Penalty``), around the
+    centers ``m`` (by default the network's statistics). A single ``coef``
+    is scaled as ergm.tapered's: coef / (4 m). With the penalty's
+    coefficient fixed at -1 (see :func:`ergmx.ergm_tapered`), a tapered ERGM."""
+
+    def __init__(self, formula, coef=None, m=None):
+        super().__init__(formula)
+        self.coef, self.m = coef, m
+
+    def _centers(self, network) -> np.ndarray:
+        if self.m is not None:
+            return np.atleast_1d(np.asarray(self.m, dtype=float))
+        from ._simulate import summary_stats
+
+        return np.array(list(summary_stats(network, self.formula).values()))
+
+    def _tau(self, network, centers) -> np.ndarray:
+        if self.coef is None:
+            return 1 / (4 * centers)
+        if np.ndim(self.coef) == 0:  # a multiplier, as ergm.tapered's
+            return float(self.coef) / (4 * centers)
+        coef = np.asarray(self.coef, dtype=float)
+        if len(coef) != len(centers):
+            raise ValueError(f"Taper(coef=): {len(coef)} coefficients for {len(centers)} statistics")
+        return coef
+
+    def names(self, network):
+        return [*self._inner_names(network), "Taper_Penalty"]
+
+    def param_names(self, network):
+        return [*self._inner_params(network), "Taper_Penalty"]
+
+    def eta(self, params, network):
+        params = np.asarray(params, dtype=float)
+        return np.concatenate([super().eta(params[:-1], network), params[-1:]])
+
+    def jacobian(self, params, network):
+        params = np.asarray(params, dtype=float)
+        inner = super().jacobian(params[:-1], network)
+        out = np.zeros((inner.shape[0] + 1, inner.shape[1] + 1))
+        out[:-1, :-1], out[-1, -1] = inner, 1.0
+        return out
+
+    def full_spec(self, network):
+        centers = self._centers(network)
+        tau = self._tau(network, centers)
+        if len(centers) != len(self._inner_names(network)):
+            raise ValueError(f"Taper(m=): {len(centers)} centers for {len(self._inner_names(network))} statistics")
+        return ("map", [*tau.tolist(), *centers.tolist()], [3], self._children(network))
+
+    def __repr__(self) -> str:
+        return f"Taper({self.formula!r})"
+
+
+class Project(Term):
+    """ergm's Project(formula, mode) (Proj1(), Proj2()): valued terms of the
+    projection of a bipartite network onto a mode, the undirected network
+    of that mode's vertices whose values are their numbers of shared
+    partners (of the other mode)."""
+
+    dyad_independent = False
+
+    def __init__(self, formula, mode: int):
+        from ._valued import parse_valued_formula
+
+        if mode not in (1, 2):
+            raise ValueError("Project(mode=): 1 or 2")
+        self.formula, self.mode = parse_valued_formula(formula), int(mode)
+        if not len(self.formula):
+            raise ValueError("Project(): the formula has no terms")
+        if any(t.is_offset for t in self.formula):
+            raise ValueError("Project(): offset() terms aren't supported inside it")
+
+    def _projected(self, network):
+        """The mode's vertices (with their attributes), without values."""
+        keep = np.flatnonzero(network.mode == self.mode)
+        attributes = {a: [values[k] for k in keep] for a, values in network.attributes.items()}
+        return Network(len(keep), False, np.zeros((0, 2), dtype=np.uint32), attributes)
+
+    def check(self, network):
+        if not network.bipartite or network.combined:
+            raise ValueError(f"Proj{self.mode}() is for a bipartite network")
+        projected = self._projected(network)
+        for term in self.formula:
+            term.check(projected)
+
+    def names(self, network):
+        return [f"Proj{self.mode}~{n}" for t in self.formula for n in t.names(self._projected(network))]
+
+    def full_spec(self, network):
+        local = np.cumsum(network.mode == self.mode) - 1
+        local = np.where(network.mode == self.mode, local, -1).astype(int).tolist()
+        projected = self._projected(network)
+        return ("project", [], local, [t.full_spec(projected) for t in self.formula])
+
+    def spec(self, network):
+        return self.full_spec(network)[:3]
+
+    def __repr__(self) -> str:
+        return f"Proj{self.mode}({self.formula!r})"
+
+
+def _proj(mode: int):
+    def make(formula):
+        return Project(formula, mode)
+
+    return make
+
+
 OPERATORS = {"Sum": Sum, "Prod": Prod, "Log": Log, "Exp": Exp, "Symmetrize": Symmetrize, "Label": Label,
              "Passthrough": Passthrough, "Offset": OffsetOp, "Curve": Curve, "Parametrise": Curve,
-             "Parametrize": Curve}
+             "Parametrize": Curve, "Project": Project, "Proj1": _proj(1), "Proj2": _proj(2), "Taper": Taper}

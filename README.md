@@ -14,16 +14,17 @@ the spirit of R's [ergm](https://github.com/statnet/ergm) and statnet: R-style
 formulas, the same term names and statistics, and `summary()` and `gof()`
 that read like R's.
 
-> 185 terms and 21 operators for directed, undirected and bipartite
+> 189 terms and 25 operators for directed, undirected and bipartite
 > networks, and interactions, and terms written in Python; curved ERGMs;
 > sample space constraints; missing ties; multilevel networks (as MPNet);
 > samples of networks and multilayer networks (as ergm.multi); temporal
 > ERGMs, EGMME and dynamic simulation with tie ages (as tergm), and btergm;
-> valued, egocentric and Bayesian ERGMs, with model evidence; MPLE,
-> contrastive divergence and Monte Carlo MLE; MCMC diagnostics,
-> log-likelihoods, model comparison and goodness of fit; tie probabilities,
-> marginal effects and tables of results; networks of tens of thousands of
-> vertices; all validated against R. See [what's missing](#not-yet).
+> valued, egocentric and Bayesian ERGMs, with model evidence; tapered ERGMs
+> (as ergm.tapered), ERGMs with local dependence for large networks (as
+> bigergm) and latent space models (as latentnet); MPLE, contrastive divergence and Monte Carlo MLE; MCMC
+> diagnostics, log-likelihoods, model comparison and goodness of fit; tie
+> probabilities, marginal effects and tables of results; networks of tens of
+> thousands of vertices; all validated against R. See [what's missing](#not-yet).
 
 ```python
 import ergmx
@@ -174,6 +175,19 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
   pseudo-likelihood over the time steps, with bootstrap intervals.
 - **Terms written in Python**: subclass `ergmx.UserTerm` with the change of
   its statistics; dyad-independent ones run as fast as ergmx's own terms.
+- **Tapered ERGMs**, as R's ergm.tapered: `ergmx.ergm_tapered(g, formula)`
+  penalizes the statistics' distance to the network's, which fits models
+  that are degenerate as ERGMs, with the tapered likelihood's standard
+  errors.
+- **Large networks with local dependence**, as R's bigergm:
+  `ergmx.bigergm(g, formula, n_blocks)` finds blocks by the MM algorithm of a
+  stochastic block model, then fits the dyads between blocks independently
+  and those within with dependence; with simulation and goodness of fit.
+- **Latent space models**, as R's latentnet: `ergmx.ergmm(g, "euclidean(d=2,
+  G=3) + rreceiver")` places the vertices in a latent space, with clusters
+  and random effects, by Bayesian MCMC (in Rust, chains in parallel), with
+  the MKL positions, relabelled clusters, BIC, predictions, simulation,
+  goodness of fit and plots.
 - **Estimation**:
   - dyad-independent models: the exact MLE (logistic regression), with
     log-likelihood, AIC and BIC;
@@ -243,7 +257,9 @@ uv run sphinx-build -W --keep-going -d docs/_build/doctrees docs docs/_build/htm
 
 `scripts/r_reference.R` fits the models below with ergm 4.12 (ergm.multi 0.3.0
 and tergm 4.2.2 for samples and series of networks) and stores the
-results in `tests/data/r_reference.json`; the test suite compares.
+results in `tests/data/r_reference.json`; the test suite compares. The other
+`scripts/r_*_reference.R` do the same for ergm.count, ergm.ego, Bergm,
+btergm, ergm.tapered, bigergm and latentnet.
 
 | Check | Result |
 |---|---|
@@ -265,6 +281,10 @@ results in `tests/data/r_reference.json`; the test suite compares.
 | Contrastive divergence | a fixed point of its defining equation; the MLE from a CD start matches R's |
 | ergm's operators (`Sum`, `Prod`, `Log`, `Exp`, `Symmetrize`, `Label`, `Curve`...), 26 sets of statistics and 5 fits | statistics and names identical to R's; fits within 0.3 standard errors of R's (the MPLE to 1e-6; `Symmetrize()` against its exact MLE, which R's misses) |
 | ergm.multi's multilayer terms, 20 sets of statistics and 4 fits | statistics and names identical to R's, but the in-order OSP and ISP shared partners, where ergmx follows ergm.multi's documentation; fits within 0.1 standard errors |
+| Semicycles, interactions in `N()`'s linear models, `L()` of curved terms, the projection operators and valued `N()` (ergm, ergm.multi, ergm.count), 7 sets of statistics and 4 fits | statistics and names identical to R's (14 designs identical to R's `model.matrix()`); fits within 0.11 standard errors of R's |
+| Tapered ERGMs (ergm.tapered), 6 models, R with 3 seeds | estimates within 0.15 standard errors of R's; tapering coefficients identical |
+| bigergm's MM algorithm (4 runs) and its fits from given blocks (4 models) | the same iterations and blocks, lower bounds within 1e-13; estimates identical (1e-10), the Monte Carlo MLE within 0.05 standard errors |
+| Latent space models (latentnet), 13 models, R with 3 seeds | log-likelihoods and priors identical (5e-13); posterior means within 0.06 posterior standard deviations of R's, variances within 3% |
 | tergm's tie-age terms, btergm and Bergm's model evidence | tie-age statistics and simulations match tergm's and the exact stationary distributions; btergm's estimates identical to R's (2e-8) and its bootstrap to exact enumeration; the evidence within 0.01 of the exact value, where Bergm's is about 2 nats off |
 
 The networks are ergm's flomarriage, samplk3, faux.mesa.high and
@@ -318,6 +338,9 @@ python/ergmx/         Python API
   _operators.py         ergm's operators (Sum, Prod, Log, Exp, Symmetrize, Curve...)
   _layers.py            multilayer networks: Layer(), Layer Logic, L() and the layer terms
   _userterms.py         terms written in Python
+  _tapered.py           tapered ERGMs (ergm.tapered)
+  _bigergm.py           ERGMs with local dependence for large networks (bigergm)
+  _latent.py            latent space models (latentnet)
 src/                  Rust core (PyO3), exposed as ergmx._core.Model
   network.rs            sorted neighbour lists + edge list for O(1) random ties
   terms.rs              the Term trait and the change statistics
@@ -327,6 +350,8 @@ src/                  Rust core (PyO3), exposed as ergmx._core.Model
   durational.rs         tie ages and the durational terms
   layers.rs             Layer Logic and the layer-aware terms
   userterm.rs           terms written in Python, called back from the sampler
+  blocks.rs             bigergm's MM algorithm's membership step
+  latent.rs             latent space models' MCMC
   lib.rs                bindings; chains run in parallel with rayon
 ```
 
@@ -336,10 +361,8 @@ describing it in `python/ergmx/terms.py`, or, in Python, subclassing
 
 ## Not yet
 
-- ergm's projection operators, and valued models of several networks.
-- `L()` of curved terms, the gw layer terms with an estimated decay, and
-  ergm.multi's bipartite layer terms (`b1dspL`, `b2dspL`...).
-- Interactions (`a:b`) in `N()`'s linear models.
+- ergm.tapered's estimated tapering (`fixed=FALSE`), and valued models of
+  series of networks.
 
 ## Installation
 

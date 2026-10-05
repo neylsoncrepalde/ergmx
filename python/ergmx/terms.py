@@ -459,24 +459,34 @@ class Nsp(_SharedPartners):
 
 
 class Cycle(_Stars):
-    """Number of cycles of each length k (k >= 3; k >= 2 if directed)."""
+    """Number of cycles of each length k (k >= 3; k >= 2 if directed), or,
+    with ``semi=TRUE`` in directed networks, of semicycles: the cycles of the
+    network with the directions ignored (k >= 3)."""
 
     triadic = True
 
     def __init__(self, k, semi: bool = False):
-        if semi:
-            raise NotImplementedError("cycle(k, semi=TRUE) is not supported yet")
         ks = [k] if isinstance(k, int) else list(k)
         if not ks or not all(isinstance(v, int) and v >= 2 for v in ks):
             raise ValueError(f"cycle: k must be one or more integers >= 2, not {k!r}")
-        self.ks = ks
+        self.ks, self.semi = ks, bool(semi)
 
     def check(self, network):
         if not network.directed and min(self.ks) < 3:
             raise ValueError("cycle: k must be 3 or more in undirected networks")
+        if network.directed and self.semi and min(self.ks) < 3:
+            raise ValueError("cycle(semi=TRUE): semicycles have length 3 or more, as in ergm")
+
+    def names(self, network):
+        return [f"{'semicycle' if self.semi and network.directed else 'cycle'}{k}" for k in self.ks]
 
     def spec(self, network):
         return ("cycle", [], self.ks)
+
+    def full_spec(self, network):
+        if self.semi and network.directed:  # the cycles of the weakly symmetrized network
+            return ("symmetrize", [], [0], [("cycle", [], self.ks, [])])
+        return super().full_spec(network)
 
 
 class ErgmDifferenceWarning(UserWarning):
@@ -2797,6 +2807,8 @@ class BlockOperator(Term):
     dyad_independent = property(lambda self: all(t.dyad_independent for t in self.formula))
     triadic = property(lambda self: any(t.triadic for t in self.formula))
     _inner_curved = property(lambda self: any(t.curved for t in self.formula))
+    #: N() of valued terms, for valued models of several networks.
+    valued = property(lambda self: len(self.formula) > 0 and all(getattr(t, "valued", False) for t in self.formula))
 
     @property
     def _has_offset(self) -> bool:
@@ -2966,6 +2978,11 @@ class BlockOperator(Term):
 
     def full_spec(self, network):
         kept, x, columns, offsets = self._frame([b.attributes for b in network.blocks])
+        if self.valued:
+            # Each network's valued terms, on its own network, times its row of the linear model.
+            children = [("block", x[k].tolist(), [], [t.full_spec(b.network) for t in self.formula])
+                        for k, b in enumerate(network.blocks)]
+            return ("wtblocks", [], [x.shape[1], len(network.blocks), *[b.start for b in network.blocks]], children)
         compact = not self._inner_curved
         if compact and offsets is not None:
             x = np.column_stack([x, offsets])

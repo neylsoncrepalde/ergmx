@@ -12,6 +12,7 @@ use crate::layers::{LayerLayout, LayerStat, Logic, build_stat, flips, programs};
 use crate::network::{Network, Partners, count_common};
 use crate::partners::{Bins, Scope, SharedPartners, SpType, Weight};
 use crate::space::Space;
+use crate::valued::{WtModel, WtNetwork, WtState};
 
 pub trait Term: Send + Sync {
     fn n_stats(&self) -> usize {
@@ -1198,6 +1199,39 @@ enum Entry {
     /// ergm.multi's layer-aware terms, of logical layers whose networks are
     /// in the state's `views[slot]`.
     LayerStat { slot: usize, stat: Box<dyn LayerStat>, views: Vec<Logic>, layout: LayerLayout },
+    /// ergm's Project(): valued terms of a bipartite network's projection
+    /// onto a mode (each pair's value, its number of shared partners), in
+    /// the state's `projections[slot]`; `local` numbers the mode's vertices
+    /// (-1 for the others).
+    Project { slot: usize, local: Vec<i64>, model: WtModel },
+}
+
+/// A bipartite network's projection, for Project(): change() adds the
+/// toggle's changes of values one at a time, on this copy, and undoes them.
+pub struct Projection(std::sync::Mutex<WtNetwork>);
+
+impl Clone for Projection {
+    fn clone(&self) -> Self {
+        Projection(std::sync::Mutex::new(self.0.lock().unwrap().clone()))
+    }
+}
+
+impl Entry {
+    /// For Project(): the projected pairs whose values change on toggling
+    /// (i, j), each with its new value.
+    fn projected(local: &[i64], net: &Network, proj: &WtNetwork, i: u32, j: u32) -> Vec<(u32, u32, f64)> {
+        let (p, q) = if local[i as usize] >= 0 { (i, j) } else { (j, i) };
+        let sign = if net.has_edge(i, j) { -1.0 } else { 1.0 };
+        let a = local[p as usize] as u32;
+        net.neighbours(q)
+            .iter()
+            .filter(|&&k| k != p)
+            .map(|&k| {
+                let b = local[k as usize] as u32;
+                (a, b, proj.get(a, b) + sign)
+            })
+            .collect()
+    }
 }
 
 /// The function of Entry::Map: a matrix (q x the submodel's statistics, row
@@ -1206,12 +1240,16 @@ pub(crate) enum MapKind {
     Linear { q: usize, matrix: Vec<f64> },
     Log { log0: f64 },
     Exp,
+    /// ergm.tapered's Taper(): the statistics, and the penalty
+    /// sum_k tau_k (x_k - m_k)^2 around the centers m.
+    Taper { tau: Vec<f64>, m: Vec<f64> },
 }
 
 impl MapKind {
     fn n_stats(&self, p: usize) -> usize {
         match self {
             MapKind::Linear { q, .. } => *q,
+            MapKind::Taper { .. } => p + 1,
             _ => p,
         }
     }
@@ -1227,6 +1265,10 @@ impl MapKind {
             }
             MapKind::Log { log0 } => out.iter_mut().zip(x).for_each(|(o, &v)| *o = if v == 0.0 { *log0 } else { v.ln() }),
             MapKind::Exp => out.iter_mut().zip(x).for_each(|(o, &v)| *o = v.exp()),
+            MapKind::Taper { tau, m } => {
+                out[..x.len()].copy_from_slice(x);
+                out[x.len()] = x.iter().zip(tau.iter().zip(m)).map(|(v, (t, c))| t * (v - c) * (v - c)).sum();
+            }
         }
     }
 }
@@ -1281,6 +1323,7 @@ impl Entry {
             Entry::Symmetrize { model, .. } => model.n_stats(),
             Entry::LayerL { model, .. } => model.n_stats(),
             Entry::LayerStat { stat, .. } => stat.n_stats(),
+            Entry::Project { model, .. } => model.n_stats(),
         }
     }
 }
@@ -1332,6 +1375,8 @@ pub struct State {
     sums: Vec<Vec<f64>>,
     /// For each slot of a layer-aware term, its logical layers' networks.
     views: Vec<Vec<Network>>,
+    /// For each slot of Project(), the projection.
+    projections: Vec<Option<Projection>>,
 }
 
 /// The terms of a model, with the position of each term's statistics.
@@ -1491,6 +1536,13 @@ impl Model {
                         }
                         1 => MapKind::Log { log0: spec.1.first().copied().unwrap_or(-1.0 / f64::EPSILON.sqrt()) },
                         2 => MapKind::Exp,
+                        // reals: tau, then the centers
+                        3 => {
+                            if spec.1.len() != 2 * p {
+                                return Err(format!("Taper(): {p} coefficients and {p} centers"));
+                            }
+                            MapKind::Taper { tau: spec.1[..p].to_vec(), m: spec.1[p..].to_vec() }
+                        }
                         _ => return Err("map: bad kind".into()),
                     };
                     entries.push(Entry::Map { slot: n_slots, model, kind });
@@ -1516,6 +1568,20 @@ impl Model {
                     let (stat, views) = build_stat(&spec.0, &spec.1, &spec.2, layout.len(), size)?;
                     entries.push(Entry::LayerStat { slot: n_slots, stat, views, layout: layers });
                 }
+                n_slots += 1;
+            } else if spec.0 == "project" {
+                // ints: each vertex's number in the projected mode (-1 for the
+                // others); the children are valued terms.
+                if directed || spec.2.len() != n_usize {
+                    return Err("Project(): a bipartite network, and each vertex's number in the mode".into());
+                }
+                let size = spec.2.iter().filter(|&&k| k >= 0).count() as u32;
+                let dyads = size as f64 * (size as f64 - 1.0) / 2.0;
+                let model = WtModel::new(size, false, &spec.3, dyads)?;
+                if model.has_blocks() {
+                    return Err("Project(): N() inside it is not supported".into());
+                }
+                entries.push(Entry::Project { slot: n_slots, local: spec.2.clone(), model });
                 n_slots += 1;
             } else if is_aged(spec) {
                 entries.push(Entry::Aged { term: build_aged(n_usize, directed, spec)?, slot: n_aged });
@@ -1673,7 +1739,7 @@ impl Model {
                 Entry::LayerL { model, views, layout, .. } => {
                     subs.push(views.iter().map(|(_, logic)| model.state(layout.view(&net, logic))).collect())
                 }
-                Entry::LayerStat { .. } => subs.push(Vec::new()),
+                Entry::LayerStat { .. } | Entry::Project { .. } => subs.push(Vec::new()),
                 Entry::Symmetrize { model, rule, .. } => {
                     let mut sub = Network::new(net.n(), false);
                     for &(i, j) in net.edges() {
@@ -1695,7 +1761,7 @@ impl Model {
                     Some(if matches!(kind, MapKind::Linear { .. }) { Vec::new() } else { model.summary(&net) })
                 }
                 Entry::Blocks { .. } | Entry::Subgraph { .. } | Entry::Symmetrize { .. } | Entry::LayerL { .. }
-                | Entry::LayerStat { .. } => Some(Vec::new()),
+                | Entry::LayerStat { .. } | Entry::Project { .. } => Some(Vec::new()),
                 _ => None,
             })
             .collect();
@@ -1705,7 +1771,32 @@ impl Model {
             .filter_map(|e| match e {
                 Entry::LayerStat { views, layout, .. } => Some(views.iter().map(|l| layout.view(&net, l)).collect()),
                 Entry::Blocks { .. } | Entry::Subgraph { .. } | Entry::Symmetrize { .. } | Entry::LayerL { .. }
-                | Entry::Map { .. } => Some(Vec::new()),
+                | Entry::Map { .. } | Entry::Project { .. } => Some(Vec::new()),
+                _ => None,
+            })
+            .collect();
+        let projections = self
+            .entries
+            .iter()
+            .filter_map(|e| match e {
+                Entry::Project { local, .. } => {
+                    let size = local.iter().filter(|&&k| k >= 0).count() as u32;
+                    let mut proj = WtNetwork::new(size, false);
+                    for (q, &l) in local.iter().enumerate() {
+                        if l < 0 {
+                            let partners = net.neighbours(q as u32);
+                            for (x, &a) in partners.iter().enumerate() {
+                                for &b in &partners[x + 1..] {
+                                    let (a, b) = (local[a as usize] as u32, local[b as usize] as u32);
+                                    proj.set(a, b, proj.get(a, b) + 1.0);
+                                }
+                            }
+                        }
+                    }
+                    Some(Some(Projection(std::sync::Mutex::new(proj))))
+                }
+                Entry::Blocks { .. } | Entry::Subgraph { .. } | Entry::Symmetrize { .. } | Entry::LayerL { .. }
+                | Entry::Map { .. } | Entry::LayerStat { .. } => Some(None),
                 _ => None,
             })
             .collect();
@@ -1723,7 +1814,7 @@ impl Model {
                 _ => None,
             })
             .collect();
-        State { net, aux, prev, subs, ages: tie_ages, aged, sums, views }
+        State { net, aux, prev, subs, ages: tie_ages, aged, sums, views, projections }
     }
 
     /// Toggles (i, j) in the network and in the auxiliary networks it belongs to.
@@ -1770,6 +1861,13 @@ impl Model {
                         let logics: Vec<&Logic> = views.iter().collect();
                         for (v, a, b) in flips(&logics, layout, &state.net, i, j) {
                             state.views[*slot][v].toggle(a, b);
+                        }
+                    }
+                    Entry::Project { slot, local, .. } => {
+                        let proj = state.projections[*slot].as_mut().expect("Project() keeps its projection");
+                        let proj = proj.0.get_mut().unwrap();
+                        for (a, b, v) in Entry::projected(local, &state.net, proj, i, j) {
+                            proj.set(a, b, v);
                         }
                     }
                     _ => {}
@@ -1867,6 +1965,24 @@ impl Model {
                         stat.change(&state.views[*slot], &flipped, out);
                     }
                 }
+                Entry::Project { slot, local, model } => {
+                    // The values change one at a time, on the projection, then back.
+                    let proj = state.projections[*slot].as_ref().expect("Project() keeps its projection");
+                    let mut proj = proj.0.lock().unwrap();
+                    let changes = Entry::projected(local, &state.net, &proj, i, j);
+                    let mut delta = vec![0.0; model.n_stats()];
+                    let mut undo = Vec::with_capacity(changes.len());
+                    for &(a, b, v) in &changes {
+                        let old = proj.get(a, b);
+                        model.change(&WtState::default(), &proj, a, b, old, v, &mut delta);
+                        out.iter_mut().zip(&delta).for_each(|(o, d)| *o += d);
+                        proj.set(a, b, v);
+                        undo.push((a, b, old));
+                    }
+                    for &(a, b, old) in undo.iter().rev() {
+                        proj.set(a, b, old);
+                    }
+                }
                 Entry::Blocks { view, scale, slot, blocks, compact, q, .. } => {
                     let Some((k, a, b)) = located else { continue };
                     if !view.sees(state.prev.get(k), a, b) {
@@ -1948,6 +2064,10 @@ impl Model {
                     }
                 }
                 Entry::LayerStat { stat, layout, .. } => stat.empty(layout.size, net.directed(), out),
+                Entry::Project { local, model, .. } => {
+                    let size = local.iter().filter(|&&k| k >= 0).count() as u32;
+                    out.copy_from_slice(&model.summary(&WtNetwork::new(size, false)));
+                }
             }
         }
         let mut delta = vec![0.0; self.n_stats];

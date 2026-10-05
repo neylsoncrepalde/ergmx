@@ -3,6 +3,14 @@
 The works cited in this documentation, with links to find them online.
 Works without a DOI link to a search for them.
 
+- Babkin, S., Stewart, J. R., Long, X. and Schweinberger, M. (2020).
+  Large-scale estimation of random graph models with local dependence.
+  *Computational Statistics & Data Analysis*, 152, 107029.
+  [Search](https://scholar.google.com/scholar?q=%22Large-scale+estimation+of+random+graph+models+with+local+dependence%22)
+- Blackburn, B. and Handcock, M. S. (2023). Practical network modeling via
+  tapered exponential-family random graph models. *Journal of Computational
+  and Graphical Statistics*, 32(2), 388–401.
+  [doi:10.1080/10618600.2022.2116444](https://doi.org/10.1080/10618600.2022.2116444)
 - Breiger, R. L. and Pattison, P. E. (1986). Cumulated social roles: The
   duality of persons and their algebras. *Social Networks*, 8(3), 215–256.
   [doi:10.1016/0378-8733(86)90006-7](https://doi.org/10.1016/0378-8733(86)90006-7)
@@ -18,6 +26,10 @@ Works without a DOI link to a search for them.
 - Duxbury, S. W. (2023). The problem of scaling in exponential random graph
   models. *Sociological Methods & Research*, 52(2), 764–802 (online 2021).
   [doi:10.1177/0049124120986178](https://doi.org/10.1177/0049124120986178)
+- Fellows, I. and Handcock, M. S. (2017). Removing phase transitions from
+  Gibbs measures. *Proceedings of the 20th International Conference on
+  Artificial Intelligence and Statistics*, PMLR 54, 289–297.
+  [proceedings.mlr.press/v54/fellows17a](https://proceedings.mlr.press/v54/fellows17a.html)
 - Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A. and
   Rubin, D. B. (2013). *Bayesian Data Analysis* (3rd ed.). Chapman and
   Hall/CRC. [doi:10.1201/b16018](https://doi.org/10.1201/b16018)
@@ -29,12 +41,20 @@ Works without a DOI link to a search for them.
   not contact each other at random: implications for infectious disease
   modelling. *Proceedings of the Royal Society B*, 285(1893), 20182201.
   [doi:10.1098/rspb.2018.2201](https://doi.org/10.1098/rspb.2018.2201)
+- Handcock, M. S., Raftery, A. E. and Tantrum, J. M. (2007). Model-based
+  clustering for social networks. *Journal of the Royal Statistical Society,
+  Series A*, 170(2), 301–354.
+  [doi:10.1111/j.1467-985X.2007.00471.x](https://doi.org/10.1111/j.1467-985X.2007.00471.x)
 - Handcock, M. S. and Gile, K. J. (2010). Modeling social networks from
   sampled data. *The Annals of Applied Statistics*, 4(1), 5–25.
   [doi:10.1214/08-AOAS221](https://doi.org/10.1214/08-AOAS221)
 - Hinton, G. E. (2002). Training products of experts by minimizing
   contrastive divergence. *Neural Computation*, 14(8), 1771–1800.
   [doi:10.1162/089976602760128018](https://doi.org/10.1162/089976602760128018)
+- Hoff, P. D., Raftery, A. E. and Handcock, M. S. (2002). Latent space
+  approaches to social network analysis. *Journal of the American
+  Statistical Association*, 97(460), 1090–1098.
+  [doi:10.1198/016214502388618906](https://doi.org/10.1198/016214502388618906)
 - Hummel, R. M., Hunter, D. R. and Handcock, M. S. (2012). Improving
   simulation-based algorithms for fitting ERGMs. *Journal of Computational
   and Graphical Statistics*, 21(4), 920–939.
@@ -48,6 +68,10 @@ Works without a DOI link to a search for them.
   networks. *Journal of the American Statistical Association*, 118(544),
   2213–2224.
   [doi:10.1080/01621459.2023.2242627](https://doi.org/10.1080/01621459.2023.2242627)
+- Krivitsky, P. N., Handcock, M. S., Raftery, A. E. and Hoff, P. D. (2009).
+  Representing degree distributions, clustering, and homophily in social
+  networks with latent cluster random effects models. *Social Networks*,
+  31(3), 204–213. [doi:10.1016/j.socnet.2009.04.001](https://doi.org/10.1016/j.socnet.2009.04.001)
 - Krivitsky, P. N., Koehly, L. M. and Marcum, C. S. (2020). Exponential-family
   random graph models for multi-layer networks. *Psychometrika*, 85(3),
   630–659. [doi:10.1007/s11336-020-09720-7](https://doi.org/10.1007/s11336-020-09720-7)
@@ -80,6 +104,16 @@ Works without a DOI link to a search for them.
   and Case Study of Social Relationships*. PhD dissertation, Cornell
   University.
   [Search](https://scholar.google.com/scholar?q=%22A+novitiate+in+a+period+of+change%22+Sampson)
+- Schweinberger, M. and Handcock, M. S. (2015). Local dependence in random
+  graph models: characterization, properties and statistical inference.
+  *Journal of the Royal Statistical Society, Series B*, 77(3), 647–676.
+  [doi:10.1111/rssb.12081](https://doi.org/10.1111/rssb.12081)
+- Shortreed, S., Handcock, M. S. and Hoff, P. D. (2006). Positional
+  estimation within a latent space model for networks. *Methodology*, 2(1),
+  24–33. [doi:10.1027/1614-2241.2.1.24](https://doi.org/10.1027/1614-2241.2.1.24)
+- Stephens, M. (2000). Dealing with label switching in mixture models.
+  *Journal of the Royal Statistical Society, Series B*, 62(4), 795–809.
+  [doi:10.1111/1467-9868.00265](https://doi.org/10.1111/1467-9868.00265)
 - Wang, P., Robins, G., Pattison, P. and Lazega, E. (2013). Exponential random
   graph models for multilevel networks. *Social Networks*, 35(1), 96–115.
   [doi:10.1016/j.socnet.2013.01.004](https://doi.org/10.1016/j.socnet.2013.01.004)
