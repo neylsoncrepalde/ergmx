@@ -295,5 +295,7 @@ accepted: R expressions such as `log(n)` must be computed first.
   Newton's (`rm.a` and `rm.alpha` are gone).
 
 **Not yet available.**
-: Valued models of several networks; and among ergm's binary terms, the
-  projection operators.
+: Valued models of several networks; among ergm's binary terms, the
+  projection operators; `L()` of curved terms, the gw layer terms with an
+  estimated decay, and ergm.multi's bipartite layer terms (`b1dspL`,
+  `b2dspL`...); and interactions in `N()`'s linear models.

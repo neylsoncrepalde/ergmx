@@ -1,5 +1,12 @@
 # ergmx
 
+[![Tests](https://github.com/neylsoncrepalde/ergmx/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/neylsoncrepalde/ergmx/actions/workflows/tests.yml)
+[![Documentation](https://github.com/neylsoncrepalde/ergmx/actions/workflows/docs.yml/badge.svg?branch=main)](https://neylsoncrepalde.github.io/ergmx/)
+[![Release](https://github.com/neylsoncrepalde/ergmx/actions/workflows/release.yml/badge.svg)](https://github.com/neylsoncrepalde/ergmx/actions/workflows/release.yml)
+[![PyPI](https://img.shields.io/pypi/v/ergmx)](https://pypi.org/project/ergmx/)
+[![Python versions](https://img.shields.io/pypi/pyversions/ergmx)](https://pypi.org/project/ergmx/)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](https://github.com/neylsoncrepalde/ergmx/blob/main/LICENSE.md)
+
 **Exponential-family random graph models (ERGMs) in Python, with a Rust core.**
 
 `ergmx` fits, simulates, summarizes and checks ERGMs with a high-level API in
@@ -7,14 +14,16 @@ the spirit of R's [ergm](https://github.com/statnet/ergm) and statnet: R-style
 formulas, the same term names and statistics, and `summary()` and `gof()`
 that read like R's.
 
-> 171 terms and 9 operators for directed, undirected and bipartite
-> networks, and interactions; curved ERGMs; sample space constraints; missing
-> ties; multilevel networks (as MPNet); samples of networks (as ergm.multi);
-> temporal ERGMs, EGMME and dynamic simulation (as tergm); MPLE, contrastive
-> divergence and Monte Carlo MLE; MCMC diagnostics, log-likelihoods, model
-> comparison and goodness of fit; tie probabilities, marginal effects and
-> tables of results; networks of tens of thousands of vertices; all
-> validated against R. See [what's missing](#not-yet).
+> 185 terms and 21 operators for directed, undirected and bipartite
+> networks, and interactions, and terms written in Python; curved ERGMs;
+> sample space constraints; missing ties; multilevel networks (as MPNet);
+> samples of networks and multilayer networks (as ergm.multi); temporal
+> ERGMs, EGMME and dynamic simulation with tie ages (as tergm), and btergm;
+> valued, egocentric and Bayesian ERGMs, with model evidence; MPLE,
+> contrastive divergence and Monte Carlo MLE; MCMC diagnostics,
+> log-likelihoods, model comparison and goodness of fit; tie probabilities,
+> marginal effects and tables of results; networks of tens of thousands of
+> vertices; all validated against R. See [what's missing](#not-yet).
 
 ```python
 import ergmx
@@ -84,7 +93,7 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
   | Degree | `kstar(k)`, `degree(d)`, `isolates`, `concurrent`, `twopath`, `gwdegree` | `istar(k)`, `ostar(k)`, `idegree(d)`, `odegree(d)`, `isolates`, `twopath`, `gwidegree`, `gwodegree` |
   | Triads and cycles | `triangle`, `cycle(k)`, `gwesp`, `gwdsp`, `gwnsp`, `esp(d)`, `dsp(d)`, `nsp(d)` | `triangle`, `ttriple`, `ctriple`, `transitive`, `cycle(k)`, and the shared partner terms with any `type` (OTP, ITP, RTP, OSP, ISP) |
   | Attributes | `nodematch` (`diff=TRUE` too), `nodemix`, `nodefactor`, `nodecov`, `absdiff`, `absdiffcat` | the same, plus `nodeifactor`, `nodeofactor`, `nodeicov`, `nodeocov` |
-  | Operators | `offset(term)` (with `-inf` to forbid ties), `F(~terms, ~filter)`, `S(~terms, ~attrs)` | the same |
+  | Operators | `offset(term)` (with `-inf` to forbid ties), `F(~terms, ~filter)`, `S(~terms, ~attrs)`, `Sum()`, `Prod()`, `Log()`, `Exp()`, `Label()`, `Passthrough()`, `I()`, `For()`, `Offset()`, `Curve()` | the same, plus `Symmetrize()` |
 
   And the rest of ergm's common vocabulary: degree ranges (`degrange`,
   `idegrange`, `odegrange`), `degree1.5`, `concurrentties`, `isolatededges`,
@@ -129,18 +138,27 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
   network-level attributes, with R's syntax and names (and N()'s `subset`,
   `offset`, `label` and `contrasts`); `ergmx.gofN(fit)` checks the fit
   network by network, and `ergmx.lm_gofN()` models its residuals.
+- **Multilayer networks**, as R's ergm.multi: `ergmx.Layer(marriage=g1,
+  business=g2)` makes several relations on the same vertices the layers of
+  one network; `L(~edges, ~marriage & business)` evaluates terms on logical
+  layers (ergm.multi's Layer Logic), and `CMBL`, `twostarL`, `mutualL` and
+  the layer-aware shared partner terms (`espL`, `gwespL`...) relate the
+  layers.
 - **Egocentric data**, as R's ergm.ego: `ergmx.ergm_ego(formula, data)` fits
   a population's ERGM from a sample of egos, their alters and the ties among
   them (`ergmx.EgoData`), with the network size adjustment and standard
   errors from the egos' sampling variance.
 - **Valued networks**, as R's ergm.count: counts on the dyads
   (`response="contexts"`) with Poisson, binomial, geometric or uniform
-  reference measures (`reference="Poisson"`) and ergm's valued terms (`sum`,
-  `nonzero`, `nodematch(..., form="sum")`, `mutual`, `transitiveweights`,
-  `nodecovar`, `CMP`...).
+  reference measures (`reference="Poisson"`), continuous values
+  (`"StdNormal"`, `"Unif(a, b)"`), ergm's valued terms (`sum`, `nonzero`,
+  `nodematch(..., form="sum")`, `mutual`, `transitiveweights`, `nodecovar`,
+  `CMP`...), missing dyads, goodness of fit and `san()`.
 - **Bayesian ERGMs**, as R's Bergm: `ergmx.bergm(g, formula)` samples the
   posterior by the exchange algorithm, with posterior summaries, diagnostics,
-  plots and posterior predictive goodness of fit.
+  plots and posterior predictive goodness of fit; `ergmx.evidence()` (the
+  model evidence, to compare models), `ergmx.ergm_apl()` (the adjusted
+  pseudo-likelihood) and `ergmx.bergmC()` (the calibrated pseudo-posterior).
 - **Networks with given statistics**: `ergmx.san()`, ergm's simulated
   annealing, and models fitted to target statistics,
   `ergmx.ergm(..., target_stats=[...])`.
@@ -149,9 +167,13 @@ ergmx.compare(simpler, fit)   # log-likelihoods, AIC, BIC, likelihood-ratio test
   series of networks, with `Form()`, `Persist()`, `Diss()`, `Cross()` and
   `Change()`, missing dyads (tergm's `NA.impute`) and trends over time;
   `fit.simulate(time_slices=20)` and `ergmx.simulate_dynamic()` run the
-  process forward, with the ties that form and dissolve and their durations;
-  and `estimate="EGMME"` fits a process to a single network and the ages of
-  its ties.
+  process forward, with the ties that form and dissolve and their durations,
+  at rates that can depend on the ties' ages (`edges.ageinterval`,
+  `mean.age`...); `estimate="EGMME"` fits a process to a single network and
+  the ages of its ties; and `ergmx.btergm()`, as R's btergm, pools the
+  pseudo-likelihood over the time steps, with bootstrap intervals.
+- **Terms written in Python**: subclass `ergmx.UserTerm` with the change of
+  its statistics; dyad-independent ones run as fast as ergmx's own terms.
 - **Estimation**:
   - dyad-independent models: the exact MLE (logistic regression), with
     log-likelihood, AIC and BIC;
@@ -241,6 +263,9 @@ results in `tests/data/r_reference.json`; the test suite compares.
 | Log-likelihood, directed and undirected | unbiased against exact enumeration (6 and 4 vertices), with calibrated standard errors |
 | Log-likelihood, 5 dyad-dependent models | within one standard error of high-precision estimates (128 bridges); R's 16-point midpoint rule is off by 0.1 to 2.1 |
 | Contrastive divergence | a fixed point of its defining equation; the MLE from a CD start matches R's |
+| ergm's operators (`Sum`, `Prod`, `Log`, `Exp`, `Symmetrize`, `Label`, `Curve`...), 26 sets of statistics and 5 fits | statistics and names identical to R's; fits within 0.3 standard errors of R's (the MPLE to 1e-6; `Symmetrize()` against its exact MLE, which R's misses) |
+| ergm.multi's multilayer terms, 20 sets of statistics and 4 fits | statistics and names identical to R's, but the in-order OSP and ISP shared partners, where ergmx follows ergm.multi's documentation; fits within 0.1 standard errors |
+| tergm's tie-age terms, btergm and Bergm's model evidence | tie-age statistics and simulations match tergm's and the exact stationary distributions; btergm's estimates identical to R's (2e-8) and its bootstrap to exact enumeration; the evidence within 0.01 of the exact value, where Bergm's is about 2 nats off |
 
 The networks are ergm's flomarriage, samplk3, faux.mesa.high and
 faux.dixon.high (248 students, directed friendship nominations), the second
@@ -290,22 +315,31 @@ python/ergmx/         Python API
   datasets.py           ergm's and multinets' networks, bundled in data/
   _fit.py               ErgmFit and its summary table
   _simulate.py          ergm(), simulate(), summary_stats()
+  _operators.py         ergm's operators (Sum, Prod, Log, Exp, Symmetrize, Curve...)
+  _layers.py            multilayer networks: Layer(), Layer Logic, L() and the layer terms
+  _userterms.py         terms written in Python
 src/                  Rust core (PyO3), exposed as ergmx._core.Model
   network.rs            sorted neighbour lists + edge list for O(1) random ties
   terms.rs              the Term trait and the change statistics
   sampler.rs            Metropolis-Hastings: TNT, triadic and degree-preserving moves
   space.rs              the sample space: free dyads, degree bounds
+  valued.rs             valued ERGMs: reference measures, terms and proposals
+  durational.rs         tie ages and the durational terms
+  layers.rs             Layer Logic and the layer-aware terms
+  userterm.rs           terms written in Python, called back from the sampler
   lib.rs                bindings; chains run in parallel with rayon
 ```
 
 Adding a term means implementing its change statistic in `src/terms.rs` and
-describing it in `python/ergmx/terms.py`.
+describing it in `python/ergmx/terms.py`, or, in Python, subclassing
+`ergmx.UserTerm`.
 
 ## Not yet
 
-- ergm's projection and `Sum`/`Prod`/`Exp`-style operators, and valued
-  networks with continuous values (ergm's `StdNormal` reference).
-- tergm's durational model terms.
+- ergm's projection operators, and valued models of several networks.
+- `L()` of curved terms, the gw layer terms with an estimated decay, and
+  ergm.multi's bipartite layer terms (`b1dspL`, `b2dspL`...).
+- Interactions (`a:b`) in `N()`'s linear models.
 
 ## Installation
 
