@@ -48,6 +48,10 @@ class Control:
     #: Share of triadic MCMC proposals (they close or open a triangle). None
     #: uses 0.5 for models with triangle or shared partner terms, 0 otherwise.
     triadic_weight: float | None = None
+    #: Valued models with the StdNormal reference: the standard deviation of
+    #: the proposals' steps, each a dyad's value plus a normal step (ergm's
+    #: MCMC.prop.args=list(sd=)).
+    normal_sd: float = 0.2
     #: Minimum effective sample size per iteration; None keeps the interval fixed.
     effective_size: int | None = 64
     #: Largest interval the adaptation may reach.
@@ -241,12 +245,27 @@ def _decays_of(model: BoundModel):
 def _lower_bounds(model: BoundModel) -> np.ndarray:
     """The parameters' lower bounds: 0 for the estimated decays of curved
     terms (as ergm's ``minpar``: a negative decay gives alternating weights),
-    -inf for the others."""
+    a term's own (``lower_bounds``), -inf for the others."""
     lower = np.full(model.n_params, -np.inf)
+    own = np.zeros(model.n_params, dtype=bool)
+    for term, _, qs in model.blocks:
+        bounds = getattr(term, "lower_bounds", None)
+        if bounds is not None:
+            lower[qs], own[qs] = bounds(model.network), True
     for position, _ in _decays_of(model):
-        if model.free[position]:
+        if model.free[position] and not own[position]:
             lower[position] = 0.0
-    return lower
+    return np.where(model.free, lower, -np.inf)
+
+
+def _upper_bounds(model: BoundModel) -> np.ndarray:
+    """The parameters' upper bounds: a term's own (``upper_bounds``), +inf for the others."""
+    upper = np.full(model.n_params, np.inf)
+    for term, _, qs in model.blocks:
+        bounds = getattr(term, "upper_bounds", None)
+        if bounds is not None:
+            upper[qs] = bounds(model.network)
+    return np.where(model.free, upper, np.inf)
 
 
 def _maximize(value, grad_hess, theta, free, max_iter=500, tol=1e-9, lower=None, upper=None):
@@ -306,7 +325,7 @@ def _gauss_newton_mple(x, y, weights, model, theta, params):
         return jx.T @ (weights * (y - mu)), (jx * (weights * mu * (1 - mu))[:, None]).T @ jx
 
     theta, converged = _maximize(lambda th: _pseudo_loglik(lin_of(th), y, weights), grad_hess,
-                                 theta, params, lower=_lower_bounds(model))
+                                 theta, params, lower=_lower_bounds(model), upper=_upper_bounds(model))
     if not converged:
         warnings.warn("the MPLE of the curved model did not converge", stacklevel=4)
     _, hess = grad_hess(theta)
@@ -475,7 +494,7 @@ def _step(model: BoundModel, theta, sample, target, margin, sample_obs=None, rad
     new[free] += np.linalg.lstsq(jac.T @ info @ jac, jac.T @ pull, rcond=None)[0]
     fisher = jac.T @ info @ jac
     if model.curved and linear:
-        new = np.maximum(new, _lower_bounds(model))
+        new = np.minimum(np.maximum(new, _lower_bounds(model)), _upper_bounds(model))
     elif model.curved:
         new = _gauss_newton_lognormal(model, theta, new, pull, info, active)
         # The approximation can be nearly flat along a decay, far from the
@@ -532,6 +551,7 @@ def _gauss_newton_lognormal(model, theta0, theta, pull, info, active, lower=None
         return jac.T @ (pull - info @ d), jac.T @ info @ jac
 
     lower = _lower_bounds(model) if lower is None else lower
+    upper = _upper_bounds(model) if upper is None else upper
     return _maximize(value, grad_hess, np.array(theta, dtype=float), free, lower=lower, upper=upper)[0]
 
 

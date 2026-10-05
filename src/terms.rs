@@ -7,6 +7,8 @@
 
 use rustc_hash::FxHashMap;
 
+use crate::durational::{AgedTerm, TieAges, build_aged, is_aged};
+use crate::layers::{LayerLayout, LayerStat, Logic, build_stat, flips, programs};
 use crate::network::{Network, Partners, count_common};
 use crate::partners::{Bins, Scope, SharedPartners, SpType, Weight};
 use crate::space::Space;
@@ -783,6 +785,9 @@ fn chunks(name: &str, ints: &[i64]) -> Result<Vec<Vec<i64>>, String> {
 
 pub(crate) fn build_term(n: usize, directed: bool, spec: &TermSpec) -> Result<Box<dyn Term>, String> {
     let TermSpec(name, reals, ints, _) = spec;
+    if name == "dyadtable" || name == "python" {
+        return crate::userterm::build(n, directed, name, reals, ints);
+    }
     let expect = |len: usize, what: &str, want: usize| {
         if len == want { Ok(()) } else { Err(format!("{name}: expected {want} {what}, got {len}")) }
     };
@@ -1114,6 +1119,27 @@ impl Layout {
         (i < s + n && j >= s && j < s + n).then(|| (k, i - s, j - s))
     }
 
+    /// The ages of ties, (i, j, age) rows in the model's numbering, as one map
+    /// per block in its numbering (`TieAges::map`).
+    pub fn block_ages(&self, directed: bool, rows: &[(u32, u32, u32)]) -> Vec<FxHashMap<u64, u32>> {
+        let mut parts = vec![Vec::new(); self.len()];
+        for &(i, j, age) in rows {
+            if let Some((k, a, b)) = self.locate(i, j) {
+                parts[k].push((a, b, age));
+            }
+        }
+        parts.iter().map(|p| TieAges::map(directed, p)).collect()
+    }
+
+    /// Each block's (i, j, age) rows, in the model's numbering.
+    pub fn joined_ages(&self, blocks: &[Vec<(u32, u32, u32)>]) -> Vec<(u32, u32, u32)> {
+        blocks
+            .iter()
+            .enumerate()
+            .flat_map(|(k, rows)| rows.iter().map(move |&(i, j, a)| (i + self.starts[k], j + self.starts[k], a)))
+            .collect()
+    }
+
     /// Each block's network in `net`, with the vertices numbered within the block.
     pub fn split(&self, net: &Network) -> Vec<Network> {
         let mut parts: Vec<Network> = self.sizes.iter().map(|&n| Network::new(n, net.directed())).collect();
@@ -1155,6 +1181,93 @@ enum Entry {
     /// directed network (`oriented`), the bipartite subgraph has the arcs from
     /// the first set to the second, as an undirected network (`sub_directed` false).
     Subgraph { slot: usize, local: Vec<u32>, head: Option<Vec<bool>>, oriented: bool, sub_directed: bool, model: Box<Model> },
+    /// A durational term (tergm's), of the ties' ages, with its storage in
+    /// the state's `aged[slot]`.
+    Aged { term: Box<dyn AgedTerm>, slot: usize },
+    /// ergm's Sum(), Log() and Exp(): a function of the statistics of a
+    /// submodel, evaluated on the same network; Log() and Exp() keep the
+    /// submodel's statistics in the state's `sums[slot]`.
+    Map { slot: usize, model: Box<Model>, kind: MapKind },
+    /// ergm's Symmetrize(): terms of the undirected network made from a
+    /// directed one by a rule.
+    Symmetrize { slot: usize, model: Box<Model>, rule: SymmetrizeRule },
+    /// ergm.multi's L(): a submodel on logical layers of a network of
+    /// layers, weighted and summed; the state's `subs[slot]` are its states
+    /// on each.
+    LayerL { slot: usize, model: Box<Model>, views: Vec<(f64, Logic)>, layout: LayerLayout },
+    /// ergm.multi's layer-aware terms, of logical layers whose networks are
+    /// in the state's `views[slot]`.
+    LayerStat { slot: usize, stat: Box<dyn LayerStat>, views: Vec<Logic>, layout: LayerLayout },
+}
+
+/// The function of Entry::Map: a matrix (q x the submodel's statistics, row
+/// major), or each statistic's logarithm (with log(0) = `log0`) or exponential.
+pub(crate) enum MapKind {
+    Linear { q: usize, matrix: Vec<f64> },
+    Log { log0: f64 },
+    Exp,
+}
+
+impl MapKind {
+    fn n_stats(&self, p: usize) -> usize {
+        match self {
+            MapKind::Linear { q, .. } => *q,
+            _ => p,
+        }
+    }
+
+    /// The function of the submodel's statistics `x`.
+    fn apply(&self, x: &[f64], out: &mut [f64]) {
+        match self {
+            MapKind::Linear { q, matrix } => {
+                let p = x.len();
+                for (r, o) in out.iter_mut().enumerate().take(*q) {
+                    *o = matrix[r * p..(r + 1) * p].iter().zip(x).map(|(m, v)| m * v).sum();
+                }
+            }
+            MapKind::Log { log0 } => out.iter_mut().zip(x).for_each(|(o, &v)| *o = if v == 0.0 { *log0 } else { v.ln() }),
+            MapKind::Exp => out.iter_mut().zip(x).for_each(|(o, &v)| *o = v.exp()),
+        }
+    }
+}
+
+/// How Symmetrize() makes an undirected tie {i, j} from the directed ties:
+/// either of i -> j and j -> i, both, or the one from the lower (upper) or
+/// the higher vertex (lower).
+#[derive(Clone, Copy)]
+pub(crate) enum SymmetrizeRule {
+    Weak,
+    Strong,
+    Upper,
+    Lower,
+}
+
+impl SymmetrizeRule {
+    fn tie(self, net: &Network, a: u32, b: u32) -> bool {
+        let (ab, ba) = (net.has_edge(a, b), net.has_edge(b, a));
+        match self {
+            SymmetrizeRule::Weak => ab || ba,
+            SymmetrizeRule::Strong => ab && ba,
+            SymmetrizeRule::Upper => ab,
+            SymmetrizeRule::Lower => ba,
+        }
+    }
+
+    /// Whether toggling i -> j toggles the undirected {min, max}.
+    fn toggles(self, net: &Network, i: u32, j: u32) -> bool {
+        let (a, b) = (i.min(j), i.max(j));
+        match self {
+            SymmetrizeRule::Weak | SymmetrizeRule::Strong => {
+                // The undirected tie before and after.
+                let before = self.tie(net, a, b);
+                let (ab, ba) = (net.has_edge(a, b) ^ (i == a), net.has_edge(b, a) ^ (i == b));
+                let after = if matches!(self, SymmetrizeRule::Weak) { ab || ba } else { ab && ba };
+                before != after
+            }
+            SymmetrizeRule::Upper => i < j,
+            SymmetrizeRule::Lower => i > j,
+        }
+    }
 }
 
 impl Entry {
@@ -1163,6 +1276,11 @@ impl Entry {
             Entry::Plain(term) => term.n_stats(),
             Entry::Filtered { n_stats, .. } | Entry::Blocks { n_stats, .. } => *n_stats,
             Entry::Subgraph { model, .. } => model.n_stats(),
+            Entry::Aged { term, .. } => term.n_stats(),
+            Entry::Map { model, kind, .. } => kind.n_stats(model.n_stats()),
+            Entry::Symmetrize { model, .. } => model.n_stats(),
+            Entry::LayerL { model, .. } => model.n_stats(),
+            Entry::LayerStat { stat, .. } => stat.n_stats(),
         }
     }
 }
@@ -1206,6 +1324,14 @@ pub struct State {
     aux: Vec<Network>,
     prev: Vec<Network>,
     subs: Vec<Vec<State>>,
+    /// For durational terms: the previous network with its ties' ages, and
+    /// each durational term's storage.
+    ages: Option<TieAges>,
+    aged: Vec<Vec<f64>>,
+    /// For each slot of Log() and Exp(), the submodel's statistics.
+    sums: Vec<Vec<f64>>,
+    /// For each slot of a layer-aware term, its logical layers' networks.
+    views: Vec<Vec<Network>>,
 }
 
 /// The terms of a model, with the position of each term's statistics.
@@ -1219,6 +1345,8 @@ pub struct Model {
     prev: Vec<Network>,
     /// Number of block operators.
     n_slots: usize,
+    /// Number of durational terms.
+    n_aged: usize,
     n_vertices: u32,
 }
 
@@ -1232,7 +1360,7 @@ impl Model {
         layout: Option<Layout>,
         prev: Vec<Network>,
     ) -> Result<Self, String> {
-        let (n_usize, mut entries, mut filters, mut n_slots) = (n as usize, Vec::new(), Vec::new(), 0);
+        let (n_usize, mut entries, mut filters, mut n_slots, mut n_aged) = (n as usize, Vec::new(), Vec::new(), 0, 0);
         if let Some(layout) = &layout
             && !prev.is_empty()
             && (prev.len() != layout.len() || prev.iter().enumerate().any(|(k, p)| p.n() != layout.size(k)))
@@ -1332,6 +1460,66 @@ impl Model {
                 let scale = if negate == 1 { -1.0 } else { 1.0 };
                 entries.push(Entry::Blocks { view, scale, slot: n_slots, blocks, compact, q, n_stats });
                 n_slots += 1;
+            } else if spec.0 == "map" || spec.0 == "symmetrize" {
+                // map: ints [kind (0 linear, 1 log, 2 exp), q], reals the q x p
+                // matrix (linear) or [log0]; symmetrize: ints [rule]. The
+                // children are the submodel's terms.
+                let code = spec.2.first().copied().unwrap_or(-1);
+                if spec.0 == "symmetrize" {
+                    if !directed {
+                        return Err("Symmetrize() is for directed networks".into());
+                    }
+                    let rule = match code {
+                        0 => SymmetrizeRule::Weak,
+                        1 => SymmetrizeRule::Strong,
+                        2 => SymmetrizeRule::Upper,
+                        3 => SymmetrizeRule::Lower,
+                        _ => return Err("Symmetrize(): bad rule".into()),
+                    };
+                    let model = Box::new(Model::new(n, false, &spec.3, None, Vec::new())?);
+                    entries.push(Entry::Symmetrize { slot: n_slots, model, rule });
+                } else {
+                    let model = Box::new(Model::new(n, directed, &spec.3, None, Vec::new())?);
+                    let p = model.n_stats();
+                    let kind = match code {
+                        0 => {
+                            let q = spec.2.get(1).copied().unwrap_or(-1);
+                            if q < 0 || spec.1.len() != q as usize * p {
+                                return Err(format!("Sum(): a matrix of {p} columns"));
+                            }
+                            MapKind::Linear { q: q as usize, matrix: spec.1.clone() }
+                        }
+                        1 => MapKind::Log { log0: spec.1.first().copied().unwrap_or(-1.0 / f64::EPSILON.sqrt()) },
+                        2 => MapKind::Exp,
+                        _ => return Err("map: bad kind".into()),
+                    };
+                    entries.push(Entry::Map { slot: n_slots, model, kind });
+                }
+                n_slots += 1;
+            } else if spec.0 == "layerL" || spec.0.starts_with("layer") {
+                let Some(layout) = layout.as_ref().filter(|l| l.len() >= 2) else {
+                    return Err("L() and the layer-aware terms need a network of layers, from Layer()".into());
+                };
+                let size = layout.size(0);
+                let layers = LayerLayout { starts: layout.starts.clone(), size };
+                if spec.0 == "layerL" {
+                    // reals: the views' weights; ints: [count, then each view's program]
+                    let count = *spec.2.first().ok_or("L(): missing the layers")? as usize;
+                    let (logics, _) = programs(&spec.2[1..], count, layout.len())?;
+                    if spec.1.len() != count {
+                        return Err("L(): one weight per layer".into());
+                    }
+                    let model = Box::new(Model::new(size, directed, &spec.3, None, Vec::new())?);
+                    let views = spec.1.iter().copied().zip(logics).collect();
+                    entries.push(Entry::LayerL { slot: n_slots, model, views, layout: layers });
+                } else {
+                    let (stat, views) = build_stat(&spec.0, &spec.1, &spec.2, layout.len(), size)?;
+                    entries.push(Entry::LayerStat { slot: n_slots, stat, views, layout: layers });
+                }
+                n_slots += 1;
+            } else if is_aged(spec) {
+                entries.push(Entry::Aged { term: build_aged(n_usize, directed, spec)?, slot: n_aged });
+                n_aged += 1;
             } else {
                 entries.push(Entry::Plain(build_term(n_usize, directed, spec)?));
             }
@@ -1342,7 +1530,7 @@ impl Model {
             offsets.push(n_stats);
             n_stats += entry.n_stats();
         }
-        Ok(Self { entries, offsets, filters, n_stats, layout, prev, n_slots, n_vertices: n })
+        Ok(Self { entries, offsets, filters, n_stats, layout, prev, n_slots, n_aged, n_vertices: n })
     }
 
     pub fn n_stats(&self) -> usize {
@@ -1372,6 +1560,40 @@ impl Model {
         self.state_with(net, self.prev.clone())
     }
 
+    /// Whether the model has durational terms (tergm's), in its blocks too.
+    pub fn is_aged(&self) -> bool {
+        self.n_aged > 0
+            || self.entries.iter().any(|e| match e {
+                Entry::Blocks { blocks, .. } => blocks.iter().any(|b| b.model.is_aged()),
+                _ => false,
+            })
+    }
+
+    /// The previous networks' ties' ages, for the blocks' views and the
+    /// model's own durational terms: `ages[k]` are block k's (keyed as
+    /// `TieAges::map`, in the block's numbering; missing ones are 1).
+    fn tie_ages(&self, prev: &[Network], ages: &[FxHashMap<u64, u32>], directed: bool) -> Option<TieAges> {
+        if self.n_aged == 0 {
+            return None;
+        }
+        let layout = self.layout.as_ref().filter(|_| !prev.is_empty());
+        let Some(layout) = layout else {
+            return Some(TieAges::new(Network::new(self.n_vertices, directed), FxHashMap::default()));
+        };
+        // The blocks' previous networks and ages, joined in the model's numbering.
+        let mut joined = Network::new(self.n_vertices, directed);
+        let mut rows = Vec::new();
+        for (k, p) in prev.iter().enumerate() {
+            let start = layout.starts[k];
+            let local = TieAges::new(p.clone(), ages.get(k).cloned().unwrap_or_default());
+            for &(i, j) in p.edges() {
+                joined.toggle(i + start, j + start);
+                rows.push((i + start, j + start, local.previous(i, j)));
+            }
+        }
+        Some(TieAges::new(joined, TieAges::map(directed, &rows)))
+    }
+
     /// The shared partner counts the terms read, on the network and (for
     /// the terms inside F()) on the filtered networks.
     fn partner_kinds(&self) -> (Vec<Partners>, Vec<Partners>) {
@@ -1389,7 +1611,14 @@ impl Model {
     }
 
     /// The state of a network whose blocks have the previous networks `prev`.
-    pub fn state_with(&self, mut net: Network, prev: Vec<Network>) -> State {
+    pub fn state_with(&self, net: Network, prev: Vec<Network>) -> State {
+        self.state_aged(net, prev, &[], None)
+    }
+
+    /// The state of a network whose blocks have the previous networks `prev`,
+    /// whose ties have the ages `ages` (one map per block); `own_ages` are
+    /// the ages of a model without blocks (a block's view).
+    pub fn state_aged(&self, mut net: Network, prev: Vec<Network>, ages: &[FxHashMap<u64, u32>], own_ages: Option<TieAges>) -> State {
         let (own, filtered_kinds) = self.partner_kinds();
         for &kind in &own {
             net.keep_partners(kind);
@@ -1420,7 +1649,14 @@ impl Model {
                         .iter()
                         .zip(parts)
                         .enumerate()
-                        .map(|(k, (block, y))| block.model.state(view.of(y, prev.get(k))))
+                        .map(|(k, (block, y))| {
+                            let view_net = view.of(y, prev.get(k));
+                            let block_ages = block.model.is_aged().then(|| {
+                                let p = prev.get(k).cloned().unwrap_or_else(|| Network::new(y.n(), y.directed()));
+                                TieAges::new(p, ages.get(k).cloned().unwrap_or_default())
+                            });
+                            block.model.state_aged(view_net, Vec::new(), &[], block_ages)
+                        })
                         .collect();
                     subs.push(states);
                 }
@@ -1433,10 +1669,61 @@ impl Model {
                     }
                     subs.push(vec![model.state(sub)]);
                 }
+                Entry::Map { model, .. } => subs.push(vec![model.state(net.clone())]),
+                Entry::LayerL { model, views, layout, .. } => {
+                    subs.push(views.iter().map(|(_, logic)| model.state(layout.view(&net, logic))).collect())
+                }
+                Entry::LayerStat { .. } => subs.push(Vec::new()),
+                Entry::Symmetrize { model, rule, .. } => {
+                    let mut sub = Network::new(net.n(), false);
+                    for &(i, j) in net.edges() {
+                        let (a, b) = (i.min(j), i.max(j));
+                        if !sub.has_edge(a, b) && rule.tie(&net, a, b) {
+                            sub.toggle(a, b);
+                        }
+                    }
+                    subs.push(vec![model.state(sub)]);
+                }
                 _ => {}
             }
         }
-        State { net, aux, prev, subs }
+        let sums = self
+            .entries
+            .iter()
+            .filter_map(|e| match e {
+                Entry::Map { model, kind, .. } => {
+                    Some(if matches!(kind, MapKind::Linear { .. }) { Vec::new() } else { model.summary(&net) })
+                }
+                Entry::Blocks { .. } | Entry::Subgraph { .. } | Entry::Symmetrize { .. } | Entry::LayerL { .. }
+                | Entry::LayerStat { .. } => Some(Vec::new()),
+                _ => None,
+            })
+            .collect();
+        let views = self
+            .entries
+            .iter()
+            .filter_map(|e| match e {
+                Entry::LayerStat { views, layout, .. } => Some(views.iter().map(|l| layout.view(&net, l)).collect()),
+                Entry::Blocks { .. } | Entry::Subgraph { .. } | Entry::Symmetrize { .. } | Entry::LayerL { .. }
+                | Entry::Map { .. } => Some(Vec::new()),
+                _ => None,
+            })
+            .collect();
+        let tie_ages = own_ages.or_else(|| self.tie_ages(&prev, ages, net.directed()));
+        let tie_ages = if self.n_aged > 0 {
+            Some(tie_ages.unwrap_or_else(|| TieAges::new(Network::new(net.n(), net.directed()), FxHashMap::default())))
+        } else {
+            None
+        };
+        let aged = self
+            .entries
+            .iter()
+            .filter_map(|e| match e {
+                Entry::Aged { term, .. } => Some(term.init(&net, tie_ages.as_ref().unwrap())),
+                _ => None,
+            })
+            .collect();
+        State { net, aux, prev, subs, ages: tie_ages, aged, sums, views }
     }
 
     /// Toggles (i, j) in the network and in the auxiliary networks it belongs to.
@@ -1462,7 +1749,39 @@ impl Model {
                             model.toggle(&mut state.subs[*slot][0], a, b);
                         }
                     }
+                    Entry::Map { slot, model, kind } => {
+                        if !matches!(kind, MapKind::Linear { .. }) {
+                            let mut delta = vec![0.0; model.n_stats()];
+                            model.change(&state.subs[*slot][0], i, j, &mut delta);
+                            state.sums[*slot].iter_mut().zip(&delta).for_each(|(s, d)| *s += d);
+                        }
+                        model.toggle(&mut state.subs[*slot][0], i, j);
+                    }
+                    Entry::Symmetrize { slot, model, rule } if rule.toggles(&state.net, i, j) => {
+                        model.toggle(&mut state.subs[*slot][0], i.min(j), i.max(j));
+                    }
+                    Entry::LayerL { slot, model, views, layout } => {
+                        let logics: Vec<&Logic> = views.iter().map(|(_, l)| l).collect();
+                        for (v, a, b) in flips(&logics, layout, &state.net, i, j) {
+                            model.toggle(&mut state.subs[*slot][v], a, b);
+                        }
+                    }
+                    Entry::LayerStat { slot, views, layout, .. } => {
+                        let logics: Vec<&Logic> = views.iter().collect();
+                        for (v, a, b) in flips(&logics, layout, &state.net, i, j) {
+                            state.views[*slot][v].toggle(a, b);
+                        }
+                    }
                     _ => {}
+                }
+            }
+        }
+        if self.n_aged > 0 {
+            let ages = state.ages.as_ref().expect("durational terms need tie ages");
+            let (age, sign) = (ages.now(i, j), if state.net.has_edge(i, j) { -1.0 } else { 1.0 });
+            for entry in &self.entries {
+                if let Entry::Aged { term, slot } = entry {
+                    term.update(&state.net, &mut state.aged[*slot], i, j, age, sign);
                 }
             }
         }
@@ -1478,6 +1797,10 @@ impl Model {
             let out = &mut out[offset..offset + entry.n_stats()];
             match entry {
                 Entry::Plain(term) => term.change(&state.net, i, j, sign, out),
+                Entry::Aged { term, slot } => {
+                    let ages = state.ages.as_ref().expect("durational terms need tie ages");
+                    term.change(&state.net, &state.aged[*slot], i, j, ages.now(i, j), sign, out);
+                }
                 Entry::Filtered { terms, filter, .. } => {
                     if self.filters[*filter].passes(&state.net, i, j) {
                         let aux = &state.aux[*filter];
@@ -1491,6 +1814,57 @@ impl Model {
                 Entry::Subgraph { slot, local, head, oriented, model, .. } => {
                     if let Some((a, b)) = Entry::subgraph_dyad(local, head, *oriented, i, j) {
                         model.change(&state.subs[*slot][0], a, b, out);
+                    }
+                }
+                Entry::Map { slot, model, kind } => {
+                    let mut delta = vec![0.0; model.n_stats()];
+                    model.change(&state.subs[*slot][0], i, j, &mut delta);
+                    match kind {
+                        MapKind::Linear { .. } => kind.apply(&delta, out),
+                        _ => {
+                            let sums = &state.sums[*slot];
+                            let after: Vec<f64> = sums.iter().zip(&delta).map(|(s, d)| s + d).collect();
+                            let (mut f_after, mut f_before) = (vec![0.0; out.len()], vec![0.0; out.len()]);
+                            kind.apply(&after, &mut f_after);
+                            kind.apply(sums, &mut f_before);
+                            out.iter_mut().zip(f_after.iter().zip(&f_before)).for_each(|(o, (a, b))| *o = a - b);
+                        }
+                    }
+                }
+                Entry::Symmetrize { slot, model, rule } => {
+                    if rule.toggles(&state.net, i, j) {
+                        model.change(&state.subs[*slot][0], i.min(j), i.max(j), out);
+                    }
+                }
+                Entry::LayerL { slot, model, views, layout } => {
+                    let logics: Vec<&Logic> = views.iter().map(|(_, l)| l).collect();
+                    let flipped = flips(&logics, layout, &state.net, i, j);
+                    let mut delta = vec![0.0; model.n_stats()];
+                    for (v, &(weight, _)) in views.iter().enumerate() {
+                        let here: Vec<(u32, u32)> = flipped.iter().filter(|f| f.0 == v).map(|f| (f.1, f.2)).collect();
+                        match here.as_slice() {
+                            [] => {}
+                            [(a, b)] => {
+                                model.change(&state.subs[*slot][v], *a, *b, &mut delta);
+                                out.iter_mut().zip(&delta).for_each(|(o, d)| *o += weight * d);
+                            }
+                            _ => {
+                                // Both a dyad and its reverse (a layer and its transpose): one after the other.
+                                let mut sub = state.subs[*slot][v].clone();
+                                for &(a, b) in &here {
+                                    model.change(&sub, a, b, &mut delta);
+                                    out.iter_mut().zip(&delta).for_each(|(o, d)| *o += weight * d);
+                                    model.toggle(&mut sub, a, b);
+                                }
+                            }
+                        }
+                    }
+                }
+                Entry::LayerStat { slot, stat, views, layout } => {
+                    let logics: Vec<&Logic> = views.iter().collect();
+                    let flipped = flips(&logics, layout, &state.net, i, j);
+                    if !flipped.is_empty() {
+                        stat.change(&state.views[*slot], &flipped, out);
                     }
                 }
                 Entry::Blocks { view, scale, slot, blocks, compact, q, .. } => {
@@ -1531,12 +1905,19 @@ impl Model {
 
     /// Statistics of `net`, whose blocks have the previous networks `prev`.
     pub fn summary_with(&self, net: &Network, prev: &[Network]) -> Vec<f64> {
-        let mut build = self.state_with(Network::new(net.n(), net.directed()), prev.to_vec());
+        self.summary_aged(net, prev, &[], None)
+    }
+
+    /// Statistics of `net`, whose blocks have the previous networks `prev`
+    /// with the ties' ages `ages` (or, without blocks, the ages `own`).
+    pub fn summary_aged(&self, net: &Network, prev: &[Network], ages: &[FxHashMap<u64, u32>], own: Option<TieAges>) -> Vec<f64> {
+        let mut build = self.state_aged(Network::new(net.n(), net.directed()), prev.to_vec(), ages, own);
         let mut stats = vec![0.0; self.n_stats];
         for (entry, &offset) in self.entries.iter().zip(&self.offsets) {
             let out = &mut stats[offset..offset + entry.n_stats()];
             match entry {
                 Entry::Plain(term) => term.empty(net.n(), net.directed(), out),
+                Entry::Aged { term, .. } => term.empty(out),
                 Entry::Filtered { terms, .. } => {
                     let mut start = 0;
                     for term in terms {
@@ -1548,13 +1929,25 @@ impl Model {
                 // the previous network itself, for Form() and Change().
                 Entry::Blocks { scale, slot, blocks, compact, q, .. } => {
                     for (k, block) in blocks.iter().enumerate() {
-                        let inner = block.model.summary(&build.subs[*slot][k].net);
+                        let sub = &build.subs[*slot][k];
+                        let inner = block.model.summary_aged(&sub.net, &[], &[], sub.ages.clone());
                         place(&inner, block, *compact, *q, *scale, out);
                     }
                 }
                 Entry::Subgraph { slot, model, .. } => {
                     out.copy_from_slice(&model.summary(&build.subs[*slot][0].net));
                 }
+                Entry::Map { slot, model, kind } => kind.apply(&model.summary(&build.subs[*slot][0].net), out),
+                Entry::Symmetrize { slot, model, .. } => {
+                    out.copy_from_slice(&model.summary(&build.subs[*slot][0].net));
+                }
+                Entry::LayerL { slot, model, views, .. } => {
+                    for (v, (weight, _)) in views.iter().enumerate() {
+                        let inner = model.summary(&build.subs[*slot][v].net);
+                        out.iter_mut().zip(&inner).for_each(|(o, x)| *o += weight * x);
+                    }
+                }
+                Entry::LayerStat { stat, layout, .. } => stat.empty(layout.size, net.directed(), out),
             }
         }
         let mut delta = vec![0.0; self.n_stats];

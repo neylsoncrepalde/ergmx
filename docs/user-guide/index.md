@@ -19,6 +19,7 @@ multilevel
 bipartite
 valued
 multiple-networks
+multilayer
 egocentric
 temporal
 diagnostics

@@ -69,3 +69,100 @@ def test_gof_with_missing_dyads_compares_with_imputed_networks():
     edges = result["model"].observed[0]
     assert edges > ergmx.summary_stats(g, "edges")["edges"]  # imputed ties added
     assert fit.mcmc_diagnostics().n_chains == fit.control.n_chains
+
+
+# -- ergm's operators on formulas (Sum, Prod, Log, Exp, Symmetrize, Label...) -------------------
+
+import json  # noqa: E402
+
+from conftest import DATA  # noqa: E402
+
+OPS_REFERENCE = DATA / "r_operators_reference.json"
+OPS = json.loads(OPS_REFERENCE.read_text()) if OPS_REFERENCE.exists() else None
+
+
+@pytest.mark.skipif(OPS is None, reason="no R reference")
+def test_formula_operators_match_r():
+    """Each operator's statistics and names, as ergm's, on the Florentine
+    marriages (undirected) and Sampson's monks (directed)."""
+    for key, r in OPS["stats"].items():
+        g = load("flomarriage" if key.startswith("u") else "samplk3")
+        stats = ergmx.summary_stats(g, r["formula"])
+        names, values = np.atleast_1d(r["names"]).tolist(), np.atleast_1d(r["values"])  # R's JSON unboxes 1
+        assert list(stats) == names, r["formula"]
+        # Prod() and Exp() add up changes of exponentials, in R and ergmx: 1e-8 apart.
+        np.testing.assert_allclose(list(stats.values()), values, rtol=1e-6, err_msg=r["formula"])
+
+
+@pytest.mark.skipif(OPS is None, reason="no R reference")
+@pytest.mark.parametrize("name", list(OPS["fits"]) if OPS else [])
+def test_formula_operator_fits_match_r(name):
+    from ergmx._operators import Curve
+
+    r = OPS["fits"][name]
+    g = load(r["network"])
+    formula = r["formula"]
+    if name == "curve_mle":  # R's map and gradient functions, as Python's
+        formula = ergmx.Formula([Curve("edges + nodematch('Grade') + nodematch('Race')", {"a": 0, "b": 0},
+                                       map=lambda x, n: np.array([x[0], x[1], x[1]]),
+                                       gradient=lambda x, n: np.array([[1, 0, 0], [0, 1, 1]]))])
+    fit = ergmx.ergm(g, formula, estimate=r["estimate"], seed=1, eval_loglik=False)
+    assert fit.names == r["names"]
+    if name == "symmetrize_mle":
+        # The weakly symmetrized ties are the ties less the mutual pairs: the
+        # reciprocity model, reparametrized, whose MLE is exact. (ergm 4.12's
+        # Monte Carlo MLE ends far from it, at 1.56 and -6.26.)
+        exact = ergmx.ergm(g, "edges + mutual").params
+        expected = np.array([exact[0] + exact[1], -exact[1]])
+        assert np.all(np.abs(fit.params - expected) < 0.2 * np.array(list(fit.stderr.values()))), (fit.params, expected)
+        return
+    if r["estimate"] == "MPLE":
+        np.testing.assert_allclose(fit.params, r["coef"], rtol=1e-6)
+    else:
+        se = np.array(r["se"])
+        assert np.all(np.abs(fit.params - r["coef"]) < 0.3 * se), (fit.params, r["coef"], se)
+
+
+@pytest.mark.parametrize("directed", [False, True])
+def test_formula_operators_track_their_statistics(directed):
+    """The statistics the sampler tracks, change by change, against those of
+    the simulated networks."""
+    if directed:
+        g = load("samplk3")
+        formula = ("edges + Log(~mutual + istar(2)) + Symmetrize(~triangle + kstar(2)) + "
+                   "Symmetrize(~edges + nodematch('group'), 'upper') + Symmetrize(~edges, 'strong') + "
+                   "Prod(list(~mutual, ~edges), 'p') + Sum(list(c(1, -1) ~ istar(2:3)), 's') + Exp(~isolates)")
+    else:
+        g = load("flomarriage")
+        formula = ("edges + Log(~triangle + kstar(2), log0 = -3) + Sum(list(2 ~ kstar(2:3), ~degree(1:2)), 'w') + "
+                   "Label(~gwesp(0.5, fixed = TRUE), 'L') + Passthrough(~degree(0))")
+    names = list(ergmx.summary_stats(g, formula))
+    coef = np.zeros(len(names))
+    coef[0] = -1.5
+    tracked = ergmx.simulate(g, formula, coef, 15, seed=2, interval=300, output="stats")
+    networks = ergmx.simulate(g, formula, coef, 15, seed=2, interval=300)
+    recomputed = [list(ergmx.summary_stats(h, formula).values()) for h in networks]
+    np.testing.assert_allclose(tracked, recomputed, rtol=1e-7, atol=1e-7)
+
+
+def test_formula_operator_errors():
+    g = load("flomarriage")
+    with pytest.raises(ValueError, match="directed networks"):
+        ergmx.summary_stats(g, "Symmetrize(~edges)")
+    with pytest.raises(ValueError, match="differ in number"):
+        ergmx.summary_stats(g, "Sum(list(~edges, ~kstar(1:2)), 'x')")
+    with pytest.raises(NotImplementedError, match="curved"):
+        ergmx.summary_stats(g, "Sum(~gwesp(), 'x')")
+    with pytest.raises(ValueError, match="2 labels for 1"):
+        ergmx.summary_stats(g, "Label(~edges, c('a', 'b'), pos='replace')")
+    with pytest.raises(ValueError, match="needs its gradient"):
+        from ergmx._operators import Curve
+
+        Curve("edges", ["a"], map=lambda x, n: x)
+    with pytest.raises(ValueError, match="rule="):
+        ergmx.summary_stats(load("samplk3"), "Symmetrize(~edges, 'both')")
+    # Offset() fixes some parameters; For() and I() splice terms in.
+    fit = ergmx.ergm(g, "edges + Offset(~kstar(2) + triangle, c(0.1), 'triangle')", seed=1, estimate="MPLE")
+    assert fit.names == ["edges", "kstar2"]
+    assert ergmx.summary_stats(g, "For(~degree(d) + nodecov(a), d = 1:2, a = c('wealth'))") == \
+        ergmx.summary_stats(g, "degree(1) + nodecov('wealth') + degree(2) + nodecov('wealth')")

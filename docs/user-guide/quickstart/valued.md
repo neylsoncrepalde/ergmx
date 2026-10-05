@@ -183,6 +183,22 @@ diagnostics.plot();
 
 ## Does the model reproduce the counts?
 
+{meth}`fit.gof() <ergmx.ErgmFit.gof>`, as ergm's for valued models,
+compares the model statistics and the distribution of the counts with those
+of simulated networks ([Goodness of fit](../goodness-of-fit.md)). The
+distribution is cumulative: the share of pairs with at most each number of
+contexts.
+
+```{code-cell} ipython3
+closure.gof(seed=1).plot();
+```
+
+The model reproduces its statistics, as a converged fit should, and the
+number of pairs who never interact. But more of its pairs have at most one
+context than the club's (the boxplot at 1 is above the line): too many
+pairs interact in a single context.
+
+Other distributions take a few lines of code.
 {meth}`fit.simulate() <ergmx.ErgmFit.simulate>` returns networks simulated
 from a valued model, with their counts in the edge attribute `weight`.
 Compare three distributions of 100 such networks with the club's: the pairs

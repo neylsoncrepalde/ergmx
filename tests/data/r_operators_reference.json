@@ -1,0 +1,177 @@
+{
+  "ergm_version": "4.12.0",
+  "stats": {
+    "u1": {
+      "formula": "Sum(~edges + triangle, 'x')",
+      "names": ["Sum~x1", "Sum~x2"],
+      "values": [20, 3]
+    },
+    "u2": {
+      "formula": "Sum(list(~edges, ~triangle), 'y')",
+      "names": "Sum~y",
+      "values": 23
+    },
+    "u3": {
+      "formula": "Sum(list(2 ~ kstar(1:2), c(1, -1) ~ degree(1:2)), 'w')",
+      "names": ["Sum~w1", "Sum~w2"],
+      "values": [84, 92]
+    },
+    "u4": {
+      "formula": "Sum(list('sum' ~ degree(1:3)), 'total')",
+      "names": "Sum~total",
+      "values": 12
+    },
+    "u5": {
+      "formula": "Sum(list('mean' ~ degree(1:3)), I('average'))",
+      "names": "average",
+      "values": 4
+    },
+    "u6": {
+      "formula": "Sum(list(matrix(c(1, 2, 3, 4, 5, 6), 2, 3) ~ degree(1:3)), 'm')",
+      "names": ["Sum~m1", "Sum~m2"],
+      "values": [40, 52]
+    },
+    "u7": {
+      "formula": "Log(~edges + triangle + degree(0))",
+      "names": ["Log~edges", "Log~triangle", "Log~degree0"],
+      "values": [2.99573227355399, 1.09861228866811, 0]
+    },
+    "u8": {
+      "formula": "Log(~degree(0), log0 = -5)",
+      "names": "Log~degree0",
+      "values": 0
+    },
+    "u9": {
+      "formula": "Exp(~triangle + isolates)",
+      "names": ["Exp~triangle", "Exp~isolates"],
+      "values": [20.0855369231877, 2.71828182863372]
+    },
+    "u10": {
+      "formula": "Prod(list(~edges, ~triangle), 'p')",
+      "names": "Prod~p",
+      "values": 60.0000001303868
+    },
+    "u11": {
+      "formula": "Prod(list(2 ~ edges), 'square')",
+      "names": "Prod~square",
+      "values": 400
+    },
+    "u12": {
+      "formula": "Label(~edges + triangle, 'x.')",
+      "names": ["x.(edges)", "x.(triangle)"],
+      "values": [20, 3]
+    },
+    "u13": {
+      "formula": "Label(~edges + triangle, c('a', 'b'), pos = 'replace')",
+      "names": ["a", "b"],
+      "values": [20, 3]
+    },
+    "u14": {
+      "formula": "Label(~edges, '.z', pos = 'append')",
+      "names": "edges.z",
+      "values": 20
+    },
+    "u15": {
+      "formula": "Label(~edges + kstar(2), 'L')",
+      "names": ["L(edges)", "L(kstar2)"],
+      "values": [20, 47]
+    },
+    "u16": {
+      "formula": "Passthrough(~edges + triangle)",
+      "names": ["edges", "triangle"],
+      "values": [20, 3]
+    },
+    "u17": {
+      "formula": "I(~edges + triangle)",
+      "names": ["edges", "triangle"],
+      "values": [20, 3]
+    },
+    "u18": {
+      "formula": "For(~nodecov(a), a = c('wealth', 'priorates'))",
+      "names": ["nodecov.wealth", "nodecov.priorates"],
+      "values": [2168, 1358]
+    },
+    "u19": {
+      "formula": "For(~degree(d), d = 1:3)",
+      "names": ["degree1", "degree2", "degree3"],
+      "values": [4, 2, 6]
+    },
+    "d1": {
+      "formula": "Symmetrize(~edges + triangle)",
+      "names": ["Symmetrize(weak)~edges", "Symmetrize(weak)~triangle"],
+      "values": [41, 22]
+    },
+    "d2": {
+      "formula": "Symmetrize(~edges + kstar(2), rule = 'strong')",
+      "names": ["Symmetrize(strong)~edges", "Symmetrize(strong)~kstar2"],
+      "values": [15, 20]
+    },
+    "d3": {
+      "formula": "Symmetrize(~edges + triangle, 'upper')",
+      "names": ["Symmetrize(upper)~edges", "Symmetrize(upper)~triangle"],
+      "values": [23, 4]
+    },
+    "d4": {
+      "formula": "Symmetrize(~edges + triangle, rule = 'lower')",
+      "names": ["Symmetrize(lower)~edges", "Symmetrize(lower)~triangle"],
+      "values": [33, 15]
+    },
+    "d5": {
+      "formula": "Symmetrize(~edges + nodematch('group'), 'weak')",
+      "names": ["Symmetrize(weak)~edges", "Symmetrize(weak)~nodematch.group"],
+      "values": [41, 25]
+    },
+    "d6": {
+      "formula": "Sum(~edges + mutual, 'z')",
+      "names": ["Sum~z1", "Sum~z2"],
+      "values": [56, 15]
+    },
+    "d7": {
+      "formula": "Log(~mutual + ttriple)",
+      "names": ["Log~mutual", "Log~ttriple"],
+      "values": [2.70805020110221, 3.89182030001528]
+    }
+  },
+  "fits": {
+    "sum_mple": {
+      "network": "flomarriage",
+      "formula": "edges + Sum(list(c(1, 2) ~ kstar(2:3)), 'ks')",
+      "estimate": "MPLE",
+      "names": ["edges", "Sum~ks1", "Sum~ks2"],
+      "coef": [-1.77527383680129, 0.0586825611223442, -0.0106775612002583],
+      "se": [0.951956936189423, 0.313390278573387, 0.0646631969897837]
+    },
+    "log_mle": {
+      "network": "flomarriage",
+      "formula": "edges + Log(~kstar(2))",
+      "estimate": "MLE",
+      "names": ["edges", "Log~kstar2"],
+      "coef": [-2.24909413149191, 6.14660483998008],
+      "se": [0.809222244414229, 8.27564398434153]
+    },
+    "symmetrize_mle": {
+      "network": "samplk3",
+      "formula": "edges + Symmetrize(~edges)",
+      "estimate": "MLE",
+      "names": ["edges", "Symmetrize(weak)~edges"],
+      "coef": [1.55633545147012, -6.25793698289793],
+      "se": [0.392842103606335, 0.760236147356536]
+    },
+    "offset_mle": {
+      "network": "faux.mesa.high",
+      "formula": "edges + Offset(~nodematch('Grade') + nodematch('Sex'), 1, 2)",
+      "estimate": "MLE",
+      "names": ["edges", "nodematch.Grade"],
+      "coef": [-6.65137963948911, 2.83621238926525],
+      "se": [0.158343713908149, 0.177508867047879]
+    },
+    "curve_mle": {
+      "network": "faux.mesa.high",
+      "formula": "Curve(~edges + nodematch('Grade') + nodematch('Race'), list(a = 0, b = 0), map = function(x, n, ...) c(x[1], x[2], x[2]), gradient = function(x, n, ...) rbind(c(1, 0, 0), c(0, 1, 1)))",
+      "estimate": "MLE",
+      "names": ["a", "b"],
+      "coef": [-6.13260074379661, 1.59300744230845],
+      "se": [0.157700000015792, 0.108480985965289]
+    }
+  }
+}

@@ -1,6 +1,6 @@
 [package]
 name = "ergmx"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2024"
 # The oldest Rust that builds ergmx; rust-toolchain.toml pins the one used.
 rust-version = "1.88"

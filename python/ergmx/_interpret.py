@@ -250,10 +250,13 @@ def odds_ratios(fit, level: float = 0.95) -> NumericTable:
     columns = list(intervals.columns)
     if getattr(fit._model, "valued", False):
         # Valued models: the odds of a dyad's value against the value one lower.
+        from ._valued import CONTINUOUS
+
+        probability = "density" if fit._model.reference[0] in CONTINUOUS else "probability"
         return NumericTable(f"exp(coefficient), with {100 * level:g}% confidence intervals", names,
                             {"exp(coef)": np.exp(fit.params[keep]), columns[0]: low, columns[1]: high},
                             note="The factor by which a unit increase in the term's statistic multiplies "
-                                 "the conditional probability of a dyad's value relative to the value one "
+                                 f"the conditional {probability} of a dyad's value relative to the value one "
                                  "lower.")
     note = ("The factor by which a unit increase in the term's statistic multiplies the "
             "conditional odds of a tie.")

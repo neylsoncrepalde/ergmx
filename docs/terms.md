@@ -626,6 +626,60 @@ MPNet's AC4AXB (alternating four-cycles) is not available.
   `S(level=="individual")~edges` and
   `S((level=="A"),(level=="B"))~b1star2`.
 
+`Sum(formulas, label)`
+: Linear combinations of statistics: `formulas` is a one-sided formula or a
+  `list()` of them, each with weights as its left-hand side: a number or
+  vector (each statistic times it), a matrix (premultiplying the
+  statistics), or `"sum"` or `"mean"` (of the formula's statistics). The
+  weighted statistics of the formulas are added. Names: `Sum~<label>`,
+  numbered if there are several (`Sum~label1`...), or the labels as they
+  are with `I("label")`. Example: `Sum(list(2 ~ kstar(1:2), c(1, -1) ~
+  degree(1:2)), "w")`.
+
+`Prod(formulas, label)`
+: As `Sum()`, but the weighted statistics multiply, each to the power of
+  its weights (`"prod"`, `"geomean"`): ergm's `Exp(~Sum(~Log(formulas)))`.
+  The statistics must be nonnegative. Names: `Prod~<label>`.
+
+`Log(formula, log0 = -1/sqrt(eps))`, `Exp(formula)`
+: The logarithm (log(0) is `log0`) or the exponential of the formula's
+  statistics. Names: `Log~<name>`, `Exp~<name>`.
+
+`Symmetrize(formula, rule = "weak")` (directed)
+: The formula on the undirected network of a rule: a tie {i, j} if either
+  of i -> j and j -> i is (`"weak"`, `"max"`), if both are (`"strong"`,
+  `"min"`), or if the one from the lower vertex (`"upper"`) or the higher
+  (`"lower"`) is. Names: `Symmetrize(<rule>)~<name>`.
+
+`Label(formula, label, pos = "(")`
+: Renames the formula's statistics: `label(name)` (`pos="("`), the label
+  prepended or appended (`"prepend"`, `"append"`), or replacing the names
+  (`"replace"`: one label per statistic; for curved terms, a list of the
+  parameters' and the statistics' labels).
+
+`Passthrough(formula, label = FALSE)`, `I(formula)`
+: The formula's terms, as they are (`Passthrough~<name>` with `label=TRUE`).
+  `I()` also takes a formula as a string.
+
+`For(formula, var = values, ...)`
+: The formula once for each value of each placeholder, which replaces the
+  name `var` in its terms: `For(~nodematch(a), a = c("Grade", "Sex"))`.
+  Several placeholders nest, the first outermost.
+
+`Offset(formula, coef = 0, which = TRUE)`
+: Fixes some of the formula's parameters (`which`: logical, 1-based indices
+  or names) at `coef`, recycled; the others are estimated. Unlike
+  `offset()`, the values are in the term.
+
+`Curve(formula, params, map, gradient, minpar, maxpar)` (also `Parametrise()`, `Parametrize()`)
+: The formula's coefficients as a function `map` of the parameters `params`
+  (their names, or a dict or R named vector of their starting values):
+  `"rep"` (the parameters recycled), fixed numbers, or, in Python, a
+  function `map(x, n)` of the parameters and the number of coefficients,
+  with its `gradient(x, n)` (parameters x coefficients: a function, a
+  matrix, or `"linear"`, by finite differences). `minpar` and `maxpar` bound
+  the parameters. Names: the formula's statistics, and the parameters'.
+
 ### Several networks
 
 These operators evaluate their terms on each network of networks combined
@@ -669,6 +723,52 @@ factors, by term, as R's `contrasts.arg`: `list(weekday='contr.sum')`, with
 
 `Change(formula, lm=~1)`
 : tergm's change: `formula` on the network of the dyads that changed.
+
+## Multilayer terms
+
+For the layers of a network combined with {func}`ergmx.Layer`, as R's
+ergm.multi (see [](user-guide/multilayer.md)). `Ls` are logical layers: a
+layer (by name, or number in backticks: `` ~`1` ``) or an expression of
+layers in R's syntax, with `&`, `|`, `!`, `xor()`, comparisons, `+ - * / %%
+^`, `abs()`, `sign()`, `round()` and, in directed networks, `t()` (the layer
+transposed); a dyad has a tie where the expression is nonzero. A logical
+layer can't have ties where no layer has one. Names, as ergm.multi's:
+`L(marriage&business)~edges`, `twostarL(1<>2,distinct)`,
+`L(pth=(1,3),bse=2,inord=FALSE)~esp.OSP1`...
+
+`L(formula, Ls=~.)`
+: `formula`'s terms on each logical layer of `Ls` (one, or a list:
+  `c(~a, ~b)`), summed, each weighted by its formula's left side
+  (`c(2 ~ a, -1 ~ b)`); `~.`, each layer. Not of curved terms (fix their
+  decays).
+
+`CMBL(Ls=~.)`
+: Conway–Maxwell-binomial dependence among the layers: the sum over the
+  dyads of $\log\{E!(R-E)!/R!\}$, $E$ the number of the $R$ layers of `Ls`
+  with a tie in the dyad. A positive coefficient makes the layers agree.
+
+`twostarL(Ls, type="out", distinct=TRUE)`
+: Two-stars with one tie in each of two logical layers: at a vertex
+  (undirected), out- (`"out"`), in- (`"in"`) or two-paths (`"path"`), with
+  `distinct` ends.
+
+`mutualL(same=NULL, by=NULL, diff=FALSE, keep=NULL, Ls)`, directed
+: Ordered pairs (i, j) with i → j in the first logical layer and j → i in
+  the second (a layer with itself counts each mutual pair twice), between
+  vertices that match on `same` (by level, with `diff`), or by the level of
+  each vertex (`by`).
+
+`espL(d, type="OTP", L.base=NULL, Ls.path=NULL, L.in_order=FALSE)`, `dspL(d, type, Ls.path, L.in_order)`, `nspL(d, type, L.base, Ls.path, L.in_order)`
+: Shared partners whose two ties are in the logical layers `Ls.path` (one,
+  or two: in that order with `L.in_order`; for OSP and ISP, the first tie
+  is the one at the pair's first vertex), of the edges of `L.base` (esp),
+  of every dyad (dsp), or of the dyads without an edge in `L.base` (nsp).
+  The types are those of `esp`, but RTP. Also `despL`, `ddspL` and
+  `dnspL`.
+
+`gwespL(decay, fixed=TRUE, cutoff=30, type, L.base, Ls.path, L.in_order)`, `gwdspL(...)`, `gwnspL(...)`
+: Their geometrically weighted versions, with a fixed decay. Also
+  `dgwespL`, `dgwdspL` and `dgwnspL`.
 
 ## Valued terms
 
@@ -725,9 +825,10 @@ Dyad-independent binary terms with `form="sum"` or `form="nonzero"`
 
 tergm's durational statistics describe a network together with the ages of
 its ties (1 in the time step a tie formed): they are targets of the EGMME
-(`tergm(estimate="EGMME", targets=...)`) and monitors of dynamic simulations
-(`simulate_dynamic(monitor=...)`), not terms of a model to fit. See
-[](user-guide/temporal.md).
+(`tergm(estimate="EGMME", targets=...)`), monitors of dynamic simulations
+(`simulate_dynamic(monitor=...)`), and terms of the models that dynamic
+simulations and the EGMME run, but, as in tergm, not of models fitted by
+CMLE or `ergm()`. See [](user-guide/temporal.md#tie-ages).
 
 `edge.ages`
 : Sum over ties of their ages.
@@ -745,6 +846,67 @@ its ties (1 in the time step a tie formed): they are targets of the EGMME
 `nodefactor.mean.age(attr, levels=, emptyval=0, log=FALSE)`
 : For each level of `attr`, the mean age of the ties of its vertices (a tie
   between two of them counts twice).
+
+`edgecov.mean.age(x, emptyval=0, log=FALSE)`
+: The mean age of the ties weighted by a dyadic covariate: the sum over ties
+  of the covariate times their age, over the sum of the covariate. Name:
+  `mean.age.<x>`.
+
+`nodemix.mean.age(attr, levels=, levels2=, emptyval=0, log=FALSE)`
+: For each mixing type of `attr` (all of them by default, unlike
+  `nodemix`), the mean age of its ties.
+
+`degree.mean.age(d, byarg=, emptyval=0, log=FALSE)` (undirected)
+: For each degree in `d` (and level of `byarg`), the mean age of the ties at
+  vertices of that degree, a tie counted once per such end. Names:
+  `degree<d>.mean.age`, `deg<d>.<byarg><level>.mean.age`.
+
+`degrange.mean.age(from, to=Inf, byarg=, emptyval=0, log=FALSE)` (undirected)
+: As `degree.mean.age`, for vertices with degrees in [`from`, `to`). Names:
+  `deg<from>to<to>.mean.age`, `deg<from>+.mean.age`.
+
+`EdgeAges(formula)`
+: For each statistic of a dyad-independent formula, the sum over ties of
+  their age times the statistic's change on adding the tie. Names:
+  `EdgeAges~<statistic>`.
+
+## Terms written in Python
+
+A term can be written in Python: subclass {class}`ergmx.UserTerm` with its
+statistics' names and their change on toggling a dyad, and register it with
+{func}`ergmx.register_term` to use it in formula strings:
+
+```python
+import ergmx
+
+class Triangles(ergmx.UserTerm):
+    """Triangles of an undirected network."""
+
+    name = "pytriangle"
+    directed = False
+    triadic = True  # ergmx's triadic proposals mix faster
+
+    def change(self, net, i, j, adding):
+        common = len(set(net.neighbours(i)) & set(net.neighbours(j)))
+        return [common if adding else -common]
+
+ergmx.register_term("pytriangle", Triangles)
+ergmx.ergm(flomarriage, "edges + pytriangle")
+```
+
+`change(net, i, j, adding)` gets a read-only view of the current network
+(`has_edge`, `neighbours`, `in_neighbours`, `degree`, `in_degree`,
+`edges`...), valid during the call only, and `self.network` is the network
+the term is bound to, with its vertex attributes. `names(network)` names
+the statistics (the class's `name` by default) and `empty(network)` gives
+them on the network without ties (0 by default).
+
+A dyad-independent term (`dyad_independent = True`) is tabulated once, for
+every dyad, and then runs as fast as ergmx's own terms. A dyad-dependent
+one is called at every MCMC proposal, holding Python's GIL: its chains run
+one at a time, tens to hundreds of times slower than a term in Rust (7 s,
+against well under one, for the model above). It is for trying a statistic
+out.
 
 ## Proposals
 

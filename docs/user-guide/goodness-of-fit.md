@@ -50,6 +50,8 @@ which distributions to compute, among `"degree"`, `"idegree"`, `"odegree"`,
 `"b1degree"`, `"b2degree"` (bipartite), `"espartners"`, `"dspartners"`,
 `"distance"` and `"model"`. The simulated networks are spaced
 by the MCMC interval the fit ended with; `interval=` and `burnin=` change it.
+For valued models, the default, as ergm's, is the model statistics and
+`"cdf"`, the distribution of the values ([](valued.md#goodness-of-fit)).
 
 `gof` also works without a fit, from a formula and coefficients:
 

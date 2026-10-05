@@ -47,6 +47,7 @@
 
 use rustc_hash::FxHashMap;
 
+use crate::durational::TieAges;
 use crate::network::{Network, count_common, for_each_common};
 use crate::rng::Rng;
 use crate::space::{EdgeIndex, Preserve, Space};
@@ -739,10 +740,15 @@ pub struct Series {
     pub stats: Vec<f64>,
     pub steps: Vec<u64>,
     pub exceeded: bool,
+    /// For models with durational terms: each block's ties' ages at the end,
+    /// as (i, j, age) in the block's numbering.
+    pub ages: Vec<Vec<(u32, u32, u32)>>,
 }
 
 /// Runs `slices` time steps of a model with tergm's operators from `start`:
 /// at each, the blocks' previous networks are their networks at the start.
+/// `ages` are the start's ties' ages, for durational terms (one map per
+/// block, in the block's numbering; missing ages are 1).
 #[allow(clippy::too_many_arguments)]
 pub fn run_series(
     model: &Model,
@@ -752,26 +758,62 @@ pub fn run_series(
     slices: usize,
     rule: &StepRule,
     rng: &mut Rng,
+    mut ages: Vec<FxHashMap<u64, u32>>,
 ) -> Series {
     let layout = model.layout().expect("dynamic simulation needs a block layout");
-    let mut out = Series { networks: Vec::new(), stats: Vec::new(), steps: Vec::new(), exceeded: false };
+    let mut out = Series { networks: Vec::new(), stats: Vec::new(), steps: Vec::new(), exceeded: false, ages: Vec::new() };
+    let aged = model.is_aged();
     let mut net = start;
     for _ in 0..slices {
         let prev = layout.split(&net);
-        let stats = model.summary_with(&net, &prev);
-        let mut s = Sampler::new(model, proposal, theta, model.state_with(net.clone(), prev), stats);
+        let stats = model.summary_aged(&net, &prev, &ages, None);
+        let state = model.state_aged(net.clone(), prev.clone(), &ages, None);
+        let mut s = Sampler::new(model, proposal, theta, state, stats);
         s.discord = Some(Discord::new(&net, &net));
         let steps = run_until_stable(&mut s, rule, rng);
         out.exceeded = s.state.net.n_edges() > proposal.max_edges;
         out.networks.push(s.state.net.edges().to_vec());
-        out.stats.extend_from_slice(&s.stats);
+        if aged {
+            // The statistics after the tick: of the ages at the end of the step.
+            let ticked: Vec<_> =
+                prev.iter().enumerate().map(|(k, p)| TieAges::ticked(p, &ages.get(k).cloned().unwrap_or_default())).collect();
+            out.stats.extend_from_slice(&model.summary_aged(&s.state.net, &prev, &ticked, None));
+        } else {
+            out.stats.extend_from_slice(&s.stats);
+        }
         out.steps.push(steps);
         net = s.state.net;
+        if aged {
+            // The ties' ages at the end of the step, the next step's previous ages.
+            ages = layout
+                .split(&net)
+                .iter()
+                .zip(prev)
+                .enumerate()
+                .map(|(k, (y, p))| {
+                    let local = TieAges::new(p, ages.get(k).cloned().unwrap_or_default());
+                    TieAges::map(y.directed(), &local.advance(y))
+                })
+                .collect();
+        }
         if out.exceeded {
             break;
         }
     }
+    if aged {
+        let current = layout.split(&net);
+        out.ages = current
+            .iter()
+            .enumerate()
+            .map(|(k, y)| y.edges().iter().map(|&(i, j)| (i, j, ages.get(k).map_or(1, |m| aged_at(m, y, i, j)))).collect())
+            .collect();
+    }
     out
+}
+
+fn aged_at(ages: &FxHashMap<u64, u32>, net: &Network, i: u32, j: u32) -> u32 {
+    let (a, b) = if !net.directed() && i > j { (j, i) } else { (i, j) };
+    ages.get(&(((a as u64) << 32) | b as u64)).copied().unwrap_or(1)
 }
 
 #[cfg(test)]

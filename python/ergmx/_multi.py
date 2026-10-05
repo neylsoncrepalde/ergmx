@@ -63,7 +63,9 @@ def _combine(parts: list[Network], attributes: list[dict], prev: list[Network] |
     mode = np.concatenate([p.mode for p in parts]) if parts[0].bipartite else None
     blocks = tuple(Block(int(s), p, a, None if prev is None else prev[k])
                    for k, (s, p, a) in enumerate(zip(starts, parts, attributes)))
-    return Network(n, parts[0].directed, stack([p.edges for p in parts]), vertex, None, {},
+    # A single network's graph attributes (dyadic covariates...) are the combination's too.
+    graph = dict(parts[0].graph_attributes) if len(parts) == 1 else {}
+    return Network(n, parts[0].directed, stack([p.edges for p in parts]), vertex, None, graph,
                    stack([p.missing for p in parts]), mode, blocks)
 
 

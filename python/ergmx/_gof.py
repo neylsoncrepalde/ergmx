@@ -22,11 +22,12 @@ _TITLES = {
     "dspartners": "dyadwise shared partners",
     "distance": "minimum geodesic distance",
     "affiliations": "affiliations",
+    "cdf": "dyads with value at most x",
     "model": "model statistics",
 }
 _UNITS = {"degree": "nodes", "idegree": "nodes", "odegree": "nodes", "b1degree": "nodes",
           "b2degree": "nodes", "espartners": "edges", "dspartners": "dyads", "distance": "dyads",
-          "affiliations": "nodes"}
+          "affiliations": "nodes", "cdf": "dyads"}
 
 
 def _adjacency(n: int, directed: bool, edges: np.ndarray) -> sparse.csr_matrix:
@@ -162,7 +163,7 @@ class GofTable:
     def _shown(self) -> np.ndarray:
         """Rows worth printing: up to the last one where anything is non-zero."""
         rows = np.arange(len(self.labels))
-        if self.kind == "model":
+        if self.kind in ("model", "cdf"):
             return rows
         finite = len(rows) - 1 if self.kind == "distance" else len(rows)  # distance ends with Inf
         busy = np.flatnonzero(((self.observed > 0) | (self.max > 0))[:finite])
@@ -173,12 +174,13 @@ class GofTable:
 
     def __str__(self) -> str:
         rows = self._shown()
-        width = max(len(self.labels[r]) for r in rows)
+        labels = [f"{float(x):.6g}" for x in self.labels] if self.kind == "cdf" else self.labels
+        width = max(len(labels[r]) for r in rows)
         lines = [f"Goodness-of-fit for {self.title}", "",
                  f"{'':<{width}}  {'obs':>8}  {'min':>8}  {'mean':>9}  {'max':>8}  {'MC p-value':>10}"]
         for r in rows:
             lines.append(
-                f"{self.labels[r]:<{width}}  {self.observed[r]:8.6g}  {self.min[r]:8.6g}  "
+                f"{labels[r]:<{width}}  {self.observed[r]:8.6g}  {self.min[r]:8.6g}  "
                 f"{self.mean[r]:9.2f}  {self.max[r]:8.6g}  {self.pvalue[r]:10.2f}"
             )
         return "\n".join(lines)
@@ -206,7 +208,9 @@ class GofResult:
 
     def plot(self, axes=None):
         """Boxplots of the simulated statistics with the observed ones as a line,
-        like R's ``plot(gof(fit))``. Needs matplotlib. Returns the figure."""
+        like R's ``plot(gof(fit))`` (for the distribution of continuous
+        values, at many points, the simulated 95% band). Needs matplotlib.
+        Returns the figure."""
         try:
             import matplotlib.pyplot as plt
         except ImportError:  # pragma: no cover
@@ -230,18 +234,33 @@ class GofResult:
                 sd[sd == 0] = 1.0
                 sim, obs, ylabel = (table.simulated - table.observed) / sd, np.zeros(len(rows)), \
                     "simulated - observed (SD units)"
+            elif table.kind == "cdf":
+                # As ergm's: relative to all the dyads, the observed count at the last point.
+                total = max(table.observed[-1], 1)
+                sim, obs, ylabel = table.simulated / total, table.observed / total, "proportion of dyads"
             else:
                 total = table.simulated.sum(axis=1, keepdims=True)
                 total[total == 0] = 1
                 sim = table.simulated / total
                 obs = table.observed / max(table.observed.sum(), 1)
                 ylabel = f"proportion of {_UNITS[table.kind]}"
-            ax.boxplot(sim[:, rows], tick_labels=[table.labels[r] for r in rows], showfliers=False,
-                       medianprops={"color": "grey"})
-            ax.plot(np.arange(1, len(rows) + 1), obs[rows] if table.kind != "model" else obs,
-                    color="black", linewidth=2, marker="o", markersize=3)
             ax.set_title(table.title)
             ax.set_ylabel(ylabel)
+            if table.kind == "cdf" and len(rows) > 30:
+                # Many points (continuous values): the simulated 95% band and median, against x.
+                x = np.array([float(v) for v in table.labels])
+                low, mid, high = np.quantile(sim, [0.025, 0.5, 0.975], axis=0)
+                ax.fill_between(x, low, high, color="lightgrey", label="simulated, 95%")
+                ax.plot(x, mid, color="grey", linewidth=1)
+                ax.plot(x, obs, color="black", linewidth=2)
+                ax.set_xlabel("x")
+                continue
+            labels = [table.labels[r] for r in rows]
+            if table.kind == "cdf":
+                labels = [f"{float(x):.3g}" for x in labels]
+            ax.boxplot(sim[:, rows], tick_labels=labels, showfliers=False, medianprops={"color": "grey"})
+            ax.plot(np.arange(1, len(rows) + 1), obs[rows] if table.kind != "model" else obs,
+                    color="black", linewidth=2, marker="o", markersize=3)
             if table.kind == "model" or len(rows) > 12:
                 ax.tick_params(axis="x", labelrotation=90)
         fig.tight_layout()
@@ -282,12 +301,14 @@ def _affiliations(network, edges: np.ndarray, members: np.ndarray, others: np.nd
 
 def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=None, seed=None,
         interval: int | None = None, burnin: int | None = None, n_chains: int | None = None,
-        triadic_weight: float | None = None, by: str | None = None) -> GofResult:
+        triadic_weight: float | None = None, by: str | None = None, response: str | None = None,
+        reference="Bernoulli") -> GofResult:
     """Goodness of fit of an ERGM, like R's ``gof()``.
 
     Simulates ``nsim`` networks from the model and compares their degree,
     edgewise shared partner and geodesic distance distributions, and the model
-    statistics, with the observed network's.
+    statistics, with the observed network's. For valued networks, as ergm's,
+    the distribution of the dyads' values and the model statistics.
 
     Parameters
     ----------
@@ -303,13 +324,22 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
     stats : list of str, optional
         Among ``"degree"`` (undirected), ``"idegree"``, ``"odegree"``
         (directed), ``"b1degree"``, ``"b2degree"`` (bipartite),
-        ``"espartners"``, ``"dspartners"``, ``"distance"`` and ``"model"``.
+        ``"espartners"``, ``"dspartners"``, ``"distance"`` and ``"model"``,
+        and for valued networks ``"cdf"``.
         The default is ergm's: degrees, edgewise shared partners, distances
         and the model statistics; for bipartite networks, the degrees of each
-        mode, dyadwise shared partners, distances and the model statistics.
+        mode, dyadwise shared partners, distances and the model statistics;
+        for valued networks, the model statistics and ``"cdf"``, the number
+        of dyads whose value is at most each of a range of values (ergm's
+        ``cdf``: those of the nonzero values, widened by a tenth, in steps of
+        their resolution, at most 100). The other statistics of a valued
+        network are those of its nonzero dyads as ties.
     interval, burnin : int, optional
         MCMC proposals between and before the simulated networks. Default to
         the interval the fit ended with (1024 otherwise), and 16 times that.
+    response, reference : str, optional
+        For a valued network, as in :func:`ergmx.ergm`: the edge attribute
+        with the values, and their reference measure.
     by : str, optional
         A vertex attribute, such as the level of a multilevel network: the
         distributions are then of the network within each of its values
@@ -344,16 +374,26 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
     else:
         if formula is None or coef is None:
             raise TypeError("gof(network, formula, coef): give the formula and the coefficients")
-        model = bind(x, formula, constraints)
+        if response is not None:
+            from ._valued import bind_valued
+
+            if str(reference).lstrip("~").strip() == "Bernoulli":
+                raise ValueError("valued networks need a reference measure, such as reference='Poisson'")
+            model = bind_valued(x, formula, response, reference, constraints=constraints)
+        else:
+            model = bind(x, formula, constraints)
         if isinstance(coef, dict):
             coef = [coef[name] for name in model.names]
         fitted_interval = None
     network = model.network
+    valued = getattr(model, "valued", False)
     if by is not None:
+        if valued:
+            raise ValueError("gof(by=) is not supported for valued networks")
         return _gof_by(model, coef, by, stats, nsim, seed, interval, burnin, n_chains, triadic_weight,
                        fitted_interval)
-    stats = default_stats(network) if stats is None else stats
-    check_stats(network, stats)
+    stats = (["model", "cdf"] if valued else default_stats(network)) if stats is None else stats
+    check_stats(network, stats, valued)
 
     interval = interval or fitted_interval or Control.interval
     burnin = 16 * interval if burnin is None else burnin
@@ -377,10 +417,13 @@ def gof(x, formula=None, coef=None, *, constraints=None, nsim: int = 100, stats=
     return GofResult(_tables(model, stats, simulated_edges, model_stats, imputed_edges, imputed_stats), nsim)
 
 
-def check_stats(network, stats) -> None:
+def check_stats(network, stats, valued: bool = False) -> None:
     for stat in stats:
-        if stat not in _TITLES:
-            raise ValueError(f"unknown goodness-of-fit statistic {stat!r}; use {list(_TITLES)}")
+        if stat not in _TITLES or stat == "affiliations":
+            raise ValueError(f"unknown goodness-of-fit statistic {stat!r}; use "
+                             f"{[s for s in _TITLES if s != 'affiliations']}")
+        if stat == "cdf" and not valued:
+            raise ValueError("'cdf' is the distribution of a valued network's values")
         if network.directed and stat == "degree" or not network.directed and stat in ("idegree", "odegree"):
             raise ValueError(f"{stat!r} does not apply to {'' if network.directed else 'un'}directed networks")
         if stat in ("b1degree", "b2degree") and not network.bipartite:
@@ -398,8 +441,11 @@ def _tables(model, stats, simulated_edges, model_stats, imputed_edges, imputed_s
     """The goodness-of-fit tables of simulated networks against the observed
     (or imputed) ones."""
     network = model.network
+    valued = getattr(model, "valued", False)
 
     def distributions(edge_lists, stat):
+        if valued:  # the nonzero dyads as ties
+            edge_lists = [np.asarray(e).reshape(-1, 3)[:, :2] for e in edge_lists]
         return _pooled_many(network, edge_lists, stat)
 
     tables = {}
@@ -408,11 +454,51 @@ def _tables(model, stats, simulated_edges, model_stats, imputed_edges, imputed_s
             tables[stat] = GofTable(stat, list(model.stat_names), imputed_stats.mean(axis=0),
                                     model_stats)
             continue
+        if stat == "cdf":
+            from ._valued import dyad_count
+
+            points = cdf_points(model.observed_values())
+            dyads = dyad_count(model.binary)
+            tables[stat] = GofTable(stat, [f"{x:.15g}" for x in points],
+                                    np.mean([_cdf(points, e, dyads) for e in imputed_edges], axis=0),
+                                    np.array([_cdf(points, e, dyads) for e in simulated_edges]))
+            continue
         observed = distributions(imputed_edges, stat).mean(axis=0)
         size = max(b.network.n for b in network.blocks) if network.combined else network.n
         tables[stat] = GofTable(stat, _labels(size, stat), observed,
                                 distributions(simulated_edges, stat))
     return tables
+
+
+def cdf_points(values, margin: float = 0.1, nmax: int = 100) -> np.ndarray:
+    """The points of ergm's ``cdf`` goodness-of-fit term: from the smallest
+    to the largest nonzero value, widened by ``margin`` of their range, in
+    steps of the values' resolution (their smallest difference), or a
+    multiple of it, so that there are at most ``nmax``."""
+    values = np.unique(np.asarray(values, dtype=float))
+    values = values[values != 0]
+    if not len(values):
+        raise ValueError("the network has no nonzero values, so the points of their distribution can't be set")
+    gaps = np.diff(values)
+    gaps = gaps[gaps > np.sqrt(np.finfo(float).eps)]
+    if not len(gaps):  # a single value
+        return np.unique([0.0, values[0]])
+    res = gaps.min()
+
+    def ceiling(x):
+        return np.ceil(x / res) * res
+
+    widen = ceiling((values[-1] - values[0]) * margin)
+    low, high = values[0] - widen, values[-1] + widen
+    by = max(res, ceiling((high - low) / (nmax - 1)))
+    return np.minimum(low + np.arange(int((high - low) / by + 1e-10) + 1) * by, high)  # as R's seq()
+
+
+def _cdf(points: np.ndarray, triples, dyads: float) -> np.ndarray:
+    """The number of dyads whose value is at most each point."""
+    values = np.sort(np.asarray(triples, dtype=float).reshape(-1, 3)[:, 2])
+    values = values[values != 0]
+    return np.searchsorted(values, points, side="right") + (dyads - len(values)) * (points >= 0)
 
 
 def _simulations(model, coef, nsim, seed, interval, burnin, n_chains, triadic_weight):

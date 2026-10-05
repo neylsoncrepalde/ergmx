@@ -6,16 +6,60 @@ kernelspec:
 
 # A complete Bayesian ERGM analysis
 
-A Bayesian ERGM gives, instead of point estimates and standard errors, the
-*posterior distribution* of the coefficients: what the network, together
-with a prior, says about them. This page samples it with
-{func}`ergmx.bergm`, as R's Bergm does ([Caimo and Friel
-2011](https://doi.org/10.1016/j.socnet.2010.09.004)), for a small network:
-check that the chains converged, compare the posterior with the MLE, read
-probabilities off it, check the model with its posterior predictive
-distribution, improve it, bring in a prior from earlier data, and report
-the results. The [Bayesian ERGMs](../bayesian.md) page of the user guide has
-the details.
+This page fits a Bayesian ERGM to a small network with {func}`ergmx.bergm`,
+as R's Bergm does ([Caimo and Friel
+2011](https://doi.org/10.1016/j.socnet.2010.09.004)): check that the chains
+converged, compare the posterior with the MLE, read probabilities off it,
+check the model with its posterior predictive distribution, improve it,
+bring in a prior from earlier data, and report the results. The
+[Bayesian ERGMs](../bayesian.md) page of the user guide has the details.
+
+## What is a Bayesian ERGM?
+
+The model is the same as {func}`ergmx.ergm`'s: a network's probability
+depends on its statistics, weighted by the coefficients. What differs is
+how the coefficients are estimated.
+
+{func}`ergmx.ergm` finds the *maximum likelihood estimate* (MLE): the
+coefficients under which the observed network is most probable. Its
+uncertainty is a standard error, from the curvature of the likelihood at
+the maximum. Confidence intervals and p-values then take the estimate to be
+normally distributed around the true coefficients. With enough data, it
+nearly is.
+
+A Bayesian ERGM treats the coefficients as unknown quantities with a
+probability distribution. It starts from a *prior*, what is known or
+assumed about the coefficients before seeing the network. The likelihood of
+the network updates the prior into the *posterior*: the coefficients'
+probable values, given the network and the prior. {func}`ergmx.bergm`
+returns thousands of draws from the posterior, and every summary comes from
+them. These include means and standard deviations, and *credible
+intervals*: a 95% credible interval holds the coefficient with probability
+0.95. The draws also give the probability that a coefficient is positive,
+or that one effect is stronger than another.
+
+With a nearly flat prior and enough data, the two approaches agree: the
+posterior mean is close to the MLE, and the posterior standard deviation to
+the standard error. A Bayesian ERGM is most useful in these cases:
+
+- **Small networks.** With a few dozen vertices, the uncertainty about the
+  coefficients may be far from normal: skewed, or strongly correlated. The
+  posterior describes it as it is, without the normal approximation.
+- **Prior knowledge.** An earlier wave of the same network, a similar
+  network, or published estimates can become the prior, and the posterior
+  combines them with the new data.
+- **Questions about probabilities.** "How probable is it that closure is
+  positive?" has a direct answer in the posterior. A p-value answers a
+  different question: how surprising the data would be if the coefficient
+  were 0.
+- **Checks that include the uncertainty.** The posterior predictive
+  distribution simulates networks at many draws of the posterior, rather
+  than at one estimate, so the simulated range includes the coefficients'
+  uncertainty.
+
+The price is computing time. Each step of each chain simulates a network,
+so a posterior takes much longer than an MLE, and the cost grows with the
+network's size: for large networks, the MLE is often the practical choice.
 
 ## The data
 
@@ -63,8 +107,9 @@ ax.legend(
 The groups are clusters of mutual liking, with few nominations between
 them. The model has the baseline log-odds of a nomination (`edges`),
 reciprocity (`mutual`), liking within the groups (`nodematch('group')`), and
-transitive closure, the liking of the liked ones' liked ones
-(`gwesp`, for directed networks of outgoing two-paths):
+transitive closure, the liking of the liked ones' liked ones (`gwesp`; in a
+directed network, it counts by default the two-paths i → k → j of each
+nomination i → j):
 
 ```{code-cell} ipython3
 formula = "edges + mutual + nodematch('group') + gwesp(0.5, fixed=TRUE)"
@@ -122,13 +167,12 @@ be close to the maximum likelihood estimate and its standard error:
 ```{code-cell} ipython3
 mle = ergmx.ergm(monks, formula, seed=1)
 pd.DataFrame({
-    "MLE": mle.params, "Std. Error": np.sqrt(np.diag(mle.cov)),
-    "Posterior mean": posterior.mean, "Posterior SD": list(posterior.sd.values()),
-}, index=mle.names).round(2)
+    "MLE": mle.coef, "Std. Error": mle.stderr, "Posterior mean": posterior.coef, "Posterior SD": posterior.sd,
+}).round(2)
 ```
 
-They are. The posterior, though, needs no assumption that the estimates are
-normally distributed, and its draws answer questions directly.
+They are, within a third of a standard error. What the posterior adds is
+in its draws, which answer questions directly.
 
 ## What the posterior says
 
@@ -211,7 +255,7 @@ informed = ergmx.bergm(monks, constrained, constraints="odegrees", main_iters=30
 
 
 def mean_sd(fit):
-    return [f"{m:.2f} ({s:.2f})" for m, s in zip(fit.mean, fit.sd.values())]
+    return [f"{fit.coef[name]:.2f} ({fit.sd[name]:.2f})" for name in fit.names]
 
 
 pd.DataFrame({"Time 3": mean_sd(final), "Time 2": mean_sd(earlier), "Time 3, time 2 as prior": mean_sd(informed)},

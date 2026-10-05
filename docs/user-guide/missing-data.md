@@ -105,3 +105,9 @@ transitioned *from*, which the next transition is conditional on, are
 imputed first with `na_impute=`, as tergm's `NA.impute`: see
 [](temporal.md#missing-dyads).
 
+## Valued networks
+
+In a valued network, a dyad is missing if its edge has a true `na`
+attribute, or no value (`None` or NaN): see
+[](valued.md#missing-dyads).
+

@@ -85,6 +85,63 @@ posterior.gof(50, seed=1).plot();
 
 Bergm updates the chains one after the other; ergmx updates half of them
 at a time, with proposals from the other half, and draws their auxiliary
-networks in parallel. Both sample the same posterior. Bergm's model
-evidence (`evidence()`) and calibrated pseudo-likelihood (`bergmC()`) are
-not available.
+networks in parallel. Both sample the same posterior.
+
+## Model choice: the evidence
+
+A model's evidence, its marginal likelihood p(y), is the probability of the
+network averaged over the prior; the ratio of two models' evidence, the
+Bayes factor, says how much more the network supports one than the other.
+{func}`ergmx.evidence`, as Bergm's `evidence()` ([Bouranis, Friel and Maire
+2018](https://doi.org/10.1080/10618600.2018.1448832)), estimates it from
+the *adjusted pseudo-likelihood* ({func}`ergmx.ergm_apl`, Bergm's
+`ergmAPL()`): the pseudo-likelihood moved to the MLE, stretched to the
+likelihood's curvature there and scaled to its value, a cheap stand-in for
+the likelihood that can be evaluated anywhere. Chib and Jeliazkov's method
+(`method="CJ"`, the default) estimates the posterior's density at its mean;
+power posteriors (`"PP"`) integrate over a ladder of temperatures, and are
+slower.
+
+```{code-cell} ipython3
+import warnings
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", ergmx.ErgmDifferenceWarning)
+    two_stars = ergmx.evidence(flomarriage, "edges + kstar(2)", seed=1)
+    wealth = ergmx.evidence(flomarriage, "edges + nodecov('wealth')", seed=1)
+two_stars.log_evidence, wealth.log_evidence
+```
+
+The two-star model has the larger evidence, by a Bayes factor of
+exp(1.1), about 3: weak evidence. The adjustment comes from the Monte Carlo
+MLE: its final sample of networks gives the likelihood's curvature, and its
+bridge-sampled log-likelihood the scale. Bergm's `evidence()` takes both
+from 5 simulated networks, which leaves its estimates noisy and biased: on
+the wealth model, whose exact log evidence, -62.92, can be computed (its
+pseudo-likelihood is its likelihood), five runs of Bergm's Chib and
+Jeliazkov estimate gave -61.0 on average, from -59.2 to -63.8, and ergmx's
+gives -62.93 for any seed. With 50 temperatures, power posteriors are off
+by about 0.2 (-63.1 here), in ergmx and Bergm: more temperatures (`temps=`)
+reduce that.
+
+## Fast posteriors: bergmC
+
+{func}`ergmx.bergmC`, as Bergm's `bergmC()` ([Bouranis, Friel and Maire
+2017](https://doi.org/10.1016/j.socnet.2017.03.013)), samples the
+pseudo-posterior, which needs no auxiliary networks, and calibrates the
+sample to the true posterior: from its mode to the posterior's mode, and
+from its curvature to the posterior's. For large networks it is much faster
+than {func}`ergmx.bergm`, and the result is a {class}`~ergmx.BergmFit`
+with the same summaries and checks:
+
+```{code-cell} ipython3
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", ergmx.ErgmDifferenceWarning)
+    calibrated = ergmx.bergmC(datasets.load("samplk3"), "edges + mutual + nodematch('group')", seed=1)
+calibrated.summary()
+```
+
+The calibration is exact when the posterior is normal, and good when it is
+nearly so, as here (the exact posterior means, from `bergm()`, are -2.71,
+1.39 and 2.07). It is poor for skewed posteriors: for the two-star model of
+the Florentine marriages, its mean for `edges` is -1.7, the exact one -1.1.

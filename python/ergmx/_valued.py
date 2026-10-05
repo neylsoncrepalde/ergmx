@@ -1,8 +1,8 @@
-"""Valued networks, as R's ergm with ergm.count: each dyad has a count (an
+"""Valued networks, as R's ergm with ergm.count: each dyad has a value (an
 edge attribute, ``response``), whose distribution is a reference measure
-(Poisson, geometric, binomial, discrete uniform) tilted by the model's
-statistics. Models are fitted by contrastive divergence and the Monte Carlo
-MLE, as in ergm."""
+(Poisson, geometric, binomial, discrete uniform for counts; continuous
+uniform and standard normal) tilted by the model's statistics. Models are
+fitted by contrastive divergence and the Monte Carlo MLE, as in ergm."""
 
 from __future__ import annotations
 
@@ -16,13 +16,16 @@ from . import _core
 from ._network import Network, as_network
 from .terms import TERMS, Formula, Term
 
-#: The reference measures, as ergm.count's: name -> number of parameters.
-REFERENCES = {"Poisson": 0, "Geometric": 0, "Binomial": 1, "DiscUnif": 2}
+#: The reference measures, as ergm's and ergm.count's: name -> number of parameters.
+REFERENCES = {"Poisson": 0, "Geometric": 0, "Binomial": 1, "DiscUnif": 2, "Unif": 2, "StdNormal": 0}
+#: The references of continuous values.
+CONTINUOUS = ("Unif", "StdNormal")
 
 
 def parse_reference(reference) -> tuple[str, list[float]]:
     """A reference measure from R's syntax (``"~Poisson"``,
-    ``"Binomial(trials=3)"``, ``"DiscUnif(0, 5)"``) or a (name, parameters) pair."""
+    ``"Binomial(trials=3)"``, ``"DiscUnif(0, 5)"``, ``"StdNormal"``) or a
+    (name, parameters) pair."""
     if isinstance(reference, tuple):
         name, params = reference
     else:
@@ -46,7 +49,36 @@ def parse_reference(reference) -> tuple[str, list[float]]:
     if name == "DiscUnif" and not (params[0] <= 0 <= params[1] and params[0] < params[1]
                                    and all(p == int(p) for p in params)):
         raise ValueError("DiscUnif(a, b): a and b must be integers, a <= 0 <= b, a < b")
+    if name == "Unif" and not (np.isfinite(params).all() and params[0] < params[1]):
+        raise ValueError("Unif(a, b): a and b must be finite, a < b")
     return name, [float(p) for p in params]
+
+
+def _lowest(reference) -> float:
+    """The smallest value the reference allows."""
+    name, params = reference
+    return params[0] if name in ("DiscUnif", "Unif") else -np.inf if name == "StdNormal" else 0.0
+
+
+def check_values(reference, values: np.ndarray, zeros: bool) -> None:
+    """Raises if some dyad's value is outside the reference's support (`values`
+    the nonzero ones; `zeros`, whether some dyads are 0)."""
+    name, params = reference
+    whole = bool(np.all(values == np.round(values)))
+    if name in ("Poisson", "Geometric"):
+        ok, support = whole and np.all(values >= 0), "whole numbers, 0 or more"
+    elif name == "Binomial":
+        ok, support = whole and np.all((values >= 0) & (values <= params[0])), f"whole numbers from 0 to {params[0]:g}"
+    elif name in ("DiscUnif", "Unif"):
+        a, b = params
+        ok = (whole or name == "Unif") and np.all((values >= a) & (values <= b)) and (not zeros or a <= 0 <= b)
+        support = f"{'whole numbers' if name == 'DiscUnif' else 'values'} from {a:g} to {b:g}"
+        if zeros and not a <= 0 <= b:
+            support += " (and the dyads without an edge are 0)"
+    else:
+        return
+    if not ok:
+        raise ValueError(f"the {name} reference takes {support}")
 
 
 # -- Terms --------------------------------------------------------------------------------------
@@ -118,9 +150,16 @@ def _wrapper(name: str, cn: str | None = None):
     return make
 
 
+def _nonnegative(term: ValuedTerm) -> ValuedTerm:
+    """Marks a term that needs nonnegative values (square roots, log-factorials)."""
+    term.nonnegative = True
+    return term
+
+
 def _sum(pow: float = 1):
     """The sum of the dyads' values (to the power ``pow``)."""
-    return ValuedTerm("sum" if pow == 1 else f"sum{pow:g}", "sum", [pow])
+    term = ValuedTerm("sum" if pow == 1 else f"sum{pow:g}", "sum", [pow])
+    return term if float(pow).is_integer() else _nonnegative(term)
 
 
 class _NonZero(_Dyadic):
@@ -182,7 +221,8 @@ def _mutual(form: str = "min", threshold=0):
     if form not in codes:
         raise ValueError(f"mutual(form=): one of {', '.join(codes)}")
     code, label = codes[form]
-    return ValuedTerm(label, "mutual", [], [code], directed=True)
+    term = ValuedTerm(label, "mutual", [], [code], directed=True)
+    return _nonnegative(term) if form == "geometric" else term
 
 
 def _weights(cyclical: bool):
@@ -197,7 +237,7 @@ def _weights(cyclical: bool):
                           [], [int(twopath == "geomean"), int(combine == "sum"), int(affect == "geomean")])
         term.dyad_independent = False
         term.triadic = True
-        return term
+        return _nonnegative(term) if "geomean" in (twopath, affect) else term
 
     make.__name__ = name
     make.__doc__ = (f"ergm's {name}: for each dyad, its value compared ({{affect}}) with the strongest (or the "
@@ -216,7 +256,7 @@ def _nodecovar(side: str):
         if side == "all":
             term.directed = False
         term.dyad_independent = False
-        return term
+        return _nonnegative(term) if transform == "sqrt" else term
 
     make.__name__ = name
     return make
@@ -224,7 +264,7 @@ def _nodecovar(side: str):
 
 def _cmp():
     """Conway-Maxwell-Poisson dispersion: the sum over dyads of log(y!)."""
-    return ValuedTerm("CMP", "CMP")
+    return _nonnegative(ValuedTerm("CMP", "CMP"))
 
 
 class _TiesAbove(ValuedTerm):
@@ -308,40 +348,46 @@ def parse_valued_formula(formula) -> Formula:
 
 
 def valued_network(network, response: str, bipartite=None) -> tuple[Network, np.ndarray]:
-    """The network (its nonzero dyads as edges) and its dyads' values, from
-    the edge attribute `response`."""
+    """The network (its nonzero dyads as edges, its missing dyads as
+    `missing`) and its observed nonzero dyads' values, from the edge
+    attribute `response`. A dyad is missing if its edge has a true `na`
+    attribute, or no value (None or NaN)."""
     ig = sys.modules.get("igraph")
     nx = sys.modules.get("networkx")
     net = as_network(network, bipartite)
     if net.combined:
         raise ValueError("valued models of several networks are not supported")
     if ig is not None and isinstance(network, ig.Graph):
-        if response not in network.es.attributes():
+        if response not in network.es.attributes() and network.ecount():
             raise ValueError(f"the network has no edge attribute {response!r}")
         pairs = np.array(network.get_edgelist(), dtype=np.int64).reshape(-1, 2)
-        values = np.array(network.es[response], dtype=float)
+        raw = network.es[response] if network.ecount() else []
+        na = network.es["na"] if "na" in network.es.attributes() else [False] * len(raw)
     elif nx is not None and isinstance(network, nx.Graph):
         index = {v: k for k, v in enumerate(network)}
-        rows = [(index[u], index[v], d.get(response)) for u, v, d in network.edges(data=True)]
-        if any(r[2] is None for r in rows):
-            raise ValueError(f"some edges have no attribute {response!r}")
+        rows = [(index[u], index[v], d.get(response), d.get("na", False)) for u, v, d in network.edges(data=True)]
+        if rows and not any(response in d for *_, d in network.edges(data=True)):
+            raise ValueError(f"the network has no edge attribute {response!r}")
         pairs = np.array([r[:2] for r in rows], dtype=np.int64).reshape(-1, 2)
-        values = np.array([r[2] for r in rows], dtype=float)
+        raw, na = [r[2] for r in rows], [r[3] for r in rows]
     else:
         raise TypeError("valued networks are igraph or networkx graphs with an edge attribute")
-    if len(net.missing):
-        raise ValueError("valued networks with missing dyads are not supported")
-    if np.any(values < 0) or not np.all(np.isfinite(values)):
-        raise ValueError(f"the values of {response!r} must be finite and nonnegative")
-    keep = values != 0
-    pairs, values = pairs[keep], values[keep]
+    values = np.array([np.nan if v is None else v for v in raw], dtype=float)
+    missing = np.array([bool(m) for m in na], dtype=bool) | np.isnan(values)
+    if not np.all(np.isfinite(values[~missing])):
+        raise ValueError(f"the values of {response!r} must be finite")
     if not net.directed:
         pairs = np.sort(pairs, axis=1)
     if len(pairs) != len({tuple(p) for p in pairs.tolist()}):
         raise ValueError("a dyad has several edges: give each dyad one edge, with its value")
+    unknown = pairs[missing]
+    keep = ~missing & (values != 0)
+    pairs, values = pairs[keep], values[keep]
     triples = np.column_stack([pairs, values]).astype(float) if len(pairs) else np.zeros((0, 3))
     binary = Network(net.n, net.directed, pairs.astype(np.uint32).reshape(-1, 2), net.attributes, net.source,
-                     net.graph_attributes, mode=net.mode)
+                     net.graph_attributes, unknown.astype(np.uint32).reshape(-1, 2), mode=net.mode)
+    if net.bipartite and len(unknown) and np.any(net.mode[unknown[:, 0]] == net.mode[unknown[:, 1]]):
+        raise ValueError("a bipartite network has no missing dyads within a mode, but this one has")
     return binary, triples
 
 
@@ -352,7 +398,7 @@ class _ValuedView:
 
     def __init__(self, binary: Network, triples: np.ndarray):
         self._binary, self.edges = binary, triples
-        self.missing = np.zeros((0, 2), dtype=np.uint32)
+        self.missing = binary.missing
         self.combined, self.series, self.blocks = False, False, None
 
     def __getattr__(self, name):
@@ -369,13 +415,15 @@ class ValuedModel:
     formula: Formula
     names: list[str]
     core: object
-    reference: tuple[str, list[float]]
+    reference: tuple[str, list[float]] | None
     constraints: object
     fixed: np.ndarray
     fixed_values: np.ndarray
     constant: np.ndarray
     p0: float | None = 0.2
     target: np.ndarray | None = None
+    #: The StdNormal reference's proposal steps' standard deviation.
+    normal_sd: float = 0.2
     network: _ValuedView = field(init=False)
 
     def __post_init__(self):
@@ -385,11 +433,11 @@ class ValuedModel:
     n_stats = property(lambda self: len(self.names))
     n_params = property(lambda self: len(self.names))
     curved = False
-    has_missing = False
     exact = False
     valued = True
     free = property(lambda self: ~self.fixed)
     dyad_independent = property(lambda self: all(t.dyad_independent for t in self.formula))
+    has_missing = property(lambda self: len(self.binary.missing) > 0)
 
     @property
     def blocks(self):
@@ -420,6 +468,16 @@ class ValuedModel:
     def triadic_weight(self, requested):
         return 0.0
 
+    @property
+    def loglik_unavailable(self) -> str | None:
+        """Why the log-likelihood can't be computed, if it can't."""
+        name = self.reference[0]
+        if name == "Geometric":
+            return "the geometric reference can't be normalized"
+        if self.target is not None and name in ("Poisson", "Binomial", "StdNormal"):
+            return f"with target statistics, the {name} reference's log-density of the values is unknown"
+        return None
+
     def null_loglik(self) -> float | None:
         """The log-likelihood at 0, where the dyads' values are independent
         draws from the reference measure (normalized): None for the
@@ -427,8 +485,12 @@ class ValuedModel:
         import math
 
         name, params = self.reference
-        d = dyad_count(self.binary)
-        values = self.triples[:, 2] if len(self.triples) else np.zeros(0)
+        d = dyad_count(self.binary) - len(self.binary.missing)  # the observed dyads
+        values = self.observed_values()
+        if name == "StdNormal":
+            return float(-np.sum(values**2) / 2 - d * np.log(2 * np.pi) / 2)
+        if name == "Unif":
+            return float(-d * np.log(params[1] - params[0]))
         if name == "Poisson":
             return float(-sum(math.lgamma(v + 1) for v in values) - d)
         if name == "Binomial":
@@ -439,7 +501,19 @@ class ValuedModel:
             return float(-d * math.log(params[1] - params[0] + 1))
         return None
 
+    def observed_values(self) -> np.ndarray:
+        """The nonzero values of the observed dyads."""
+        if not self.has_missing or not len(self.triples):
+            return self.triples[:, 2] if len(self.triples) else np.zeros(0)
+        from .constraints import _canonical, _within
+
+        pairs = _canonical(self.binary, self.triples[:, :2])
+        return self.triples[~_within(pairs, _canonical(self.binary, self.binary.missing), self.binary), 2]
+
     def observed(self):
+        """The statistics of the network, with its missing dyads at their
+        starting values (0, or the reference's nearest value), or the
+        target statistics."""
         if self.target is not None:
             return self.target.copy()
         return np.array(self.core.summary(self.triples))
@@ -448,13 +522,25 @@ class ValuedModel:
     def space(self):
         """The dyads that may change: within the modes of a bipartite network,
         but those the (dyad-independent) constraints fix."""
+        return self._space()
+
+    @property
+    def space_obs(self):
+        """The dyads that may change given the observed ones: the missing."""
         from .constraints import _canonical
+
+        return self._space(_canonical(self.binary, self.binary.missing)) if self.has_missing else None
+
+    def _space(self, only_missing=None):
+        from .constraints import _canonical, _within
 
         net, c = self.binary, self.constraints
         groups = c.groups(net)
         mask = c.fixed(net)
         fixed = c.fixed_pairs(net)
         only = c.free_pairs(net)
+        if only_missing is not None:
+            only = only_missing if only is None else only_missing[_within(only_missing, only, net)]
         if groups is None and not net.bipartite and mask is None and not len(fixed) and only is None:
             return None
         as_pairs = lambda a: None if a is None else np.ascontiguousarray(a, dtype=np.uint32).reshape(-1, 2)  # noqa: E731
@@ -466,17 +552,30 @@ class ValuedModel:
 
     @property
     def n_observations(self) -> int:
-        n = self.binary.n
-        return n * (n - 1) // (1 if self.binary.directed else 2)
+        """The observed dyads: the sample size of BIC."""
+        return int(dyad_count(self.binary)) - len(self.binary.missing)
 
     def simulate(self, starts, theta, burnin, interval, samples, seed, *, conditional=False,
                  canonical=False, max_edges=None, triadic_weight=None, keep_networks=False,
                  chain_thetas=None):
         name, params = self.reference
+        if name == "StdNormal":
+            params = [self.normal_sd]
         eta = [float(t) for t in np.asarray(theta, dtype=float)]
         return self.core.simulate([np.ascontiguousarray(s, dtype=float) for s in starts], eta, burnin, interval,
                                   samples, seed, (name, params), self.p0, keep_networks=keep_networks,
-                                  max_nonzero=max_edges, chain_thetas=chain_thetas, space=self.space)
+                                  max_nonzero=max_edges, chain_thetas=chain_thetas,
+                                  space=self.space_obs if conditional else self.space)
+
+
+    def san(self, start, targeted, target, offsets, weights, tau, nsteps, samplesize, seed, triadic_weight=0.0):
+        """One run of simulated annealing from the values `start`, as the
+        binary model's core ``san``."""
+        name, params = self.reference
+        if name == "StdNormal":
+            params = [self.normal_sd]
+        return self.core.san(np.ascontiguousarray(start, dtype=float), targeted, target, offsets, weights, tau,
+                             nsteps, samplesize, seed, (name, params), self.p0, space=self.space)
 
 
 def dyad_count(network: Network) -> float:
@@ -488,14 +587,22 @@ def dyad_count(network: Network) -> float:
 
 def bind_valued(network, formula, response: str, reference="Poisson", *, constraints=None,
                 offset_coef=None, bipartite=None, fitting=False, p0=0.2) -> ValuedModel:
-    """A valued model: the formula's valued terms on the network's values."""
+    """A valued model: the formula's valued terms on the network's values
+    (without a reference, for their statistics only)."""
     from ._model import _make_unique
     from .constraints import parse_constraints
 
     binary, triples = valued_network(network, response, bipartite)
+    if reference is not None:
+        reference = parse_reference(reference)
+        check_values(reference, triples[:, 2], len(triples) + len(binary.missing) < dyad_count(binary))
+        triples = _start_missing(binary, triples, reference)
     formula = parse_valued_formula(formula)
     for term in formula:
         term.check(binary)
+        inner = term.term if term.is_offset else term
+        if getattr(inner, "nonnegative", False) and reference is not None and _lowest(reference) < 0:
+            raise ValueError(f"{term!r} needs nonnegative values, and the {reference[0]} reference has negative ones")
     constraints = parse_constraints(constraints)
     if constraints.dyad_dependent:
         raise ValueError(f"valued models take dyad-independent constraints only, not {constraints!r}")
@@ -520,8 +627,22 @@ def bind_valued(network, formula, response: str, reference="Poisson", *, constra
         if coef.shape != (offsets.sum(),):
             raise ValueError(f"offset_coef must have {int(offsets.sum())} values")
         values[offsets] = coef
-    return ValuedModel(binary, triples, formula, names, core, parse_reference(reference), constraints,
-                       offsets, values, np.zeros(len(names), dtype=bool), p0)
+    return ValuedModel(binary, triples, formula, names, core, reference, constraints,
+                       offsets, values, np.zeros(len(names), dtype=bool),
+                       None if reference is not None and reference[0] in CONTINUOUS else p0)
+
+
+def _start_missing(binary: Network, triples: np.ndarray, reference) -> np.ndarray:
+    """The values with the missing dyads at their starting value: 0, or the
+    reference's nearest value to it."""
+    if not len(binary.missing):
+        return triples
+    name, params = reference
+    start = min(max(0.0, params[0]), params[1]) if name in ("DiscUnif", "Unif") else 0.0
+    if start == 0:
+        return triples
+    rows = np.column_stack([binary.missing.astype(float), np.full(len(binary.missing), start)])
+    return np.vstack([triples, rows])
 
 
 # -- Fitting and simulating ---------------------------------------------------------------------
@@ -568,6 +689,7 @@ def fit_valued(model: ValuedModel, estimate: str, init, control, rng, seed, eval
 
     if estimate == "MPLE":
         raise ValueError("valued models have no MPLE: use estimate='MLE' or 'CD'")
+    model.normal_sd = control.normal_sd
     zeros = model.initial()
     nan = np.full((model.n_params, model.n_params), np.nan)
     pseudo = Estimate(zeros, nan, None, None, "zeros", 0, False, None)
@@ -586,7 +708,7 @@ def fit_valued(model: ValuedModel, estimate: str, init, control, rng, seed, eval
             raise ValueError(f"init must have {model.n_params} values, one per coefficient")
         start = np.where(model.fixed, model.fixed_values, start)
     result = _estimation.mcmle(model, start, control, rng)
-    if eval_loglik and model.null_loglik() is not None:
+    if eval_loglik and model.loglik_unavailable is None:
         import dataclasses
 
         from ._loglik import bridge_loglik

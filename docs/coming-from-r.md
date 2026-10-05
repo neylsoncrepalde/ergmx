@@ -48,6 +48,8 @@ tables compared line by line.
 | `simulate(g ~ Form(...) + Persist(...), coef = c(...), time.slices = 10, dynamic = TRUE)` | {func}`ergmx.simulate_dynamic(g, "Form(...) + Persist(...)", [...], 10) <ergmx.simulate_dynamic>` |
 | `tergm(g ~ Form(~edges) + Persist(~edges), targets = ~edges + mean.age, target.stats = c(20, 10), estimate = "EGMME")` | `ergmx.tergm(g, "Form(~edges) + Persist(~edges)", estimate="EGMME", targets="edges + mean.age", target_stats=[20, 10])` |
 | `tergm(..., control = control.tergm(CMLE.NA.impute = "next"))`, `NetSeries(..., NA.impute = "next")` | `ergmx.tergm(..., na_impute="next")`, `ergmx.NetSeries(..., na_impute="next")` |
+| `simulate(nw ~ Form(~edges) + Persist(~edges + edges.ageinterval(3, 7)), coef = ..., time.slices = 100, dynamic = TRUE)` | {func}`ergmx.simulate_dynamic(g, "Form(~edges) + Persist(~edges + edges.ageinterval(3, 7))", coef, 100) <ergmx.simulate_dynamic>` |
+| `btergm(networks ~ edges + mutual + edgecov(x) + memory(type = "stability") + delrecip, R = 1000)` | {func}`ergmx.btergm(networks, "edges + mutual + edgecov('x') + memory(type='stability') + delrecip", R=1000) <ergmx.btergm>`, with `x` each network's graph attribute |
 | `gofN(fit, GOF = ~edges + triangle)` (ergm.multi) | {func}`ergmx.gofN(fit, "edges + triangle") <ergmx.gofN>` |
 | `lm.gofN(edges ~ n, data = g)` (ergm.multi) | {func}`ergmx.lm_gofN("edges ~ n", g) <ergmx.lm_gofN>` |
 | `ergm(net ~ sum + nonzero, response = "contexts", reference = ~Poisson)` (ergm.count) | `ergmx.ergm(g, "sum + nonzero", response="contexts", reference="Poisson")` |
@@ -58,6 +60,7 @@ tables compared line by line.
 | `summary(egor ~ edges + degree(0), scaleto = 1000)` (ergm.ego) | {func}`ergmx.ego_stats("edges + degree(0)", data, scaleto=1000) <ergmx.ego_stats>` |
 | `ergm.ego(egor ~ edges + nodematch("sex"), popsize = 1000)` | {func}`ergmx.ergm_ego("edges + nodematch('sex')", data, popsize=1000) <ergmx.ergm_ego>` |
 | `saveRDS(fit, "fit.rds")`, `readRDS("fit.rds")` | {meth}`fit.save("fit.pkl") <ergmx.ErgmFit.save>`, {func}`ergmx.load_fit("fit.pkl") <ergmx.load_fit>` |
+| `ergm(Layer(m = g1, b = g2) ~ L(~edges, ~m) + L(~edges, ~m & b) + CMBL)` (ergm.multi) | `ergmx.ergm(ergmx.Layer(m=g1, b=g2), "L(~edges, ~m) + L(~edges, ~m & b) + CMBL")` |
 | `data(Goeyvaerts)` (ergm.multi) | `ergmx.datasets.load("Goeyvaerts")`, a list of graphs |
 | `predict(fit)`, `predict(fit, conditional = FALSE)` | {meth}`fit.predict() <ergmx.ErgmFit.predict>`, `fit.predict(conditional=False)` |
 | `predict(net ~ edges + mutual, eta = c(-2, 1.8))` | {func}`ergmx.predict(g, "edges + mutual", [-2, 1.8]) <ergmx.predict>` |
@@ -205,6 +208,15 @@ accepted: R expressions such as `log(n)` must be computed first.
   ergm.multi's (the fit's, 1024 by default) leaves those of many small
   networks autocorrelated. `gofN()`'s `subset` selects the networks reported.
 
+**Layer-aware OSP and ISP shared partners in order follow ergm.multi's documentation.**
+: With `L.in_order=TRUE`, ergm.multi 0.3.0's cache of OSP and ISP shared
+  partners doesn't keep which tie is at which end of the pair, so its
+  statistics depend on the order of the ties (and change with
+  `cache.sp=FALSE`). ergmx counts the documented ones, the first tie at the
+  pair's first vertex, and warns. Simulated Layer() networks are dicts of
+  their layers by name (ergm.multi's are Layer() networks):
+  `ergmx.Layer(draw)` makes one.
+
 **Attribute arguments are names.**
 : Terms take vertex attributes by name, and `levels=` the specifications of
   ergm's `?nodal_attributes` (values, 1-based indices, negative indices, `TRUE`,
@@ -270,11 +282,18 @@ accepted: R expressions such as `log(n)` must be computed first.
   half the chains at a time (Bergm, one at a time), with the auxiliary
   networks of each half drawn in parallel; the samplers differ, the
   posterior is the same. `bergm()` takes missing dyads directly (Bergm's
-  `bergmM()`). Bergm's `evidence()`, `bergmC()` and `ergmAPL()` are not
-  available.
+  `bergmM()`). Bergm's `evidence()`, `ergmAPL()` and `bergmC()` are
+  {func}`ergmx.evidence`, {func}`ergmx.ergm_apl` and {func}`ergmx.bergmC`.
+  They follow the methods where Bergm 5.0.7's code differs, and warn:
+  Bergm's Chib and Jeliazkov estimate leaves the prior out of the
+  acceptance probabilities, and its `bergmC()` misses the pseudo-posterior's
+  mode (optim() gets the gradient with the wrong sign). The adjustment of
+  the pseudo-likelihood comes from the Monte Carlo MLE's sample and
+  bridge-sampled log-likelihood rather than from 5 to 50 networks, the
+  power posteriors' proposals are scaled to each temperature's posterior,
+  and `bergmC()`'s Robbins-Monro steps toward the posterior mode are
+  Newton's (`rm.a` and `rm.alpha` are gone).
 
 **Not yet available.**
-: Valued networks with continuous values (ergm's `StdNormal` reference),
-  missing dyads or several networks; tergm's durational *model* terms (as
-  opposed to EGMME targets and monitors); and among ergm's binary terms,
-  the projection and `Sum`/`Prod`/`Exp`-style operators.
+: Valued models of several networks; and among ergm's binary terms, the
+  projection operators.

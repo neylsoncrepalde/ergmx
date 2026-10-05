@@ -6,14 +6,28 @@
 """
 
 from . import constraints, datasets
+from ._btergm import BtergmFit, btergm, delrecip, memory, timecov
 from ._bayes import BergmFit, BergmSummary, bergm
+from ._bergm_tools import AdjustedPL, ModelEvidence, bergmC, ergm_apl, evidence
 from ._compare import ModelComparison, compare
 from ._diagnostics import McmcDiagnostics
 from ._estimation import Control, DegeneracyError
 from ._fit import ErgmFit, FitSummary, load_fit
 from ._ego import EgoData, EgoFit, ego_stats, ergm_ego
-from ._durational import edge_ages, edgecov_ages, edges_ageinterval, mean_age, nodefactor_mean_age
+from ._durational import (
+    degrange_mean_age,
+    degree_mean_age,
+    edge_ages,
+    edgecov_ages,
+    edgecov_mean_age,
+    edges_ageinterval,
+    mean_age,
+    nodefactor_mean_age,
+    nodemix_mean_age,
+)
 from ._gof import GofResult, GofTable, gof
+from ._layers import Layer
+from ._userterms import UserTerm, register_term
 from ._gofn import GofNResult, GofNSummary, GofNTable, LmFit, gofN, lm_gofN
 from ._interpret import NumericTable, TiePredictions
 from ._multi import NetSeries, Networks
@@ -208,11 +222,13 @@ from .terms import (
     txbxreciprocity,
 )
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 
 __all__ = [
+    "AdjustedPL",
     "BergmFit",
     "BergmSummary",
+    "BtergmFit",
     "Change",
     "Control",
     "Cross",
@@ -234,9 +250,11 @@ __all__ = [
     "GofNTable",
     "GofResult",
     "GofTable",
+    "Layer",
     "LmFit",
     "McmcDiagnostics",
     "ModelComparison",
+    "ModelEvidence",
     "N",
     "NetSeries",
     "Networks",
@@ -247,6 +265,7 @@ __all__ = [
     "SanControl",
     "Term",
     "TiePredictions",
+    "UserTerm",
     "aaaxs",
     "aains1x",
     "aaouts1x",
@@ -307,6 +326,8 @@ __all__ = [
     "b2twostar",
     "balance",
     "bergm",
+    "bergmC",
+    "btergm",
     "c4axb",
     "c4axbentrainment",
     "c4axbexchange",
@@ -326,8 +347,11 @@ __all__ = [
     "degcor",
     "degcrossprod",
     "degrange",
+    "degrange_mean_age",
     "degree",
     "degree1_5",
+    "degree_mean_age",
+    "delrecip",
     "density",
     "desp",
     "dgwdsp",
@@ -340,12 +364,15 @@ __all__ = [
     "edge_ages",
     "edgecov",
     "edgecov_ages",
+    "edgecov_mean_age",
     "edges",
     "edges_ageinterval",
     "ego_stats",
     "ergm",
+    "ergm_apl",
     "ergm_ego",
     "esp",
+    "evidence",
     "exta",
     "extb",
     "gof",
@@ -386,6 +413,7 @@ __all__ = [
     "m2star",
     "mean_age",
     "meandeg",
+    "memory",
     "mm",
     "mutual",
     "nearsimmelian",
@@ -400,6 +428,7 @@ __all__ = [
     "nodeifactordistinct",
     "nodematch",
     "nodemix",
+    "nodemix_mean_age",
     "nodeocov",
     "nodeocovrange",
     "nodeofactor",
@@ -416,6 +445,7 @@ __all__ = [
     "parse_formula",
     "predict",
     "receiver",
+    "register_term",
     "san",
     "sender",
     "simmelian",
@@ -430,6 +460,7 @@ __all__ = [
     "table",
     "tergm",
     "threetrail",
+    "timecov",
     "transitive",
     "transitiveties",
     "triadcensus",

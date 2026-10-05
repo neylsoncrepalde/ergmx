@@ -83,6 +83,8 @@ ergmx.summary_stats(target, "edges + triangle")
 Terms in `offset()` are not targeted: their coefficients (`offset_coef`)
 bias the search, and a coefficient of `-inf` forbids the ties they count.
 {class}`ergmx.SanControl` holds ergm's settings (`nsteps`, `maxit`, `tau`...).
+With `response=` and `reference=`, it searches for a valued network, with
+the valued model's proposals ([](valued.md#fitting)).
 
 ### Fitting to target statistics
 

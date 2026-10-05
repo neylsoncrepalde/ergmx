@@ -1,5 +1,88 @@
 # Changelog
 
+## 0.4.0 (2026-10-04)
+
+- Multilayer networks, as R's ergm.multi: {func}`ergmx.Layer` combines
+  networks on the same vertices into the layers of one network, `L()`
+  evaluates terms on logical layers (layers and their combinations in
+  ergm.multi's Layer Logic: `~marriage & business`, `` ~`1` & t(`2`) ``,
+  `~(a + b) >= 2`...), and ergm.multi's layer-aware terms `CMBL`,
+  `twostarL`, `mutualL`, `espL`, `dspL`, `nspL`, `gwespL`, `gwdspL` and
+  `gwnspL` relate the layers. Checked against ergm.multi's statistics and
+  names (20 sets of terms, directed and undirected) and its fits. ergm.multi
+  0.3.0's OSP and ISP shared partners in order depend on the order of the
+  ties; ergmx follows their documented definition and warns. Simulated
+  Layer() networks are dicts of their layers, which `Layer()` takes back.
+- Terms written in Python ({class}`ergmx.UserTerm`, {func}`ergmx.register_term`):
+  dyad-independent ones are tabulated once and run as fast as ergmx's
+  terms; dyad-dependent ones are called back at each MCMC proposal, with a
+  read-only view of the network (slow: for trying statistics out).
+- ergm's operators `Sum()`, `Prod()`, `Log()`, `Exp()`, `Symmetrize()`,
+  `Label()`, `Passthrough()`, `I()`, `For()`, `Offset()` and `Curve()`
+  (`Parametrise()`, `Parametrize()`), in formula strings with R's syntax
+  (two-sided formulas for `Sum()`'s weights, named vectors, `I("label")`),
+  checked against ergm's statistics, names and fits. Terms can bound their
+  parameters (`Curve()`'s `minpar` and `maxpar`).
+- Bergm's model-choice tools: {func}`ergmx.ergm_apl` (the adjusted
+  pseudo-likelihood), {func}`ergmx.evidence` (the model evidence, by Chib
+  and Jeliazkov's method or power posteriors) and {func}`ergmx.bergmC` (the
+  calibrated pseudo-posterior). Checked against the exact evidence and
+  posterior of a dyad-independent model and against Bergm, which they
+  improve on: the adjustment comes from the Monte Carlo MLE's sample and
+  bridge-sampled log-likelihood (Bergm's from 5 to 50 networks: on that
+  model, its Chib and Jeliazkov estimate is 2 nats off on average, ergmx's
+  within 0.01), and the power posteriors' proposals fit each temperature.
+  Where Bergm's code differs from the methods (the prior in Chib and
+  Jeliazkov's acceptance probabilities; bergmC's optimizer), ergmx follows
+  the methods and warns.
+- tergm's durational terms are terms of the models of dynamic simulations
+  and of the EGMME: ties can dissolve (or form) at rates that depend on
+  their age, as `Persist(~edges + edges.ageinterval(3, 7))`. As tergm's, a
+  step's model sees the ages at its start, and the statistics reported
+  after it the ages at its end. New: `edgecov.mean.age`,
+  `nodemix.mean.age`, `degree.mean.age`, `degrange.mean.age` and
+  `EdgeAges()`. All of them are checked against tergm's statistics, its
+  simulations (whose stationary edge counts ergmx and the exact Markov
+  chain of each dyad's age reproduce) and the exact hazards of dissolution.
+  `simulate_dynamic(ages=)` gives the starting network's ties their ages.
+  As in tergm, they can't be terms of models fitted by CMLE or `ergm()`.
+- In dynamic simulations of a single network, terms outside tergm's
+  operators can use the network's graph attributes (as `edgecov("w")`).
+- {func}`ergmx.btergm`, R's btergm: temporal ERGMs by the pseudo-likelihood
+  pooled over the time steps, with bootstrap percentile intervals, and
+  btergm's `memory()`, `delrecip()` and `timecov()` terms. Networks whose
+  vertices change are matched by name, keeping each time step's common
+  vertices, or with `offset=True` all of them, with structural zeros.
+  Checked against btergm (the estimates exactly, on Knecht's pupils and
+  five models), the exact bootstrap distribution of the few time steps,
+  and boot's percentile interpolation. Unlike btergm, a model can have
+  several `memory()` terms.
+- {func}`ergmx.gof` of valued models, as ergm's: the model statistics and
+  `"cdf"`, the number of dyads whose value is at most each of a range of
+  values (ergm's points), checked against ergm. The binary statistics
+  (degrees, shared partners, distances) are those of the nonzero dyads.
+  `gof(network, formula, coef, response=, reference=)` checks a valued
+  model without a fit.
+- Continuous values: ergm's `"StdNormal"` and `"Unif(a, b)"` references,
+  with their proposals (a normal step of `Control(normal_sd=0.2)`, a
+  uniform value), checked against ergm's fits, exact MLEs and exact
+  moments. Valued networks may have negative values; terms with square
+  roots or log-factorials refuse references with negative values.
+- Valued models check their values against the reference's support: whole
+  numbers for the Poisson, geometric, binomial and discrete uniform ones.
+- Missing dyads in valued networks: edges with a true `na` attribute, or
+  without a value. The Monte Carlo MLE, its log-likelihood and the
+  goodness of fit condition on the observed dyads, as for binary networks;
+  checked against the exact MLE of a dyad-independent model.
+- {func}`ergmx.san` and `ergm(target_stats=)` of valued models, as ergm's,
+  with the valued proposals; checked against ergm's fit to target
+  statistics. The log-likelihood isn't computed for the Poisson, binomial
+  and normal references, which need the values.
+- The valued sampler no longer loses a sample when the proposal at a
+  sampling step can't be made (a nonzero dyad that the constraints fix),
+  which made constrained valued chains fail; its DiscTNT proposal now draws
+  the jumps to 0 among the free nonzero dyads only.
+
 ## 0.3.1 (2026-10-04)
 
 - **Quick start**: complete analyses of a valued network (the karate club's

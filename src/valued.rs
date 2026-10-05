@@ -1,6 +1,7 @@
-//! Valued networks, as R's ergm with ergm.count: each dyad has a count,
+//! Valued networks, as R's ergm with ergm.count: each dyad has a value,
 //! drawn from a reference measure (Poisson, geometric, binomial, discrete
-//! uniform) tilted by the model's statistics.
+//! uniform; continuous uniform, standard normal) tilted by the model's
+//! statistics.
 //!
 //! A valued term reports how its statistics change when a dyad's value goes
 //! from `old` to `new`. Dyad-independent binary terms become valued ones
@@ -11,7 +12,8 @@ use rustc_hash::FxHashMap;
 
 use crate::network::Network;
 use crate::rng::Rng;
-use crate::space::Space;
+use crate::sampler::SanSettings;
+use crate::space::{EdgeIndex, Space};
 use crate::terms::{Term, TermSpec};
 
 /// A valued network: the nonzero values, with each vertex's neighbours
@@ -63,8 +65,8 @@ impl WtNetwork {
             if i >= n || j >= n || i == j {
                 return Err(format!("bad dyad ({i}, {j}) for {n} vertices"));
             }
-            if !v.is_finite() || v < 0.0 {
-                return Err(format!("dyad values must be finite and nonnegative, not {v}"));
+            if !v.is_finite() {
+                return Err(format!("dyad values must be finite, not {v}"));
             }
             net.set(i, j, v);
         }
@@ -107,6 +109,11 @@ impl WtNetwork {
     /// A nonzero dyad, uniformly.
     pub fn random_nonzero(&self, rng: &mut Rng) -> (u32, u32) {
         self.nonzero[rng.below(self.nonzero.len() as u64) as usize]
+    }
+
+    /// The nonzero dyads (i < j if undirected).
+    pub fn nonzero(&self) -> &[(u32, u32)] {
+        &self.nonzero
     }
 
     /// The nonzero dyads (i < j if undirected) with their values.
@@ -656,6 +663,11 @@ pub enum Reference {
     Geometric,
     Binomial(f64),
     DiscUnif(f64, f64),
+    /// Continuous uniform on [a, b], proposing values uniformly (ergm's Unif).
+    Unif(f64, f64),
+    /// Standard normal, proposing a dyad's value plus a normal step with this
+    /// standard deviation (ergm's StdNormal, whose default is 0.2).
+    StdNormal(f64),
 }
 
 const FUDGE: f64 = 0.5;
@@ -729,6 +741,8 @@ impl Reference {
                 Reference::Geometric => rgeom(1.0 / (from + 1.0 + FUDGE), rng),
                 Reference::Binomial(n) => rbinom(n, (from + FUDGE) / (n + 2.0 * FUDGE), rng),
                 Reference::DiscUnif(a, b) => (a + rng.unif() * (b - a + 1.0)).floor().min(b),
+                Reference::Unif(a, b) => a + rng.unif() * (b - a),
+                Reference::StdNormal(sd) => from + sd * rng.normal(),
             };
             if to != from {
                 return to;
@@ -752,15 +766,23 @@ impl Reference {
                 ldbinom(to, n, p) - (-ldbinom(from, n, p).exp()).ln_1p()
             }
             Reference::DiscUnif(a, b) => -(b - a).ln(),
+            // Symmetric proposals.
+            Reference::Unif(..) | Reference::StdNormal(_) => 0.0,
         }
+    }
+
+    /// Whether the values are continuous (proposed without DiscTNT's jumps to 0).
+    pub fn continuous(self) -> bool {
+        matches!(self, Reference::Unif(..) | Reference::StdNormal(_))
     }
 
     /// log h(y), the reference measure.
     pub fn log_h(self, y: f64) -> f64 {
         match self {
             Reference::Poisson => -ln_factorial(y),
-            Reference::Geometric | Reference::DiscUnif(..) => 0.0,
+            Reference::Geometric | Reference::DiscUnif(..) | Reference::Unif(..) => 0.0,
             Reference::Binomial(n) => ln_choose(n, y),
+            Reference::StdNormal(_) => -0.5 * y * y,
         }
     }
 }
@@ -774,12 +796,96 @@ pub struct WtChain {
 
 /// The proposal: ergm.count's DiscTNT (with `p0`, the probability of
 /// proposing a nonzero dyad's jump to 0) or Disc (without), over the free
-/// dyads of `space`.
+/// dyads of `space`; continuous references take no `p0`.
 pub struct WtProposal<'a> {
     pub reference: Reference,
     pub p0: Option<f64>,
     pub space: &'a Space,
     pub max_nonzero: usize,
+}
+
+/// A proposal's change of one dyad: (i, j) from `from` to `to`, and the
+/// log-ratio of the proposal's probabilities and the reference measure's.
+struct WtMove {
+    i: u32,
+    j: u32,
+    from: f64,
+    to: f64,
+    log_ratio: f64,
+}
+
+/// The proposal's state in a chain: the free dyads' count and the nonzero
+/// free dyads (ergm's E), indexed if some dyads are fixed.
+struct Proposer<'a> {
+    proposal: &'a WtProposal<'a>,
+    p0: Option<f64>,
+    dyads: f64,
+    blank: Network,
+    free_nonzero: EdgeIndex,
+}
+
+impl<'a> Proposer<'a> {
+    fn new(proposal: &'a WtProposal<'a>, net: &WtNetwork) -> Self {
+        let p0 = if proposal.reference.continuous() { None } else { proposal.p0 };
+        Self {
+            proposal,
+            p0,
+            dyads: proposal.space.n_free() as f64,
+            blank: Network::new(net.n(), net.directed()),
+            free_nonzero: EdgeIndex::of_pairs(proposal.space, net.nonzero()),
+        }
+    }
+
+    /// A move, or None if the proposal can't be made or changes nothing.
+    fn propose(&self, net: &WtNetwork, rng: &mut Rng) -> Option<WtMove> {
+        let reference = self.proposal.reference;
+        let e = self.free_nonzero.free_count().unwrap_or_else(|| net.n_nonzero());
+        let (i, j, to) = match self.p0 {
+            Some(p0) if e > 0 && rng.unif() < p0 => {
+                let (i, j) = self.free_nonzero.random_free(rng).unwrap_or_else(|| net.random_nonzero(rng));
+                (i, j, 0.0)
+            }
+            _ => {
+                let (i, j) = self.proposal.space.random_dyad(&self.blank, rng)?;
+                (i, j, reference.jump(net.get(i, j), rng))
+            }
+        };
+        let from = net.get(i, j);
+        if to == from {
+            return None;
+        }
+        if let Reference::DiscUnif(a, b) = reference
+            && (to < a || to > b)
+        {
+            return None;
+        }
+        let forward = reference.log_jump(from, to);
+        let backward = reference.log_jump(to, from);
+        let log_ratio = match self.p0 {
+            None => backward - forward,
+            Some(p0) => {
+                let q = 1.0 - p0;
+                let d_over = p0 * self.dyads / q;
+                let e = e as f64;
+                if from == 0.0 {
+                    (backward.exp() + d_over / (e + 1.0)).ln() - forward + if e == 0.0 { q.ln() } else { 0.0 }
+                } else if to == 0.0 {
+                    backward - (forward.exp() + d_over / e).ln() - if e == 1.0 { q.ln() } else { 0.0 }
+                } else {
+                    backward - forward
+                }
+            }
+        };
+        Some(WtMove { i, j, from, to, log_ratio: log_ratio + reference.log_h(to) - reference.log_h(from) })
+    }
+
+    /// Makes the move.
+    fn apply(&mut self, net: &mut WtNetwork, mv: &WtMove) {
+        net.set(mv.i, mv.j, mv.to);
+        if (mv.from == 0.0) != (mv.to == 0.0) {
+            self.free_nonzero.toggle(net.directed(), mv.i, mv.j, mv.to == 0.0);
+        }
+    }
 }
 
 /// Runs `burnin` steps, then records `samplesize` samples `interval` steps apart.
@@ -798,64 +904,22 @@ pub fn run_wt_chain(
     let mut stats = model.summary(&net);
     let p = stats.len();
     let mut delta = vec![0.0; p];
-    let blank = Network::new(net.n(), net.directed());
-    let space = proposal.space;
-    let dyads = space.n_free() as f64;
-    let reference = proposal.reference;
+    let mut proposer = Proposer::new(proposal, &net);
     let mut sample = Vec::with_capacity(samplesize * p);
     let mut networks = Vec::new();
     for step in 1..=burnin + interval * samplesize as u64 {
-        // Nonzero free dyads, approximately (fixed nonzero dyads are rare): ergm's E.
-        let e = net.n_nonzero();
-        let (i, j, to) = match proposal.p0 {
-            Some(p0) if e > 0 && rng.unif() < p0 => {
-                let (i, j) = net.random_nonzero(rng);
-                (i, j, 0.0)
+        // A proposal that can't be made, or changes nothing, still counts as a step.
+        if let Some(mv) = proposer.propose(&net, rng) {
+            model.change(&net, mv.i, mv.j, mv.from, mv.to, &mut delta);
+            let log_accept = mv.log_ratio
+                + theta.iter().zip(&delta).filter(|(_, d)| **d != 0.0).map(|(t, d)| t * d).sum::<f64>();
+            if log_accept >= 0.0 || rng.unif() < log_accept.exp() {
+                proposer.apply(&mut net, &mv);
+                stats.iter_mut().zip(&delta).for_each(|(s, d)| *s += d);
             }
-            _ => match space.random_dyad(&blank, rng) {
-                Some((i, j)) => (i, j, reference.jump(net.get(i, j), rng)),
-                None => continue,
-            },
-        };
-        if !space.is_free(i, j) {
-            continue;
-        }
-        let from = net.get(i, j);
-        if to == from {
-            continue;
-        }
-        if let Reference::DiscUnif(a, b) = reference
-            && (to < a || to > b)
-        {
-            continue;
-        }
-        let forward = reference.log_jump(from, to);
-        let backward = reference.log_jump(to, from);
-        let mut log_ratio = match proposal.p0 {
-            None => backward - forward,
-            Some(p0) => {
-                let q = 1.0 - p0;
-                let d_over = p0 * dyads / q;
-                let e = e as f64;
-                if from == 0.0 {
-                    (backward.exp() + d_over / (e + 1.0)).ln() - forward + if e == 0.0 { q.ln() } else { 0.0 }
-                } else if to == 0.0 {
-                    backward - (forward.exp() + d_over / e).ln() - if e == 1.0 { q.ln() } else { 0.0 }
-                } else {
-                    backward - forward
-                }
+            if net.n_nonzero() > proposal.max_nonzero {
+                return WtChain { stats: sample, networks, last: net, exceeded: true };
             }
-        };
-        log_ratio += reference.log_h(to) - reference.log_h(from);
-        model.change(&net, i, j, from, to, &mut delta);
-        let log_accept = log_ratio
-            + theta.iter().zip(&delta).filter(|(_, d)| **d != 0.0).map(|(t, d)| t * d).sum::<f64>();
-        if log_accept >= 0.0 || rng.unif() < log_accept.exp() {
-            net.set(i, j, to);
-            stats.iter_mut().zip(&delta).for_each(|(s, d)| *s += d);
-        }
-        if net.n_nonzero() > proposal.max_nonzero {
-            return WtChain { stats: sample, networks, last: net, exceeded: true };
         }
         if step > burnin && (step - burnin).is_multiple_of(interval) {
             sample.extend_from_slice(&stats);
@@ -865,6 +929,61 @@ pub fn run_wt_chain(
         }
     }
     WtChain { stats: sample, networks, last: net, exceeded: false }
+}
+
+/// The result of a valued simulated annealing run, as `sampler::San`.
+pub struct WtSan {
+    pub last: WtNetwork,
+    pub deviations: Vec<f64>,
+    pub proposed: Vec<f64>,
+}
+
+/// Simulated annealing of a valued network (ergm's SAN): as the binary one
+/// (`sampler::run_san`), with the valued proposals, whose probabilities and
+/// reference measure are ignored, as in ergm.
+pub fn run_wt_san(model: &WtModel, proposal: &WtProposal, mut net: WtNetwork, settings: &SanSettings, rng: &mut Rng) -> WtSan {
+    let stats = model.summary(&net);
+    let q = settings.targeted.len();
+    let mut delta = vec![0.0; stats.len()];
+    let mut deviations: Vec<f64> = settings.targeted.iter().zip(settings.target).map(|(&k, t)| stats[k] - t).collect();
+    let mut proposer = Proposer::new(proposal, &net);
+    let samples = settings.samplesize.max(1) as u64;
+    let interval = (settings.nsteps / samples).max(1);
+    let burnin = settings.nsteps.saturating_sub((samples - 1) * interval);
+    let (mut out, mut proposed_rows) = (Vec::new(), Vec::new());
+    let mut finished = deviations.iter().all(|&d| d == 0.0);
+    for sample in 0..samples {
+        let mut proposed = vec![0.0; q];
+        let steps = if sample == 0 { burnin } else { interval };
+        for _ in 0..steps {
+            if finished {
+                break;
+            }
+            let Some(mv) = proposer.propose(&net, rng) else { continue };
+            model.change(&net, mv.i, mv.j, mv.from, mv.to, &mut delta);
+            let mut energy = 0.0; // the change of (s - target)' W (s - target)
+            for (a, &k) in settings.targeted.iter().enumerate() {
+                proposed[a] += delta[k];
+                let weighted: f64 = settings.targeted.iter().enumerate().map(|(b, &l)| delta[l] * settings.weights[a * q + b]).sum();
+                energy += weighted * (delta[k] + 2.0 * deviations[a]);
+            }
+            let offset: f64 = settings.offsets.iter().filter(|&&(k, _)| delta[k] != 0.0).map(|&(k, eta)| eta * delta[k]).sum();
+            let accept = if settings.tau == 0.0 { energy - offset <= 0.0 } else { energy / settings.tau - offset <= -rng.unif().ln() };
+            if accept {
+                proposer.apply(&mut net, &mv);
+                for (a, &k) in settings.targeted.iter().enumerate() {
+                    deviations[a] += delta[k];
+                }
+                finished = deviations.iter().all(|&d| d == 0.0);
+            }
+        }
+        out.extend_from_slice(&deviations);
+        proposed_rows.extend_from_slice(&proposed);
+        if finished {
+            break;
+        }
+    }
+    WtSan { last: net, deviations: out, proposed: proposed_rows }
 }
 
 #[cfg(test)]
@@ -912,5 +1031,18 @@ mod tests {
         assert_eq!(s[2], 2.0);
         assert!((s[3] - (6f64 * 2.0 * 2.0).ln()).abs() < 1e-12);
         assert_eq!(s[4], 3.0);
+    }
+
+    #[test]
+    fn normal_draws_have_the_standard_moments() {
+        let mut rng = Rng::new(1);
+        let n = 200_000;
+        let draws: Vec<f64> = (0..n).map(|_| rng.normal()).collect();
+        let mean = draws.iter().sum::<f64>() / n as f64;
+        let var = draws.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / n as f64;
+        let kurtosis = draws.iter().map(|x| (x - mean).powi(4)).sum::<f64>() / n as f64 / (var * var);
+        assert!(mean.abs() < 0.01, "{mean}");
+        assert!((var - 1.0).abs() < 0.01, "{var}");
+        assert!((kurtosis - 3.0).abs() < 0.05, "{kurtosis}");
     }
 }

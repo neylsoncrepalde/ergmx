@@ -16,6 +16,14 @@ class FormulaError(ValueError):
     """The formula can't be parsed."""
 
 
+#: Multilayer terms' arguments of Layer Logic, kept as R text (as N()'s lm).
+_LAYER_SP = ("despL", "espL", "ddspL", "dspL", "dnspL", "nspL", "dgwespL", "gwespL", "dgwdspL", "gwdspL",
+             "dgwnspL", "gwnspL")
+_LAYER_ARGUMENTS = {"L": ("Ls",), "CMBL": ("Ls",), "twostarL": ("Ls",), "mutualL": ("Ls",),
+                    **dict.fromkeys(_LAYER_SP, ("Ls.path", "L.base"))}
+#: The position of Ls, given without its name (the shared partner terms' are named).
+_LAYER_POSITIONS = {"L": 1, "CMBL": 0, "twostarL": 0, "mutualL": 4, **dict.fromkeys(_LAYER_SP, -1)}
+
 #: The terms formulas are parsed with (another registry, for valued networks).
 _REGISTRY = [TERMS]
 
@@ -83,9 +91,9 @@ def _protect_linear_models(text: str) -> tuple[str, list[str]]:
     models: list[str] = []
     # The operators' arguments in R syntax: the second (or this keyword).
     keywords = {**dict.fromkeys(BLOCK_OPERATORS, ("lm", "subset", "offset", "weights")), "S": ("attrs",),
-                "mm": ("attrs",)}
+                "mm": ("attrs",), **_LAYER_ARGUMENTS}
     # The position of the first when it is given without its name.
-    positions = {"mm": 0}
+    positions = {"mm": 0, **_LAYER_POSITIONS}
     pattern = re.compile(r"(?<![\w.])(" + "|".join(keywords) + r")\s*\(")
     pos = 0
     while (m := pattern.search(text, pos)) is not None:
@@ -107,7 +115,10 @@ def _protect_linear_models(text: str) -> tuple[str, list[str]]:
             if name is not None:
                 value = argument[keyword.end():] if keyword else argument
                 models.append(value.strip())
-                text = text[:start] + f"{name}={len(models) - 1}" + text[stop:]
+                # The layer terms' stays positional (others may follow it), as its index.
+                index = f"{len(models) - 1}" if keyword is None and m.group(1) in _LAYER_ARGUMENTS else \
+                    f"{name}={len(models) - 1}"
+                text = text[:start] + index + text[stop:]
         pos = m.end()
     return text, models
 
@@ -176,6 +187,13 @@ def _terms(node: ast.expr, formula: str, models: list[str] = ()) -> list:
             return [_block_term(node, formula, models)]
         if name == "S":
             return [_subgraph_term(node, formula, models)]
+        if name in _OPERATOR_NAMES or name in ("I", "For"):
+            return _operator_terms(name, node, formula, models)
+        if name == "EdgeAges":
+            if len(node.args) != 1 or node.keywords:
+                raise FormulaError(f"EdgeAges() takes one formula, in {formula!r}")
+            inner = Formula(_terms(_one_sided(node.args[0], formula), formula, models))
+            return [_make(name, [inner], {})]
         if name == "mm":
             kwargs = {k.arg: _literal(k.value) for k in node.keywords}
             if "attrs" not in kwargs or node.args:
@@ -184,6 +202,12 @@ def _terms(node: ast.expr, formula: str, models: list[str] = ()) -> list:
             return [_make(name, [], kwargs)]
         args = [_literal(a) for a in node.args]
         kwargs = {k.arg: _literal(k.value) for k in node.keywords}
+        if name in _LAYER_ARGUMENTS:  # the Layer Logic's R text
+            for key in [k.replace(".", "_") for k in _LAYER_ARGUMENTS[name]]:
+                if key in kwargs:
+                    kwargs[key] = models[kwargs[key]]
+            if 0 <= _LAYER_POSITIONS[name] < len(args):
+                args[_LAYER_POSITIONS[name]] = models[args[_LAYER_POSITIONS[name]]]
         return [_make(name, args, kwargs)]
     raise FormulaError(f"can't parse {ast.unparse(node)!r} in the formula {formula!r}")
 
@@ -235,6 +259,96 @@ def _subgraph_term(node: ast.Call, formula: str, models: list[str]):
         raise FormulaError(f"S: {e}") from None
 
 
+_OPERATOR_NAMES = ("Sum", "Prod", "Log", "Exp", "Symmetrize", "Label", "Passthrough", "Offset", "Curve",
+                   "Parametrise", "Parametrize", "L")
+
+
+def _formula_terms(node: ast.expr, formula: str, models) -> list:
+    """The terms of a formula argument: one-sided (~terms), or a string."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return list(parse_formula(node.value))
+    if isinstance(node, (ast.List, ast.Tuple)) or (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                                                    and node.func.id in ("c", "list")):
+        elements = node.elts if isinstance(node, (ast.List, ast.Tuple)) else node.args
+        return [t for e in elements for t in _formula_terms(e, formula, models)]
+    return _terms(_one_sided(node, formula), formula, models)
+
+
+def _weighted_formulas(node: ast.expr, formula: str, models) -> list:
+    """Sum()'s and Prod()'s formulas, each with its weights (R's left side) or None."""
+    elements = node.args if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
+        and node.func.id in ("list", "c") else [node]
+    out = []
+    for e in elements:
+        if isinstance(e, ast.BinOp) and isinstance(e.op, ast.BitXor) \
+                and isinstance(e.right, ast.UnaryOp) and isinstance(e.right.op, ast.Invert):
+            out.append((_literal(e.left), Formula(_terms(e.right.operand, formula, models))))
+        else:
+            out.append((None, Formula(_formula_terms(e, formula, models))))
+    return out
+
+
+class _Substitute(ast.NodeTransformer):
+    """For()'s placeholder, replaced by a value."""
+
+    def __init__(self, name: str, value):
+        self.name, self.value = name, value
+
+    def visit_Name(self, node):
+        return ast.Constant(self.value) if node.id == self.name else node
+
+
+def _operator_terms(name: str, node: ast.Call, formula: str, models) -> list:
+    """ergm's operators with formula arguments: I() and For() splice terms
+    into the formula, the others are terms of a formula."""
+    from ._operators import OPERATORS, AsIs
+
+    args, kwargs = list(node.args), {k.arg: k.value for k in node.keywords}
+    if name == "For":
+        loops = [(k, _literal(v)) for k, v in kwargs.items()]
+        if len(args) != 1 or not loops:
+            raise FormulaError(f"For() takes a formula and one or more var = values, in {formula!r}")
+        bodies = [args[0]]
+        for var, values in loops:
+            values = values if isinstance(values, list) else [values]
+            bodies = [_Substitute(var, v).visit(ast.parse(ast.unparse(b), mode="eval").body)
+                      for b in bodies for v in values]
+        return [t for b in bodies for t in _formula_terms(b, formula, models)]
+    if "formula" in kwargs:
+        args.insert(0, kwargs.pop("formula"))
+    if "formulas" in kwargs:
+        args.insert(0, kwargs.pop("formulas"))
+    if not args:
+        raise FormulaError(f"{name}() takes a formula, in {formula!r}")
+    if name == "I":
+        if len(args) != 1 or kwargs:
+            raise FormulaError(f"I() takes a formula, in {formula!r}")
+        return _formula_terms(args[0], formula, models)
+
+    def label(value):
+        if isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id == "I":
+            inner = _literal(value.args[0])
+            return [AsIs(x) for x in inner] if isinstance(inner, list) else AsIs(inner)
+        return _literal(value)
+
+    rest = [label(a) for a in args[1:]]
+    options = {k: label(v) for k, v in kwargs.items()}
+    if name == "L":  # Ls, the Layer Logic's R text
+        from ._layers import L
+
+        layers = options.pop("Ls", rest[0] if rest else "~.")
+        return [L(Formula(_formula_terms(args[0], formula, models)), models[layers] if isinstance(layers, int)
+                  else layers)]
+    if name in ("Sum", "Prod"):
+        first = _weighted_formulas(args[0], formula, models)
+    else:
+        first = Formula(_formula_terms(args[0], formula, models))
+    try:
+        return [OPERATORS[name](first, *rest, **options)]
+    except (TypeError, ValueError) as e:
+        raise FormulaError(f"{name}: {e}") from None
+
+
 def _filter_term(node: ast.Call, formula: str, models: list[str] = ()):
     args = list(node.args) + [k.value for k in node.keywords if k.arg in ("formula", "filter")]
     if len(args) != 2:
@@ -272,6 +386,11 @@ def _r_syntax(text: str) -> str:
         parts[i] = re.sub(r"(?<![\w.])([io]?degree)1\.5(?![\w.])", r"\g<1>1_5", parts[i])
         parts[i] = re.sub(r"(?<![\w.])([A-Za-z]\w*)\.([A-Za-z]\w*)(?=\s*=(?!=))", r"\1_\2", parts[i])
         parts[i] = re.sub(r"(?<![\w.])lambda(?=\s*=(?!=))", "lambda_", parts[i])
+        # Two-sided formulas (Sum(list(2 ~ edges))): the left side, an operand,
+        # then "^", which Python parses, and the one-sided right side.
+        parts[i] = re.sub(r"(?<=[\w)\]])(\s*)~", r"\1^ ~", parts[i])
+        if i > 0:  # after a string, as 'sum' ~ degree(1:3)
+            parts[i] = re.sub(r"^(\s*)~", r"\1^ ~", parts[i])
     return "".join(parts)
 
 
@@ -294,6 +413,8 @@ def _literal(node: ast.expr):
         if isinstance(value, list) and all(map(number, value)):
             return [-v for v in value]  # R's -c(1, 3) and -(1:3)
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "c":
+        if node.keywords and not node.args:  # R's named vector, c(a = 0, b = 1)
+            return {_unquoted(k.arg): _literal(k.value) for k in node.keywords}
         return [_literal(a) for a in node.args]  # R's c(...)
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "matrix":
         return _r_matrix(node)
@@ -334,6 +455,8 @@ def _make(name: str, args: list, kwargs: dict):
     try:
         factory = registry[name]
     except KeyError:
+        if name in ("memory", "delrecip", "timecov"):
+            raise FormulaError(f"{name}() is a term of btergm(), of the networks before or of time") from None
         kind = "valued " if registry is not TERMS else ""
         raise FormulaError(f"unknown {kind}term {name!r}; available terms: {', '.join(registry)}") from None
     try:

@@ -285,25 +285,50 @@ def _make_unique(names: list[str]) -> list[str]:
 
 def _core_model(network: Network, formula: Formula) -> _core.Model:
     """The Rust core's model of a formula on a network."""
-    specs = [t.full_spec(network) for t in formula]
+    from ._userterms import collecting
+
+    with collecting() as callbacks:  # of the terms written in Python
+        specs = [t.full_spec(network) for t in formula]
     if network.combined:
         layout = [(b.start, b.network.n) for b in network.blocks]
         prev = [b.prev.edges for b in network.blocks] if network.series else None
-        return _core.Model(network.n, network.directed, specs, layout, prev)
-    return _core.Model(network.n, network.directed, specs)
+        return _core.Model(network.n, network.directed, specs, layout, prev, callbacks=callbacks)
+    return _core.Model(network.n, network.directed, specs, callbacks=callbacks)
+
+
+def _first_durational(formula):
+    """The first term of tie ages in the formula, inside operators too, or None."""
+    for term in formula:
+        if getattr(term, "durational", False):
+            return term
+        inner = getattr(term, "term", None)
+        inner = [inner] if inner is not None else getattr(term, "formula", None)
+        if inner is not None and not isinstance(inner, str):
+            found = _first_durational(inner)
+            if found is not None:
+                return found
+    return None
 
 
 def bind(network, formula, constraints=None, offset_coef=None, fitting=False,
-         bipartite=None) -> BoundModel:
+         bipartite=None, dynamic=False) -> BoundModel:
     """Bind a formula to a network, with constraints and offset coefficients.
 
     With `fitting`, offset terms need their coefficients, and statistics that
     the constraints keep constant are reported. `bipartite` names the vertex
-    attribute with the modes of a bipartite network."""
+    attribute with the modes of a bipartite network. Terms of tie ages
+    (tergm's durational terms) need `dynamic`: a model of a dynamic
+    simulation, which knows the ties' history."""
     network = as_network(network, bipartite)
     formula = as_formula(formula)
     if not len(formula):
         raise ValueError("the formula has no terms")
+    aged = _first_durational(formula)
+    if aged is not None and not dynamic:
+        raise ValueError(f"{aged!r} is a statistic of tie ages, which needs the ties' history: it can be a term "
+                         "of dynamic simulations (simulate_dynamic(), fit.simulate(time_slices=)) and of EGMME "
+                         "models, an EGMME target or a monitor, but, as in tergm, not a term of a model fitted by "
+                         "CMLE or ergm(), or of summary_stats()")
     for term in formula:
         term.check(network)
     constraints = parse_constraints(constraints)

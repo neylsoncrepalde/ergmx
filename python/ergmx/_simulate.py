@@ -35,7 +35,7 @@ def summary_stats(network, formula, *, bipartite=None, response=None) -> dict[st
     if response is not None:
         from ._valued import bind_valued
 
-        model = bind_valued(network, formula, response, bipartite=bipartite)
+        model = bind_valued(network, formula, response, None, bipartite=bipartite)
         return dict(zip(model.names, model.observed().tolist()))
     model = bind(network, formula, bipartite=bipartite)
     return dict(zip(model.stat_names, model.observed().tolist()))
@@ -98,12 +98,15 @@ def ergm(network, formula, *, constraints=None, offset_coef=None, bipartite=None
         MLE for the targets.
     response : str, optional
         For a valued network (ergm.count's), the edge attribute with the
-        dyads' counts; the formula's terms are then ergm's valued terms, and
-        the fit is by contrastive divergence and the Monte Carlo MLE.
+        dyads' values (an edge with a true ``na`` attribute, or without a
+        value, is a missing dyad); the formula's terms are then ergm's valued
+        terms, and the fit is by contrastive divergence and the Monte Carlo
+        MLE.
     reference : str
         The reference measure of the dyads' values: ``"Bernoulli"`` (binary
         networks), or, with ``response``, ``"Poisson"``, ``"Geometric"``,
-        ``"Binomial(trials)"`` or ``"DiscUnif(a, b)"``, as ergm's
+        ``"Binomial(trials)"`` or ``"DiscUnif(a, b)"`` for counts, and
+        ``"StdNormal"`` or ``"Unif(a, b)"`` for continuous values, as ergm's
         ``reference=~Poisson``.
     control : Control, optional
         MCMC and estimation settings. Keyword arguments (``samplesize=...``,
@@ -123,12 +126,17 @@ def ergm(network, formula, *, constraints=None, offset_coef=None, bipartite=None
             raise ValueError("a valued reference needs response=, the edge attribute with the values")
         if str(reference).lstrip("~").strip() == "Bernoulli":
             raise ValueError("valued networks need a reference measure: reference='Poisson', "
-                             "'Geometric', 'Binomial(trials)' or 'DiscUnif(a, b)'")
-        if target_stats is not None:
-            raise ValueError("target_stats are not supported for valued networks")
+                             "'Geometric', 'Binomial(trials)', 'DiscUnif(a, b)', 'StdNormal' or 'Unif(a, b)'")
         model = bind_valued(network, formula, response, reference, constraints=constraints,
                             offset_coef=offset_coef, bipartite=bipartite, fitting=True)
-        return fit_valued(model, estimate, init, control, np.random.default_rng(seed), seed, eval_loglik)
+        rng = np.random.default_rng(seed)
+        if target_stats is not None:
+            from ._san import SanControl, target_model
+
+            model.normal_sd = control.normal_sd
+            model = target_model(model, target_stats, san_control or SanControl(), rng, formula, constraints,
+                                 offset_coef, bipartite)
+        return fit_valued(model, estimate, init, control, rng, seed, eval_loglik)
     model = bind(network, formula, constraints, offset_coef, fitting=True, bipartite=bipartite)
     rng = np.random.default_rng(seed)
     if target_stats is not None:

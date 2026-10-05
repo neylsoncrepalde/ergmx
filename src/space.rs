@@ -499,6 +499,25 @@ impl EdgeIndex {
         Self { free: Some((edges, position)) }
     }
 
+    /// The free ones among `pairs` (canonical), indexed if some dyads are fixed.
+    pub fn of_pairs(space: &Space, pairs: &[(u32, u32)]) -> Self {
+        if !space.restricted() {
+            return Self { free: None };
+        }
+        let edges: Vec<(u32, u32)> = pairs.iter().copied().filter(|&(i, j)| space.is_free(i, j)).collect();
+        let position = edges.iter().enumerate().map(|(p, &(i, j))| (key(i, j), p)).collect();
+        Self { free: Some((edges, position)) }
+    }
+
+    /// The number of indexed ties, and a random one: None if every dyad is free.
+    pub fn free_count(&self) -> Option<usize> {
+        self.free.as_ref().map(|(edges, _)| edges.len())
+    }
+
+    pub fn random_free(&self, rng: &mut Rng) -> Option<(u32, u32)> {
+        self.free.as_ref().map(|(edges, _)| edges[rng.below(edges.len() as u64) as usize])
+    }
+
     pub fn count(&self, net: &Network) -> usize {
         match &self.free {
             None => net.n_edges(),

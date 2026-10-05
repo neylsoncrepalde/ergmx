@@ -3,6 +3,8 @@ and dynamic simulation, one time step after another."""
 
 from __future__ import annotations
 
+import sys
+
 import numpy as np
 
 from . import _core
@@ -166,9 +168,10 @@ class DynamicSimulation:
         return "\n".join(lines)
 
 
-def _monitor(start, edges, monitor, summary_stats) -> dict:
+def _monitor(start, edges, monitor, summary_stats, ages=None) -> dict:
     """The monitor's statistics of each network of a simulation; statistics of
-    tie ages count the ties of the starting network as formed at time 0."""
+    tie ages start from the starting network's `ages` (Ages; by default its
+    ties count as formed at time 0)."""
     from ._durational import Ages
     from .terms import Formula
 
@@ -179,7 +182,7 @@ def _monitor(start, edges, monitor, summary_stats) -> dict:
             for name, value in summary_stats(to_graph(start, e), Formula(plain)).items():
                 columns.setdefault(name, []).append(value)
     if durational:
-        ages = Ages(start.directed, start.edges)
+        ages = Ages(start.directed, start.edges) if ages is None else ages.copy()
         for e in edges:
             current = ages.step(e)
             for term in durational:
@@ -197,10 +200,33 @@ def _check_dynamic(model) -> None:
                                       "with fit.simulate(time_slices=...)")
 
 
+def _start_ages(start, ages):
+    """The ages of the starting network's ties: 1 (formed at time 0), or
+    those of the edge attribute `ages`."""
+    from ._durational import Ages
+
+    if ages is None:
+        return Ages(start.directed, start.edges)
+    ig = sys.modules.get("igraph")
+    source = start.source
+    if ig is not None and isinstance(source, ig.Graph):
+        if ages not in source.es.attributes():
+            raise ValueError(f"the network has no edge attribute {ages!r} with its ties' ages")
+        values = dict(zip(source.get_edgelist(), source.es[ages]))
+    else:
+        values = {(u, v): d.get(ages) for u, v, d in source.edges(data=True)}
+        index = {node: k for k, node in enumerate(source)}
+        values = {(index[u], index[v]): a for (u, v), a in values.items()}
+    found = [values.get((int(i), int(j)), values.get((int(j), int(i)))) for i, j in start.edges]
+    if any(a is None or not float(a).is_integer() or a < 1 for a in found):
+        raise ValueError(f"the ages of the ties ({ages!r}) must be whole numbers, 1 or more")
+    return Ages(start.directed, start.edges, np.array(found, dtype=int))
+
+
 def simulate_dynamic(network, formula, coef, time_slices: int = 1, *, nsim: int = 1,
                      constraints=None, bipartite=None, seed=None, monitor=None,
                      triadic_weight: float | None = None, min_steps: int = 1000,
-                     max_steps: int = 100_000, pval: float = 0.5, add: float = 1.0):
+                     max_steps: int = 100_000, pval: float = 0.5, add: float = 1.0, ages: str | None = None):
     """Simulate a network forward in time from a temporal ERGM, as R's tergm
     does with ``simulate(..., dynamic=TRUE)``.
 
@@ -231,8 +257,12 @@ def simulate_dynamic(network, formula, coef, time_slices: int = 1, *, nsim: int 
         Number of independent simulations, run in parallel.
     monitor : str or terms, optional
         A formula whose statistics are computed on each network, such as
-        ``"edges + mutual"``, and of the ages of its ties (``mean.age``...; the
-        ties of the starting network count as formed at time 0).
+        ``"edges + mutual"``, and of the ages of its ties (``mean.age``...).
+    ages : str, optional
+        An edge attribute with the ages of the starting network's ties, for
+        the terms and monitors of tie ages. By default they are 1, as if they
+        formed at time 0 (tergm counts them as formed long before, unless
+        the network has its ``lasttoggle`` attribute).
     constraints, bipartite, seed, triadic_weight
         As in :func:`ergmx.simulate`.
     min_steps, max_steps, pval, add
@@ -251,7 +281,7 @@ def simulate_dynamic(network, formula, coef, time_slices: int = 1, *, nsim: int 
         raise ValueError("simulate_dynamic() starts from a single network")
     if int(time_slices) < 1 or int(nsim) < 1:
         raise ValueError("need time_slices >= 1 and nsim >= 1")
-    model = bind(NetSeries(start, start), formula, constraints)
+    model = bind(NetSeries(start, start), formula, constraints, dynamic=True)
     _check_dynamic(model)
     if isinstance(coef, dict):
         coef = [coef[name] for name in model.names]
@@ -260,19 +290,21 @@ def simulate_dynamic(network, formula, coef, time_slices: int = 1, *, nsim: int 
         raise ValueError(f"coef must have {model.n_params} values, one per parameter: {model.names}")
     seed = int(np.random.default_rng(seed).integers(2**63))
     eta = model.eta(coef)
+    start_ages = _start_ages(start, ages)
     try:
         runs = model.core.simulate_series(
             [start.edges] * int(nsim), [float(v) for v in eta], int(time_slices), seed,
             min_steps=int(min_steps), max_steps=int(max_steps), pval=float(pval), add=float(add),
             triadic_weight=model.triadic_weight(triadic_weight), space=model.space,
+            ages=[start_ages.rows()] * int(nsim),
         )
     except _core.DensityGuardError as e:  # pragma: no cover - no limit is set
         raise RuntimeError(str(e)) from None
     results = []
-    for edges, stats, steps in runs:
+    for edges, stats, steps, _ in runs:
         tracked = None
         if monitor is not None:
-            tracked = _monitor(start, edges, monitor, summary_stats)
+            tracked = _monitor(start, edges, monitor, summary_stats, start_ages)
         results.append(DynamicSimulation(start, list(edges), np.asarray(stats), list(model.stat_names),
                                          list(steps), tracked))
     return results[0] if nsim == 1 else results
@@ -385,7 +417,8 @@ class _Process:
         runs = self.model.core.simulate_series(
             [edges], [float(v) for v in eta], int(steps), int(seed), min_steps=s["min_steps"],
             max_steps=s["max_steps"], pval=s["pval"], add=s["add"],
-            triadic_weight=self.model.triadic_weight(s["triadic_weight"]), space=self.model.space)
+            triadic_weight=self.model.triadic_weight(s["triadic_weight"]), space=self.model.space,
+            ages=[ages.rows()])
         networks = runs[0][0]
         values = np.array([self.targets(e, ages.step(e)) for e in networks])
         final = (networks[-1], ages)
@@ -461,7 +494,7 @@ def _egmme(network, formula, targets, target_stats, *, constraints, init, seed, 
     start = as_network(network)
     if start.combined:
         raise ValueError("the EGMME fits a single network: give one network, not a series")
-    model = bind(NetSeries(start, start), formula, constraints)
+    model = bind(NetSeries(start, start), formula, constraints, dynamic=True)
     _check_dynamic(model)
     if targets is None:
         raise ValueError("the EGMME needs targets=, a formula of the statistics to match")
@@ -622,7 +655,7 @@ def simulate_varying(model, params, time_slices: int, *, nsim: int = 1, seed=Non
             max_steps=int(max_steps), pval=float(pval), add=float(add),
             triadic_weight=step_model.triadic_weight(triadic_weight), space=step_model.space)
         states = []
-        for (edges, stats, steps), (all_edges, all_stats, all_steps) in zip(runs, collected):
+        for (edges, stats, steps, _), (all_edges, all_stats, all_steps) in zip(runs, collected):
             all_edges.append(edges[0])
             all_stats.append(np.asarray(stats)[0])
             all_steps.append(steps[0])

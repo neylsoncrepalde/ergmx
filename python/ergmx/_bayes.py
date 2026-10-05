@@ -27,6 +27,7 @@ from . import _core
 from ._estimation import (
     Control,
     _lower_bounds,
+    _upper_bounds,
     _max_edges,
     autocorrelation_time,
     contrastive_divergence,
@@ -162,7 +163,7 @@ def bergm(network, formula, *, prior_mean=None, prior_sigma=None, burn_in: int =
     if sigma.shape != (dim, dim) or not np.allclose(sigma, sigma.T) or np.linalg.eigvalsh(sigma).min() <= 0:
         raise ValueError(f"prior_sigma must be a {dim} x {dim} positive definite matrix (or its diagonal)")
     log_prior = _log_prior(mean, sigma)
-    lower = _lower_bounds(model)[free]
+    lower, upper = _lower_bounds(model)[free], _upper_bounds(model)[free]
     rng = np.random.default_rng(seed)
 
     if start is None:
@@ -177,7 +178,7 @@ def bergm(network, formula, *, prior_mean=None, prior_sigma=None, burn_in: int =
         if centre.shape != (dim,):
             raise ValueError(f"start must have {dim} values (the estimated coefficients) or {model.n_params}")
     theta = centre[None, :] + rng.uniform(-0.1, 0.1, size=(nchains, dim))
-    theta = np.maximum(theta, lower)
+    theta = np.minimum(np.maximum(theta, lower), upper)
     full = np.tile(np.where(model.fixed, model.fixed_values, 0.0), (nchains, 1))
 
     def eta(free_values):
@@ -207,7 +208,7 @@ def bergm(network, formula, *, prior_mean=None, prior_sigma=None, burn_in: int =
             for row, h in enumerate(group):
                 a, b = rng.choice(others, size=2, replace=False)
                 proposals[row] = theta[h] + gamma * (theta[a] - theta[b]) + step * rng.standard_normal(dim)
-            inside = np.all(proposals >= lower, axis=1)
+            inside = np.all((proposals >= lower) & (proposals <= upper), axis=1)
             etas = [eta(p) for p in proposals]
             stats, _ = aux.draw([imputed[h] for h in group], etas)
             for row, h in enumerate(group):
@@ -433,7 +434,9 @@ class BergmSummary:
         sd = f.draws.std(axis=0, ddof=1)
         q = f.quantiles()
         width = max(len(name) for name in f.names)
-        lines = [f"Posterior density estimate for the model: {f._model.formula!r}", "",
+        calibrated = f.settings.get("method") == "bergmC"
+        kind = "Calibrated pseudo-posterior (bergmC)" if calibrated else "Posterior density estimate"
+        lines = [f"{kind} for the model: {f._model.formula!r}", "",
                  f"{'':<{width}}  {'Mean':>9}  {'SD':>8}  {'Naive SE':>8}  {'Time-series SE':>14}  "
                  f"{'ESS':>6}  {'R-hat':>6}"]
         rhat = list(f.rhat.values())
@@ -444,8 +447,13 @@ class BergmSummary:
         for k, name in enumerate(f.names):
             lines.append(f"{name:<{width}}  " + "  ".join(f"{v:8.4f}" for v in q[k]))
         s = f.settings
-        lines += ["", f"Acceptance rate: {f.acceptance_rate:.2f}.  {s['nchains']} chains of {s['main_iters']} "
-                      f"draws (after {s['burn_in']}), auxiliary networks of {s['aux_iters']} proposals."]
+        if calibrated:
+            lines += ["", f"Acceptance rate: {f.acceptance_rate:.2f}.  The calibrated pseudo-posterior of "
+                          f"{s['main_iters']} draws (after {s['burn_in']}), moved to the posterior mode found in "
+                          f"{s['rm_iters']} Robbins-Monro steps."]
+        else:
+            lines += ["", f"Acceptance rate: {f.acceptance_rate:.2f}.  {s['nchains']} chains of {s['main_iters']} "
+                          f"draws (after {s['burn_in']}), auxiliary networks of {s['aux_iters']} proposals."]
         if max(rhat) > 1.1:
             lines.append("Some R-hat are above 1.1: the chains disagree; run longer chains (main_iters).")
         return "\n".join(lines)

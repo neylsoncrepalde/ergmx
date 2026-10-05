@@ -25,6 +25,11 @@ Bayesian ERGMs
    bergm
    BergmFit
    BergmSummary
+   bergmC
+   evidence
+   ModelEvidence
+   ergm_apl
+   AdjustedPL
 
 Egocentric data
 ---------------
@@ -45,9 +50,15 @@ Several networks, and networks over time
 
    Networks
    NetSeries
+   Layer
    tergm
    EgmmeFit
    simulate_dynamic
+   btergm
+   BtergmFit
+   memory
+   delrecip
+   timecov
    DynamicSimulation
 
 Results
@@ -96,7 +107,13 @@ Terms
 
 Call the functions to build a formula (``edges() + gwesp(0.5, fixed=True)``),
 or write it as a string. See the :doc:`term reference <terms>` for the
-statistics.
+statistics, and for terms written in Python:
+
+.. autosummary::
+   :toctree: generated/
+
+   UserTerm
+   register_term
 
 .. autosummary::
    :toctree: generated/
@@ -249,9 +266,10 @@ Operators
 Statistics of tie ages
 ----------------------
 
-tergm's durational statistics: targets of the EGMME and monitors of dynamic
-simulations (see the :doc:`user guide <user-guide/temporal>`); in formula
-strings, by their R names (``mean.age``...).
+tergm's durational statistics: targets of the EGMME, monitors of dynamic
+simulations and terms of their models (see the :doc:`user guide
+<user-guide/temporal>`); in formula strings, by their R names (``mean.age``,
+``degree.mean.age``, ``EdgeAges``...).
 
 .. autosummary::
    :toctree: generated/
@@ -260,7 +278,11 @@ strings, by their R names (``mean.age``...).
    mean_age
    edges_ageinterval
    edgecov_ages
+   edgecov_mean_age
    nodefactor_mean_age
+   nodemix_mean_age
+   degree_mean_age
+   degrange_mean_age
 
 Multilevel terms
 ----------------

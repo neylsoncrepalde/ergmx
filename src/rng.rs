@@ -37,6 +37,18 @@ impl Rng {
         (self.next_u64() >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
     }
 
+    /// Standard normal (Marsaglia's polar method).
+    pub fn normal(&mut self) -> f64 {
+        loop {
+            let u = 2.0 * self.unif() - 1.0;
+            let v = 2.0 * self.unif() - 1.0;
+            let s = u * u + v * v;
+            if s > 0.0 && s < 1.0 {
+                return u * (-2.0 * s.ln() / s).sqrt();
+            }
+        }
+    }
+
     /// Uniform integer in [0, n). The modulo bias is below n / 2^53.
     #[inline]
     pub fn below(&mut self, n: u64) -> u64 {

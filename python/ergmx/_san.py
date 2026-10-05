@@ -104,10 +104,12 @@ def anneal(model: BoundModel, target: np.ndarray, control: SanControl, rng: np.r
         tau = control.tau * ((1 / i - 1 / control.maxit) / (1 - 1 / control.maxit)) if control.maxit > 1 else 0.0
         # At zero temperature only infinite offsets act, as in ergm.
         run_offsets = offsets if tau > np.finfo(float).eps else [(k, e) for k, e in offsets if not np.isfinite(e)]
-        edges, sample, proposed = model.core.san(
+        valued = getattr(model, "valued", False)
+        run = model.san if valued else model.core.san
+        edges, sample, proposed = run(
             edges, targeted, [float(t) for t in target], run_offsets,
             [float(w) for w in weights.ravel()], float(tau), int(steps[i - 1]), control.samplesize,
-            int(rng.integers(2**63)), triadic, space=model.space)
+            int(rng.integers(2**63)), triadic, **({} if valued else {"space": model.space}))
         deviations = sample[-1]
         runs.append(edges)
         log.info("SAN run %d: temperature %.3g, %d proposals, largest deviation %.4g", i, tau, steps[i - 1],
@@ -126,7 +128,8 @@ def anneal(model: BoundModel, target: np.ndarray, control: SanControl, rng: np.r
 
 
 def san(network, formula, target_stats, *, constraints=None, offset_coef=None, bipartite=None,
-        seed=None, only_last: bool = True, control: SanControl | None = None, **control_args):
+        seed=None, only_last: bool = True, control: SanControl | None = None, response: str | None = None,
+        reference="Bernoulli", **control_args):
     """A network whose statistics are near ``target_stats``, by simulated
     annealing from ``network``, as ergm's ``san()``.
 
@@ -157,6 +160,10 @@ def san(network, formula, target_stats, *, constraints=None, offset_coef=None, b
         Return the last network, or (False) each run's.
     control : SanControl, optional
         Settings; keyword arguments (``nsteps=...``, ``maxit=...``) override single ones.
+    response, reference : str, optional
+        For a valued network, as in :func:`ergm`: the edge attribute with the
+        values, and their reference measure, whose proposals the search
+        makes. The networks returned have their values in ``response``.
 
     Returns
     -------
@@ -164,15 +171,23 @@ def san(network, formula, target_stats, *, constraints=None, offset_coef=None, b
     networks), or a list of them, one per run, without ``only_last``.
     """
     control = dataclasses.replace(control or SanControl(), **control_args)
-    model = bind(network, formula, constraints, offset_coef=offset_coef, bipartite=bipartite)
+    if response is not None:
+        from ._valued import bind_valued, to_valued_graphs
+
+        if str(reference).lstrip("~").strip() == "Bernoulli":
+            raise ValueError("valued networks need a reference measure, such as reference='Poisson'")
+        model = bind_valued(network, formula, response, reference, constraints=constraints,
+                            offset_coef=offset_coef, bipartite=bipartite)
+    else:
+        model = bind(network, formula, constraints, offset_coef=offset_coef, bipartite=bipartite)
     if any(t.is_offset for t in model.formula) and offset_coef is None:
         raise ValueError("give the offset terms' coefficients with offset_coef=, as ergm's san() needs")
     targeted, _ = _targeted(model)
     target = _target_vector(model, targeted, target_stats)
     result, _ = anneal(model, target, control, np.random.default_rng(seed), only_last)
-    if only_last:
-        return to_graphs(model.network, result)
-    return [to_graphs(model.network, edges) for edges in result]
+    convert = (lambda t: to_valued_graphs(model, t, response)) if response is not None \
+        else (lambda edges: to_graphs(model.network, edges))
+    return convert(result) if only_last else [convert(r) for r in result]
 
 
 def target_model(model: BoundModel, target_stats, control: SanControl, rng, formula, constraints,
@@ -188,8 +203,13 @@ def target_model(model: BoundModel, target_stats, control: SanControl, rng, form
     if np.any(deviations != 0):
         log.info("SAN did not reach the target statistics exactly (largest deviation %.4g)",
                  np.max(np.abs(deviations)))
-    network = dataclasses.replace(model.network, edges=edges, missing=model.network.missing[:0])
-    fitted = _bind(network, formula, constraints, offset_coef, fitting=True, bipartite=bipartite)
+    if getattr(model, "valued", False):
+        binary = dataclasses.replace(model.binary, missing=model.binary.missing[:0])
+        fitted = dataclasses.replace(model, binary=binary, triples=np.asarray(edges, dtype=float).reshape(-1, 3))
+        fitted.normal_sd = model.normal_sd
+    else:
+        network = dataclasses.replace(model.network, edges=edges, missing=model.network.missing[:0])
+        fitted = _bind(network, formula, constraints, offset_coef, fitting=True, bipartite=bipartite)
     full = fitted.observed()
     full[targeted] = target
     object.__setattr__(fitted, "target", full)

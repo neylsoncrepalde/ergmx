@@ -91,6 +91,9 @@ class Network:
         kind = "directed" if self.directed else "undirected"
         if self.blocks is None:
             return f"<Network: {self.n} vertices, {len(self.edges)} edges, {kind}>"
+        layers = self.graph_attributes.get("_layers")
+        if layers is not None:
+            return f"<Layer: {', '.join(layers)} of {self.blocks[0].network.n} vertices, {kind}>"
         what = "transitions" if self.series else "networks"
         sizes = sorted({b.network.n for b in self.blocks})
         size = f"{sizes[0]}" if len(sizes) == 1 else f"{sizes[0]} to {sizes[-1]}"
@@ -216,10 +219,13 @@ def _read(x: Any) -> Network:
 
 def to_graphs(network: Network, edges: np.ndarray) -> Any:
     """A graph like `network`'s with the given edges, or, for a combined
-    network, a list of graphs: one per network."""
+    network, a list of graphs: one per network (for Layer(), a dict of them
+    by layer name, which Layer() takes back)."""
     if network.blocks is None:
         return to_graph(network, edges)
-    return [to_graph(b.network, e) for b, e in zip(network.blocks, network.split(edges))]
+    graphs = [to_graph(b.network, e) for b, e in zip(network.blocks, network.split(edges))]
+    layers = network.graph_attributes.get("_layers")
+    return dict(zip(layers, graphs)) if layers is not None else graphs
 
 
 def to_graph(network: Network, edges: np.ndarray) -> Any:

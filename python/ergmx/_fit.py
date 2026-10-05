@@ -375,8 +375,8 @@ class FitSummary:
             se_text = f" (MC SE {fit.loglik_se:.3f})" if fit.loglik_se else ""
             kind = "Log-likelihood, relative to the null model" if fit.loglik_relative else "Log-likelihood"
             lines.append(f"{kind}: {fit.loglik:.4f}{se_text}   AIC: {fit.aic:.4f}   BIC: {fit.bic:.4f}")
-        elif getattr(model, "valued", False) and model.reference[0] == "Geometric":
-            lines.append("Log-likelihood: not computed (the geometric reference can't be normalized).")
+        elif getattr(model, "valued", False) and model.loglik_unavailable:
+            lines.append(f"Log-likelihood: not computed ({model.loglik_unavailable}).")
         else:
             lines.append("Log-likelihood: not computed (eval_loglik=False).")
         if model.constraints:
@@ -387,7 +387,7 @@ class FitSummary:
             lines.append("Fitted to target statistics, from a network simulated towards them (san()).")
         if model.network.combined:
             what = "transitions, each conditional on the network before it" if model.network.series \
-                else "networks"
+                else "layers of a network" if "_layers" in model.network.graph_attributes else "networks"
             lines.append(f"Fitted to {len(model.network.blocks)} {what}.")
         if fit.method == "MCMLE":
             status = "Converged" if fit.converged else "Did NOT converge"

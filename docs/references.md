@@ -48,6 +48,9 @@ Works without a DOI link to a search for them.
   networks. *Journal of the American Statistical Association*, 118(544),
   2213–2224.
   [doi:10.1080/01621459.2023.2242627](https://doi.org/10.1080/01621459.2023.2242627)
+- Krivitsky, P. N., Koehly, L. M. and Marcum, C. S. (2020). Exponential-family
+  random graph models for multi-layer networks. *Psychometrika*, 85(3),
+  630–659. [doi:10.1007/s11336-020-09720-7](https://doi.org/10.1007/s11336-020-09720-7)
 - Krivitsky, P. N. and Handcock, M. S. (2014). A separable model for dynamic
   networks. *Journal of the Royal Statistical Society, Series B*, 76(1),
   29–46. [doi:10.1111/rssb.12014](https://doi.org/10.1111/rssb.12014)
