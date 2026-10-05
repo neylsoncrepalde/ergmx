@@ -105,17 +105,21 @@ def test_the_strengths_objective_is_ergm_tapereds(name):
 
 
 def test_brents_method_is_rs_optimize():
-    """The minima R's optimize() finds (R 4.5), to the last digit (but the
-    power function's)."""
+    """The minima R's optimize() finds (R 4.5): the same steps, to the
+    rounding of the functions' values (sine and powers differ in their last
+    digit between platforms and NumPy's versions), where Brent's method
+    stops within 1e-4."""
+    import math
+
     from ergmx._tapered import _brent_min
 
-    cases = [(lambda x: np.sin(3 * x) + 0.1 * x * x, (-2, 2), -0.51220133121067679),
+    cases = [(lambda x: math.sin(3 * x) + 0.1 * x * x, (-2, 2), -0.51220133121067679),
              (lambda x: (x - 1 / 3) ** 2, (0, 1), 0.33333333333333331),
              (lambda x: abs(x - 2.5) + 0.01 * x, (0, 3), 2.500007253369108),
              (lambda x: -x, (1 / 3 + 1e-4, 3 - 1e-4), 2.9998326700838729),
              (lambda x: x**4 - 3 * x, (-1, 2), 0.90857123365776771)]
     for f, interval, minimum in cases:
-        assert _brent_min(f, *interval) == pytest.approx(minimum, rel=0, abs=4e-16)
+        assert _brent_min(f, *interval) == pytest.approx(minimum, rel=0, abs=1e-12)
 
 
 ESTIMATED = list(R["estimated"]) if R and "estimated" in R else []

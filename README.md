@@ -409,6 +409,25 @@ Rscript scripts/r_reference.R && Rscript scripts/r_gof_reference.R
 Rscript benchmarks/benchmark.R && uv run python benchmarks/benchmark.py
 ```
 
+## Citing ergmx
+
+If you use ergmx in your work, please cite it:
+
+> Crepalde N (2026). ergmx: Exponential-Family Random Graph Models in Python.
+> Python package version 0.6.0, <https://github.com/neylsoncrepalde/ergmx>.
+
+A BibTeX entry for LaTeX users:
+
+```bibtex
+@Manual{ergmx,
+  author  = {Neylson Crepalde},
+  title   = {{ergmx}: Exponential-Family Random Graph Models in {Python}},
+  year    = {2026},
+  note    = {Python package version 0.6.0},
+  url     = {https://github.com/neylsoncrepalde/ergmx},
+}
+```
+
 ## License
 
 GPL-3.0, like R's ergm.
